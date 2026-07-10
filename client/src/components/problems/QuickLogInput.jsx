@@ -45,6 +45,17 @@ export default function QuickLogInput({ onSave, user }) {
     }
   }
 
+  const handleManualAdd = () => {
+    setPreview({
+      title: 'Custom Problem',
+      url: '',
+      platform: 'Other',
+      tag: 'General',
+      difficulty: 'Medium',
+    })
+    setError('')
+  }
+
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file || isOffline) return
@@ -99,46 +110,65 @@ export default function QuickLogInput({ onSave, user }) {
   }
 
   const handleBulkImport = async () => {
-    const urls = bulkUrls
+    const lines = bulkUrls
       .split('\n')
-      .map((u) => u.trim())
+      .map((l) => l.trim())
       .filter(Boolean)
-    if (urls.length === 0 || isOffline) return
+    if (lines.length === 0 || isOffline) return
 
     setBulkImporting(true)
     setError('')
     try {
       let successCount = 0
-      for (const u of urls) {
-        try {
-          const parsed = await parseUrl(u)
+      for (const line of lines) {
+        const isUrl = line.startsWith('http://') || line.startsWith('https://')
+        if (isUrl) {
+          try {
+            const parsed = await parseUrl(line)
+            await onSave({
+              title: parsed.title,
+              url: parsed.url || line,
+              platform: parsed.platform,
+              tag: parsed.tag,
+              difficulty: parsed.difficulty,
+              confidenceStatus: 'Red',
+              notes: 'Bulk imported link',
+              problemType,
+              attachments: [],
+            })
+            successCount++
+          } catch {
+            let title = 'Custom Problem'
+            let platform = 'Other'
+            try {
+              const urlObj = new URL(line)
+              const slug = urlObj.pathname.split('/').filter(Boolean).pop() || 'Problem'
+              title = slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+              platform = line.includes('leetcode') ? 'LeetCode' : line.includes('geeksforgeeks') ? 'GeeksforGeeks' : 'Other'
+            } catch {}
+            await onSave({
+              title,
+              url: line,
+              platform,
+              tag: 'General',
+              difficulty: 'Medium',
+              confidenceStatus: 'Red',
+              notes: 'Bulk imported link (unparsed)',
+              problemType,
+              attachments: [],
+            })
+            successCount++
+          }
+        } else {
+          // Direct text question title!
           await onSave({
-            title: parsed.title,
-            url: parsed.url || u,
-            platform: parsed.platform,
-            tag: parsed.tag,
-            difficulty: parsed.difficulty,
-            confidenceStatus: 'Red',
-            notes: 'Bulk imported link',
-            problemType,
-            attachments: [],
-          })
-          successCount++
-        } catch {
-          // Construct basic fallback if parse fails
-          const urlObj = new URL(u)
-          const slug = urlObj.pathname.split('/').filter(Boolean).pop() || 'Problem'
-          const title = slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-          const platform = u.includes('leetcode') ? 'LeetCode' : u.includes('geeksforgeeks') ? 'GeeksforGeeks' : 'Other'
-
-          await onSave({
-            title,
-            url: u,
-            platform,
+            title: line,
+            url: '',
+            platform: 'Other',
             tag: 'General',
             difficulty: 'Medium',
             confidenceStatus: 'Red',
-            notes: 'Bulk imported link (unparsed)',
+            notes: 'Bulk manual entry',
             problemType,
             attachments: [],
           })
@@ -147,7 +177,7 @@ export default function QuickLogInput({ onSave, user }) {
       }
       setBulkUrls('')
       setPreview(null)
-      setError(`Successfully imported ${successCount} problems in bulk!`)
+      setError(`Successfully imported ${successCount} questions in bulk!`)
     } catch (e) {
       setError('Bulk import failed: ' + e.message)
     } finally {
@@ -165,14 +195,14 @@ export default function QuickLogInput({ onSave, user }) {
             variant={mode === 'single' ? 'default' : 'ghost'}
             onClick={() => { setMode('single'); setError(''); }}
           >
-            Single Link
+            Single Entry
           </Button>
           <Button
             size="sm"
             variant={mode === 'bulk' ? 'default' : 'ghost'}
             onClick={() => { setMode('bulk'); setError(''); }}
           >
-            Bulk Paste
+            Bulk Upload
           </Button>
         </div>
 
@@ -205,7 +235,7 @@ export default function QuickLogInput({ onSave, user }) {
           <div className="relative flex-1">
             <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
             <Input
-              placeholder="Paste a LeetCode or GFG URL..."
+              placeholder="Paste a LeetCode/GFG URL, or click Add Manually..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleParse()}
@@ -213,17 +243,22 @@ export default function QuickLogInput({ onSave, user }) {
               disabled={isOffline}
             />
           </div>
-          <Button onClick={handleParse} disabled={parsing || !url.trim() || isOffline}>
-            {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Parse'}
-          </Button>
+          <div className="flex gap-1.5 shrink-0">
+            <Button onClick={handleParse} disabled={parsing || !url.trim() || isOffline}>
+              {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Parse'}
+            </Button>
+            <Button variant="outline" onClick={handleManualAdd} className="bg-elevated border border-border text-text-primary hover:bg-hover">
+              + Add Manually
+            </Button>
+          </div>
         </div>
       ) : (
-        /* Bulk URL log */
+        /* Bulk URL & Title log */
         <div className="space-y-3">
           <textarea
             value={bulkUrls}
             onChange={(e) => setBulkUrls(e.target.value)}
-            placeholder="Paste multiple URLs here (one URL per line)..."
+            placeholder="Paste multiple URLs or raw question titles here (one item per line)..."
             className="w-full h-32 bg-card border border-border-subtle rounded-md p-3 text-body outline-none focus:border-border-hover resize-none"
             disabled={isOffline || bulkImporting}
           />
@@ -235,12 +270,12 @@ export default function QuickLogInput({ onSave, user }) {
             {bulkImporting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Importing Problems...
+                Importing Questions...
               </>
             ) : (
               <>
                 <ClipboardList className="h-4 w-4" />
-                Bulk Import Problems
+                Bulk Import Questions
               </>
             )}
           </Button>
@@ -258,21 +293,41 @@ export default function QuickLogInput({ onSave, user }) {
                 value={preview.title}
                 onChange={(e) => setPreview({ ...preview, title: e.target.value })}
                 className="flex-1 min-w-[200px]"
+                placeholder="Question Name"
               />
               <Input
                 value={preview.tag}
                 onChange={(e) => setPreview({ ...preview, tag: e.target.value })}
-                className="w-[140px]"
-                placeholder="Tag"
+                className="w-[120px]"
+                placeholder="Tag (e.g. Arrays)"
               />
-              <Badge variant="secondary">{preview.platform}</Badge>
-              <Badge variant="outline">{preview.difficulty}</Badge>
+              
+              <select
+                value={preview.platform}
+                onChange={(e) => setPreview({ ...preview, platform: e.target.value })}
+                className="bg-surface border border-border-subtle rounded-md text-xs px-2.5 py-1.5 outline-none text-text-primary h-10 shrink-0 font-medium"
+              >
+                <option value="LeetCode">LeetCode</option>
+                <option value="GeeksforGeeks">GeeksforGeeks</option>
+                <option value="HackerRank">HackerRank</option>
+                <option value="Other">Other</option>
+              </select>
+
+              <select
+                value={preview.difficulty}
+                onChange={(e) => setPreview({ ...preview, difficulty: e.target.value })}
+                className="bg-surface border border-border-subtle rounded-md text-xs px-2.5 py-1.5 outline-none text-text-primary h-10 shrink-0 font-medium"
+              >
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
             </div>
 
             <ConfidenceToggle value={confidence} onChange={setConfidence} />
 
             <Input
-              placeholder="Optional note (one line)"
+              placeholder="Optional notes or solution reminders"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
