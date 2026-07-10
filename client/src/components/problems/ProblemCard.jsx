@@ -17,7 +17,7 @@ function isDue(nextReviewDate) {
 function getFaviconUrl(url) {
   try {
     const hostname = new URL(url).hostname
-    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`
+    return `https://icons.duckduckgo.com/ip3/${hostname}.ico`
   } catch {
     return null
   }

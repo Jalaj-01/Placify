@@ -40,9 +40,7 @@ export default function TopicChecklist({ title, topics, onUpdate, onAdd, onDelet
             <span
               onClick={(e) => {
                 e.stopPropagation()
-                if (window.confirm(`Are you sure you want to delete the entire section "${title}"?`)) {
-                  onDeleteCategory(title)
-                }
+                onDeleteCategory(title)
               }}
               className="p-1 rounded text-text-muted hover:text-semantic-red hover:bg-hover transition-colors cursor-pointer"
               title="Delete section"

@@ -9,15 +9,18 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import TopicChecklist from '@/components/topics/TopicChecklist'
 import SubjectFilter from '@/components/topics/SubjectFilter'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { SUBJECT_LABELS } from '@/utils/topicSeeds'
 
 export default function Topics() {
   const { user } = useAuth()
-  const { topics, loading, updateTopic, addTopic, deleteTopic } = useTopics(user?.uid)
+  const { topics, loading, updateTopic, addTopic, deleteTopic, deleteCategory } = useTopics(user?.uid)
+
   
   const [showAddSection, setShowAddSection] = useState(false)
   const [newSectionName, setNewSectionName] = useState('')
   const [sectionSubject, setSectionSubject] = useState('OS')
+  const [deleteConfirmSection, setDeleteConfirmSection] = useState(null)
 
   const [activeTab, setActiveTab] = useState('dsa')
 
@@ -272,7 +275,7 @@ export default function Topics() {
                   onUpdate={handleUpdate}
                   onAdd={(name) => handleAddCustom('DSA', category, name)}
                   onDelete={deleteTopic}
-                  onDeleteCategory={deleteCategory}
+                  onDeleteCategory={setDeleteConfirmSection}
                 />
               )
             })
@@ -298,7 +301,7 @@ export default function Topics() {
                           onUpdate={handleUpdate}
                           onAdd={(name) => handleAddCustom(subject, category, name)}
                           onDelete={deleteTopic}
-                          onDeleteCategory={deleteCategory}
+                          onDeleteCategory={setDeleteConfirmSection}
                         />
                       )
                     })}
@@ -330,7 +333,7 @@ export default function Topics() {
                           onUpdate={handleUpdate}
                           onAdd={(name) => handleAddCustom(subject, category, name)}
                           onDelete={deleteTopic}
-                          onDeleteCategory={deleteCategory}
+                          onDeleteCategory={setDeleteConfirmSection}
                         />
                       )
                     })}
@@ -353,6 +356,35 @@ export default function Topics() {
           )}
         </div>
       )}
+      {/* Delete Section Dialog */}
+      <Dialog open={!!deleteConfirmSection} onOpenChange={() => setDeleteConfirmSection(null)}>
+        <DialogContent className="sm:max-w-[425px] bg-card border border-border-subtle">
+          <DialogHeader>
+            <DialogTitle className="text-body font-bold text-text-primary">Delete Section</DialogTitle>
+            <DialogDescription className="text-xs text-text-secondary">
+              Are you sure you want to delete the section &quot;{deleteConfirmSection}&quot;? This will delete all topics inside this category. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-2 mt-4 text-xs">
+            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmSection(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={async () => {
+                if (deleteConfirmSection) {
+                  await deleteCategory(deleteConfirmSection)
+                }
+                setDeleteConfirmSection(null)
+              }}
+            >
+              Delete Section
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+
