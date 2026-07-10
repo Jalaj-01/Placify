@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react'
-import { BookOpen } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { BookOpen, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useAuth } from '@/hooks/useAuth'
 import { useTopics } from '@/hooks/useTopics'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,8 +14,38 @@ import { SUBJECT_LABELS } from '@/utils/topicSeeds'
 export default function Topics() {
   const { user } = useAuth()
   const { topics, loading, updateTopic, addTopic, deleteTopic } = useTopics(user?.uid)
+  
+  const [showAddSection, setShowAddSection] = useState(false)
+  const [newSectionName, setNewSectionName] = useState('')
+  const [sectionSubject, setSectionSubject] = useState('OS')
 
   const [activeTab, setActiveTab] = useState('dsa')
+
+  // Auto reset subject selection when tab changes
+  useEffect(() => {
+    if (activeTab === 'cs-theory') {
+      setSectionSubject('OS')
+    } else if (activeTab === 'aptitude') {
+      setSectionSubject('Aptitude-Quant')
+    } else {
+      setSectionSubject('DSA')
+    }
+  }, [activeTab])
+
+  const handleAddSection = async () => {
+    if (!newSectionName.trim()) return
+    const sub = activeTab === 'dsa' ? 'DSA' : sectionSubject
+    await addTopic({
+      name: 'Placeholder Topic (Click to edit)',
+      subject: sub,
+      category: newSectionName.trim(),
+      status: 'Not Started',
+      confidence: 'Low'
+    })
+    setNewSectionName('')
+    setShowAddSection(false)
+  }
+
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
@@ -156,6 +188,68 @@ export default function Topics() {
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
       />
+
+      {/* Add Custom Section / Category */}
+      <div className="flex flex-col gap-3">
+        {!showAddSection ? (
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              onClick={() => setShowAddSection(true)}
+              className="flex items-center gap-1.5 text-xs py-1.5 h-auto bg-elevated border border-border text-text-primary hover:bg-hover"
+              variant="outline"
+            >
+              <Plus className="h-4 w-4 text-accent-light" /> Add Section
+            </Button>
+          </div>
+        ) : (
+          <div className="w-full bg-card p-4 rounded-card border border-border-subtle space-y-3 animate-fade-in">
+            <h3 className="text-body font-semibold text-text-primary">Create New Section / Category</h3>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Input
+                placeholder="Section Name (e.g. Segment Trees, Graph Traversals)"
+                value={newSectionName}
+                onChange={(e) => setNewSectionName(e.target.value)}
+                className="flex-1 text-xs"
+              />
+              
+              {activeTab === 'cs-theory' && (
+                <select
+                  value={sectionSubject}
+                  onChange={(e) => setSectionSubject(e.target.value)}
+                  className="bg-surface border border-border-subtle rounded-md text-xs px-3 py-2 outline-none text-text-primary shrink-0"
+                >
+                  <option value="OS">OS</option>
+                  <option value="DBMS">DBMS</option>
+                  <option value="CN">CN</option>
+                  <option value="OOPS">OOPS</option>
+                </select>
+              )}
+
+              {activeTab === 'aptitude' && (
+                <select
+                  value={sectionSubject}
+                  onChange={(e) => setSectionSubject(e.target.value)}
+                  className="bg-surface border border-border-subtle rounded-md text-xs px-3 py-2 outline-none text-text-primary shrink-0"
+                >
+                  <option value="Aptitude-Quant">Aptitude-Quant</option>
+                  <option value="Aptitude-Logical">Aptitude-Logical</option>
+                  <option value="Aptitude-Verbal">Aptitude-Verbal</option>
+                </select>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 text-xs">
+              <Button size="sm" variant="ghost" onClick={() => { setShowAddSection(false); setNewSectionName(''); }}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleAddSection} disabled={!newSectionName.trim()}>
+                Create Section
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Main Checklist Section */}
       {loading ? (

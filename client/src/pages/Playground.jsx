@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 
 export default function Playground() {
   const { user } = useAuth()
@@ -231,7 +232,7 @@ export default function Playground() {
               <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
                 <TerminalIcon className="h-4 w-4 text-text-muted" /> Console Output
               </span>
-              <Button variant="ghost" size="xs" onClick={() => setOutput('')} className="text-text-muted text-xs">
+              <Button variant="ghost" size="sm" onClick={() => setOutput('')} className="text-text-muted text-xs">
                 Clear
               </Button>
             </div>
