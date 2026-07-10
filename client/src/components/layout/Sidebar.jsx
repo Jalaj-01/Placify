@@ -77,6 +77,13 @@ export default function Sidebar({ user, onSignOut }) {
           <LogOut className="h-4 w-4" />
           {!sidebarCollapsed && <span className="text-secondary">Sign out</span>}
         </button>
+        
+        {!sidebarCollapsed && (
+          <div className="px-3 pt-3 text-[10px] text-text-muted text-center border-t border-border-subtle/50 mt-3">
+            <p>© {new Date().getFullYear()} PlacementTracker</p>
+            <p className="opacity-75">Prepare with confidence</p>
+          </div>
+        )}
       </div>
     </motion.aside>
   )

@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { ChevronDown, Plus } from 'lucide-react'
+import { ChevronDown, Plus, Trash2 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import TopicCard from './TopicCard'
 
-export default function TopicChecklist({ title, topics, onUpdate, onAdd, onDelete }) {
+export default function TopicChecklist({ title, topics, onUpdate, onAdd, onDelete, onDeleteCategory }) {
   const [open, setOpen] = useState(true)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
@@ -29,11 +29,27 @@ export default function TopicChecklist({ title, topics, onUpdate, onAdd, onDelet
       >
         <div className="flex items-center gap-3">
           <ChevronDown className={cn('h-4 w-4 text-text-muted transition-transform', !open && '-rotate-90')} />
-          <span className="text-card-title font-medium">{title}</span>
+          <span className="text-card-title font-medium text-text-primary">{title}</span>
           <span className="text-micro text-text-muted">{done}/{topics.length} done</span>
         </div>
-        <div className="w-24 hidden sm:block">
-          <Progress value={pct} />
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="w-24 hidden sm:block">
+            <Progress value={pct} />
+          </div>
+          {onDeleteCategory && (
+            <span
+              onClick={(e) => {
+                e.stopPropagation()
+                if (window.confirm(`Are you sure you want to delete the entire section "${title}"?`)) {
+                  onDeleteCategory(title)
+                }
+              }}
+              className="p-1 rounded text-text-muted hover:text-semantic-red hover:bg-hover transition-colors cursor-pointer"
+              title="Delete section"
+            >
+              <Trash2 className="h-4.5 w-4.5" />
+            </span>
+          )}
         </div>
       </button>
 

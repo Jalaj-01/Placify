@@ -24,6 +24,9 @@ export default function StreakBar({ streakData }) {
               <h3 className="text-stat font-bold text-text-primary">
                 {currentStreak} <span className="text-body font-medium text-text-muted">days</span>
               </h3>
+              <p className="text-[10px] text-text-muted mt-0.5">
+                Last active: {streakData?.lastActiveDate ? new Date(streakData.lastActiveDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No activity logged'}
+              </p>
             </div>
           </div>
 
@@ -34,10 +37,11 @@ export default function StreakBar({ streakData }) {
                 const isActive = activityLog.includes(dateStr)
                 const d = new Date(dateStr)
                 const dayName = d.toLocaleDateString('en-US', { weekday: 'narrow' })
+                const formattedDate = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
                 return (
                   <div key={dateStr} className="flex flex-col items-center gap-1">
                     <div
-                      title={dateStr + (isActive ? ' (Active)' : ' (No activity)')}
+                      title={`${formattedDate} ${isActive ? '(Active)' : '(No activity)'}`}
                       className={`h-7 w-7 sm:h-8 sm:w-8 rounded-md transition-all duration-300 ${
                         isActive
                           ? 'bg-semantic-green accent-glow scale-105'

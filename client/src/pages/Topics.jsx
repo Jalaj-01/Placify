@@ -272,6 +272,7 @@ export default function Topics() {
                   onUpdate={handleUpdate}
                   onAdd={(name) => handleAddCustom('DSA', category, name)}
                   onDelete={deleteTopic}
+                  onDeleteCategory={deleteCategory}
                 />
               )
             })
@@ -297,6 +298,7 @@ export default function Topics() {
                           onUpdate={handleUpdate}
                           onAdd={(name) => handleAddCustom(subject, category, name)}
                           onDelete={deleteTopic}
+                          onDeleteCategory={deleteCategory}
                         />
                       )
                     })}
@@ -328,6 +330,7 @@ export default function Topics() {
                           onUpdate={handleUpdate}
                           onAdd={(name) => handleAddCustom(subject, category, name)}
                           onDelete={deleteTopic}
+                          onDeleteCategory={deleteCategory}
                         />
                       )
                     })}

@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-  query, orderBy, onSnapshot, serverTimestamp, Timestamp, writeBatch,
+  query, orderBy, onSnapshot, serverTimestamp, Timestamp, writeBatch, where,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { topicSeeds } from '@/utils/topicSeeds'
@@ -89,6 +89,18 @@ export async function updateTopic(uid, topicId, data) {
 export async function deleteTopic(uid, topicId) {
   await deleteDoc(doc(db, 'users', uid, 'topics', topicId))
 }
+
+export async function deleteCategory(uid, categoryName) {
+  const q = query(userPath(uid, 'topics'), where('category', '==', categoryName))
+  const snap = await getDocs(q)
+  const batch = writeBatch(db)
+  snap.docs.forEach((doc) => {
+    batch.delete(doc.ref)
+  })
+  await batch.commit()
+  await recordActivity(uid)
+}
+
 
 
 export async function addTopic(uid, data) {
