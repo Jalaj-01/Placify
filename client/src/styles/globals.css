@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border-subtle;
+  }
+
+  body {
+    @apply bg-base text-text-primary min-h-screen;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-hover rounded-full;
+  }
+}
+
+@layer utilities {
+  .accent-glow {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+  }
+}

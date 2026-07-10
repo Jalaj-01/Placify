@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+functions/node_modules/
+
+# Build outputs
+client/dist/
+functions/lib/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+client/.env
+functions/.env
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# PWA dev
+dev-dist/
