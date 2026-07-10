@@ -86,6 +86,11 @@ export async function updateTopic(uid, topicId, data) {
   await recordActivity(uid)
 }
 
+export async function deleteTopic(uid, topicId) {
+  await deleteDoc(doc(db, 'users', uid, 'topics', topicId))
+}
+
+
 export async function addTopic(uid, data) {
   const ref = await addDoc(userPath(uid, 'topics'), {
     ...data,

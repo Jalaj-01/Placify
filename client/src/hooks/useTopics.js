@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { subscribeTopics, updateTopic, addTopic } from '@/services/firestoreService'
+import { subscribeTopics, updateTopic, addTopic, deleteTopic } from '@/services/firestoreService'
 
 export function useTopics(uid) {
   const [topics, setTopics] = useState([])
@@ -18,5 +18,6 @@ export function useTopics(uid) {
     loading,
     updateTopic: (id, data) => updateTopic(uid, id, data),
     addTopic: (data) => addTopic(uid, data),
+    deleteTopic: (id) => deleteTopic(uid, id),
   }
 }

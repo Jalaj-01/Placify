@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ExternalLink, Trash2 } from 'lucide-react'
+import { ExternalLink, Trash2, Paperclip } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -54,6 +54,22 @@ export default function ProblemCard({ problem, onUpdate, onDelete }) {
             </div>
           </div>
           {problem.notes && <p className="text-secondary text-text-secondary mb-3">{problem.notes}</p>}
+          {problem.attachments && problem.attachments.length > 0 && (
+            <div className="flex gap-2 flex-wrap mb-3">
+              {problem.attachments.map((att, idx) => (
+                <a
+                  key={idx}
+                  href={att.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-micro bg-hover border border-border-subtle hover:border-border-hover px-2 py-0.5 rounded text-accent-light transition-colors"
+                >
+                  <Paperclip className="h-3 w-3" />
+                  {att.name}
+                </a>
+              ))}
+            </div>
+          )}
           <ConfidenceToggle
             value={problem.confidenceStatus}
             onChange={(s) => onUpdate(problem.id, { confidenceStatus: s })}

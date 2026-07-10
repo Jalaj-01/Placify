@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import TopicCard from './TopicCard'
 
-export default function TopicChecklist({ title, topics, onUpdate, onAdd }) {
+export default function TopicChecklist({ title, topics, onUpdate, onAdd, onDelete }) {
   const [open, setOpen] = useState(true)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
@@ -40,7 +40,7 @@ export default function TopicChecklist({ title, topics, onUpdate, onAdd }) {
       {open && (
         <div className="border-t border-border-subtle px-1 pb-2">
           {topics.map((t) => (
-            <TopicCard key={t.id} topic={t} onUpdate={onUpdate} />
+            <TopicCard key={t.id} topic={t} onUpdate={onUpdate} onDelete={onDelete} />
           ))}
           {adding ? (
             <div className="flex gap-2 px-3 py-2">

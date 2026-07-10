@@ -11,7 +11,7 @@ import { SUBJECT_LABELS } from '@/utils/topicSeeds'
 
 export default function Topics() {
   const { user } = useAuth()
-  const { topics, loading, updateTopic, addTopic } = useTopics(user?.uid)
+  const { topics, loading, updateTopic, addTopic, deleteTopic } = useTopics(user?.uid)
 
   const [activeTab, setActiveTab] = useState('dsa')
   const [search, setSearch] = useState('')
@@ -177,6 +177,7 @@ export default function Topics() {
                   topics={filteredList}
                   onUpdate={handleUpdate}
                   onAdd={(name) => handleAddCustom('DSA', category, name)}
+                  onDelete={deleteTopic}
                 />
               )
             })
@@ -201,6 +202,7 @@ export default function Topics() {
                           topics={filteredList}
                           onUpdate={handleUpdate}
                           onAdd={(name) => handleAddCustom(subject, category, name)}
+                          onDelete={deleteTopic}
                         />
                       )
                     })}
@@ -231,6 +233,7 @@ export default function Topics() {
                           topics={filteredList}
                           onUpdate={handleUpdate}
                           onAdd={(name) => handleAddCustom(subject, category, name)}
+                          onDelete={deleteTopic}
                         />
                       )
                     })}

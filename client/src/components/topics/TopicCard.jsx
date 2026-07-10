@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react'
+import { Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const statusColors = {
@@ -15,7 +17,13 @@ const confidenceColors = {
 const STATUS_CYCLE = ['Not Started', 'In Progress', 'Done']
 const CONFIDENCE_CYCLE = ['Low', 'Medium', 'High']
 
-export default function TopicCard({ topic, onUpdate }) {
+export default function TopicCard({ topic, onUpdate, onDelete }) {
+  const [name, setName] = useState(topic.name)
+
+  useEffect(() => {
+    setName(topic.name)
+  }, [topic.name])
+
   const cycleStatus = () => {
     const idx = STATUS_CYCLE.indexOf(topic.status)
     onUpdate(topic.id, { status: STATUS_CYCLE[(idx + 1) % 3] })
@@ -44,11 +52,25 @@ export default function TopicCard({ topic, onUpdate }) {
         )}
       </button>
 
-      <span className={cn('flex-1 text-body', statusColors[topic.status])}>{topic.name}</span>
+      {/* Editable Name Input */}
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={() => {
+          if (name.trim() && name.trim() !== topic.name) {
+            onUpdate(topic.id, { name: name.trim() })
+          }
+        }}
+        className={cn(
+          'flex-1 bg-transparent border-none outline-none focus:border-b focus:border-border-default text-body p-0',
+          statusColors[topic.status]
+        )}
+      />
 
       <button
         onClick={cycleConfidence}
-        className={cn('text-micro px-2 py-0.5 rounded-md font-medium', confidenceColors[topic.confidence])}
+        className={cn('text-micro px-2 py-0.5 rounded-md font-medium shrink-0', confidenceColors[topic.confidence])}
       >
         {topic.confidence}
       </button>
@@ -62,8 +84,17 @@ export default function TopicCard({ topic, onUpdate }) {
             onUpdate(topic.id, { personalNote: e.target.value })
           }
         }}
-        className="w-0 group-hover:w-32 focus:w-32 transition-all bg-transparent border-b border-transparent focus:border-border text-micro text-text-secondary outline-none"
+        className="w-0 group-hover:w-32 focus:w-32 transition-all bg-transparent border-b border-transparent focus:border-border text-micro text-text-secondary outline-none shrink-0"
       />
+
+      {/* Delete Topic Button */}
+      <button
+        onClick={() => onDelete(topic.id)}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-text-muted hover:text-semantic-red shrink-0"
+        title="Delete topic"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
     </div>
   )
 }
