@@ -23,13 +23,6 @@
         { "fieldPath": "subject", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "applications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "roundDate", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []
