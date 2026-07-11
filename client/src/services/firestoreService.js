@@ -381,5 +381,37 @@ export async function updateCourseProgressDoc(uid, courseId, progress) {
   await recordActivity(uid)
 }
 
+// ─── Bookmarks ─────────────────────────────────────────────
+export function subscribeBookmarks(uid, callback) {
+  const q = query(userPath(uid, 'bookmarks'), orderBy('createdAt', 'desc'))
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+  })
+}
 
+export async function addBookmarkDoc(uid, title, url, category, description, tags) {
+  const ref = collection(db, 'users', uid, 'bookmarks')
+  const newDoc = await addDoc(ref, {
+    title,
+    url,
+    category,
+    description,
+    tags: tags || [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  await recordActivity(uid)
+  return newDoc.id
+}
 
+export async function updateBookmarkDoc(uid, bookmarkId, data) {
+  await updateDoc(doc(db, 'users', uid, 'bookmarks', bookmarkId), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
+  await recordActivity(uid)
+}
+
+export async function deleteBookmarkDoc(uid, bookmarkId) {
+  await deleteDoc(doc(db, 'users', uid, 'bookmarks', bookmarkId))
+}

@@ -1,4 +1,4 @@
-import { WifiOff, FolderOpen, Youtube } from 'lucide-react'
+import { WifiOff, FolderOpen, Youtube, Bookmark } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -21,6 +21,9 @@ export default function TopBar({ title }) {
           </Link>
           <Link to="/courses" className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors" title="Course Vault">
             <Youtube className="h-4.5 w-4.5" />
+          </Link>
+          <Link to="/bookmarks" className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors" title="Bookmarks">
+            <Bookmark className="h-4.5 w-4.5" />
           </Link>
         </div>
       </div>

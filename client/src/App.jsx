@@ -13,6 +13,7 @@ import AICoach from '@/pages/AICoach'
 import Playground from '@/pages/Playground'
 import Library from '@/pages/Library'
 import Courses from '@/pages/Courses'
+import Bookmarks from '@/pages/Bookmarks'
 import Landing from '@/pages/Landing'
 import { Loader2 } from 'lucide-react'
 
@@ -154,6 +155,15 @@ function AppContent() {
             <PageWrapper>
               <TopBar title="Course Vault" />
               <Courses />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/bookmarks"
+          element={
+            <PageWrapper>
+              <TopBar title="QA Bookmarks" />
+              <Bookmarks />
             </PageWrapper>
           }
         />
