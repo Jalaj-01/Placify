@@ -463,29 +463,23 @@ export default function Courses() {
                   </div>
 
                   {/* Playback time tracking widget */}
-                  <div className="p-4 bg-surface rounded-2xl border border-border-subtle/70 space-y-3 shadow-md">
+                  <div className="p-4 bg-surface rounded-2xl border border-border-subtle/70 space-y-3.5 shadow-md">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2 text-xs">
                         <Clock className="h-4 w-4 text-accent-light" />
-                        <span className="font-bold text-text-primary">
-                          {activeVideoTitle || activeCourse.name}
-                        </span>
+                        <span className="font-semibold text-text-secondary">Progress</span>
                       </div>
-                      <div className="text-[11px] font-semibold text-accent-light">
+                      <div className="text-[11px] font-bold text-accent-light">
                         {progressPercent}% Complete
                         {duration > 0 && ` (${formatTime(duration - currentTime)} left)`}
                       </div>
                     </div>
 
-                    {/* Progress Slider */}
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={progressPercent}
-                        onChange={handleSliderChange}
-                        className="flex-1 accent-accent bg-border-subtle/50 h-1.5 rounded-lg appearance-none cursor-pointer"
+                    {/* Progress Bar (Auto-updates from YouTube Player, read-only) */}
+                    <div className="w-full bg-border-subtle/40 h-2.5 rounded-full overflow-hidden border border-white/[0.03]">
+                      <div
+                        className="bg-accent h-full rounded-full transition-all duration-300"
+                        style={{ width: `${progressPercent}%` }}
                       />
                     </div>
                   </div>
