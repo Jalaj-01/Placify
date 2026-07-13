@@ -53,7 +53,7 @@ export default function WeeklySnapshot({ problems, topics, applications }) {
         <CardTitle className="text-card-title font-semibold">Weekly Snapshot</CardTitle>
       </CardHeader>
       <CardContent className="p-5">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-surface p-4 rounded-lg border border-border-subtle flex gap-3 items-center">
             <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
               <Code2 className="h-5 w-5 text-accent-light" />

@@ -15,7 +15,7 @@ export default function LoginPage({ onSignIn, loading }) {
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/15 accent-glow mb-6">
             <Sparkles className="h-8 w-8 text-accent-light" />
           </div>
-          <h1 className="text-[28px] font-bold text-text-primary mb-2">PlacementTracker</h1>
+          <h1 className="text-[28px] font-bold text-text-primary mb-2">Placify</h1>
           <p className="text-body text-text-secondary">
             Your command center for placement preparation
           </p>

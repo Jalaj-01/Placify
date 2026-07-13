@@ -31,15 +31,15 @@ export default function StreakBar({ streakData }) {
           </div>
 
           {/* Heatmap Grid */}
-          <div className="flex-1 flex flex-col gap-2">
-            <div className="flex items-center gap-1 justify-between sm:justify-start">
+          <div className="flex-1 flex flex-col gap-2 w-full overflow-x-auto scrollbar-none pb-1">
+            <div className="flex items-center gap-1.5 justify-start min-w-[420px] sm:min-w-0">
               {last14Days.map((dateStr) => {
                 const isActive = activityLog.includes(dateStr)
                 const d = new Date(dateStr)
                 const dayName = d.toLocaleDateString('en-US', { weekday: 'narrow' })
                 const formattedDate = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
                 return (
-                  <div key={dateStr} className="flex flex-col items-center gap-1">
+                  <div key={dateStr} className="flex flex-col items-center gap-1 flex-1">
                     <div
                       title={`${formattedDate} ${isActive ? '(Active)' : '(No activity)'}`}
                       className={`h-7 w-7 sm:h-8 sm:w-8 rounded-md transition-all duration-300 ${

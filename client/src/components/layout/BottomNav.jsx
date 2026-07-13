@@ -21,7 +21,7 @@ export default function BottomNav() {
             to={to}
             end={to === '/dashboard'}
             className={({ isActive }) => cn(
-              'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors min-w-[56px]',
+              'flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg transition-colors flex-1 min-w-0',
               isActive ? 'text-accent-light' : 'text-text-muted'
             )}
           >

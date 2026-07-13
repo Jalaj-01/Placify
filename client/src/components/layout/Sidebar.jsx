@@ -84,7 +84,7 @@ export default function Sidebar({ user, onSignOut }) {
         
         {!sidebarCollapsed && (
           <div className="px-3 pt-3 text-[10px] text-text-muted text-center border-t border-border-subtle/50 mt-3">
-            <p>© {new Date().getFullYear()} PlacementTracker</p>
+            <p>© {new Date().getFullYear()} Placify</p>
             <p className="opacity-75">Prepare with confidence</p>
           </div>
         )}
