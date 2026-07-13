@@ -45,7 +45,7 @@ export default function TopicChecklist({
             onTouchStart={onDragHandleTouchStart}
             onTouchEnd={onDragHandleTouchEnd}
             onClick={(e) => e.stopPropagation()}
-            className="cursor-grab active:cursor-grabbing p-1 rounded text-text-muted hover:text-text-primary hover:bg-hover transition-colors shrink-0"
+            className="touch-none cursor-grab active:cursor-grabbing p-1 rounded text-text-muted hover:text-text-primary hover:bg-hover transition-colors shrink-0"
             title="Drag to reorder"
           >
             <GripVertical className="h-4 w-4" />

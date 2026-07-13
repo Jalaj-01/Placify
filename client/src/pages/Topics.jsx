@@ -124,6 +124,47 @@ export default function Topics() {
     setCanDrag(null)
   }
 
+  const handleTouchStart = (category, subject) => {
+    setDraggedCategory(category)
+    setDraggedSubject(subject)
+    setCanDrag(category)
+  }
+
+  const handleTouchMove = (e, subject) => {
+    if (draggedCategory === null || draggedSubject !== subject) return
+
+    const touch = e.touches[0]
+    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY)
+    if (!targetEl) return
+
+    const cardEl = targetEl.closest('[data-category]')
+    if (!cardEl) return
+
+    const targetCategory = cardEl.getAttribute('data-category')
+    const targetSubject = cardEl.getAttribute('data-subject')
+
+    if (targetSubject === subject && targetCategory !== draggedCategory) {
+      const currentOrder = localOrders[subject] || []
+      const oldIndex = currentOrder.indexOf(draggedCategory)
+      const newIndex = currentOrder.indexOf(targetCategory)
+
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const newOrder = [...currentOrder]
+        newOrder.splice(oldIndex, 1)
+        newOrder.splice(newIndex, 0, draggedCategory)
+        
+        setLocalOrders((prev) => ({
+          ...prev,
+          [subject]: newOrder
+        }))
+      }
+    }
+  }
+
+  const handleTouchEnd = async () => {
+    await handleDragEnd()
+  }
+
   
   const [showAddSection, setShowAddSection] = useState(false)
   const [newSectionName, setNewSectionName] = useState('')
@@ -421,10 +462,14 @@ export default function Topics() {
               return (
                 <div
                   key={category}
+                  data-category={category}
+                  data-subject="DSA"
                   draggable={canDrag === category}
                   onDragStart={(e) => handleDragStart(e, category, 'DSA')}
                   onDragOver={(e) => handleDragOver(e, category, 'DSA')}
                   onDragEnd={handleDragEnd}
+                  onTouchMove={(e) => handleTouchMove(e, 'DSA')}
+                  onTouchEnd={handleTouchEnd}
                   className={cn(
                     "transition-all duration-200",
                     draggedCategory === category && draggedSubject === 'DSA' && "opacity-45 scale-[0.98] border border-dashed border-accent-light rounded-card"
@@ -439,8 +484,8 @@ export default function Topics() {
                     onDeleteCategory={setDeleteConfirmSection}
                     onDragHandleMouseDown={() => setCanDrag(category)}
                     onDragHandleMouseUp={() => setCanDrag(null)}
-                    onDragHandleTouchStart={() => setCanDrag(category)}
-                    onDragHandleTouchEnd={() => setCanDrag(null)}
+                    onDragHandleTouchStart={() => handleTouchStart(category, 'DSA')}
+                    onDragHandleTouchEnd={handleTouchEnd}
                   />
                 </div>
               )
@@ -462,10 +507,14 @@ export default function Topics() {
                       return (
                         <div
                           key={category}
+                          data-category={category}
+                          data-subject={subject}
                           draggable={canDrag === category}
                           onDragStart={(e) => handleDragStart(e, category, subject)}
                           onDragOver={(e) => handleDragOver(e, category, subject)}
                           onDragEnd={handleDragEnd}
+                          onTouchMove={(e) => handleTouchMove(e, subject)}
+                          onTouchEnd={handleTouchEnd}
                           className={cn(
                             "transition-all duration-200",
                             draggedCategory === category && draggedSubject === subject && "opacity-45 scale-[0.98] border border-dashed border-accent-light rounded-card"
@@ -480,8 +529,8 @@ export default function Topics() {
                             onDeleteCategory={setDeleteConfirmSection}
                             onDragHandleMouseDown={() => setCanDrag(category)}
                             onDragHandleMouseUp={() => setCanDrag(null)}
-                            onDragHandleTouchStart={() => setCanDrag(category)}
-                            onDragHandleTouchEnd={() => setCanDrag(null)}
+                            onDragHandleTouchStart={() => handleTouchStart(category, subject)}
+                            onDragHandleTouchEnd={handleTouchEnd}
                           />
                         </div>
                       )
@@ -509,10 +558,14 @@ export default function Topics() {
                       return (
                         <div
                           key={category}
+                          data-category={category}
+                          data-subject={subject}
                           draggable={canDrag === category}
                           onDragStart={(e) => handleDragStart(e, category, subject)}
                           onDragOver={(e) => handleDragOver(e, category, subject)}
                           onDragEnd={handleDragEnd}
+                          onTouchMove={(e) => handleTouchMove(e, subject)}
+                          onTouchEnd={handleTouchEnd}
                           className={cn(
                             "transition-all duration-200",
                             draggedCategory === category && draggedSubject === subject && "opacity-45 scale-[0.98] border border-dashed border-accent-light rounded-card"
@@ -527,8 +580,8 @@ export default function Topics() {
                             onDeleteCategory={setDeleteConfirmSection}
                             onDragHandleMouseDown={() => setCanDrag(category)}
                             onDragHandleMouseUp={() => setCanDrag(null)}
-                            onDragHandleTouchStart={() => setCanDrag(category)}
-                            onDragHandleTouchEnd={() => setCanDrag(null)}
+                            onDragHandleTouchStart={() => handleTouchStart(category, subject)}
+                            onDragHandleTouchEnd={handleTouchEnd}
                           />
                         </div>
                       )
