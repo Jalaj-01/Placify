@@ -8,7 +8,7 @@ function getModel() {
     throw new Error('GEMINI_API_KEY not configured on server')
   }
   return genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3.1-flash-lite',
     generationConfig: { temperature: 0.3, responseMimeType: 'application/json' },
   })
 }

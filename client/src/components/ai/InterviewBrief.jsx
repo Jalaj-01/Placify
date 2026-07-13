@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, Loader2, Landmark, ListChecks, HeartCrack, Lightbulb, Compass, Award } from 'lucide-react'
+import { Sparkles, Loader2, Landmark, ListChecks, HeartCrack, Lightbulb, Compass, Award, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -88,7 +88,15 @@ export default function InterviewBrief({ applications, topics, onGenerate, loadi
           </Button>
         </div>
 
-        {error && <p className="text-secondary text-semantic-red">{error}</p>}
+        {error && (
+          <div className="flex gap-2.5 items-start bg-semantic-red-bg/25 border border-semantic-red/30 p-4 rounded-lg text-semantic-red animate-fade-in text-xs sm:text-sm">
+            <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold">AI Assistant Error</p>
+              <p className="opacity-90 leading-relaxed font-mono text-[11px] break-all">{error}</p>
+            </div>
+          </div>
+        )}
 
         {brief && (
           <div className="space-y-6 animate-fade-in border-t border-border-subtle pt-6">

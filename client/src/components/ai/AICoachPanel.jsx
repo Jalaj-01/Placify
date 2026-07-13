@@ -1,9 +1,9 @@
-import { Brain, Star, AlertCircle, RefreshCw, ClipboardList, CheckCircle } from 'lucide-react'
+import { Brain, Star, AlertCircle, RefreshCw, ClipboardList, CheckCircle, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 
-export default function AICoachPanel({ analysis, onAnalyze, loading }) {
+export default function AICoachPanel({ analysis, onAnalyze, loading, error }) {
   return (
     <Card className="border border-border-subtle bg-card">
       <CardHeader className="pb-4 border-b border-border-subtle flex flex-row items-center justify-between gap-4">
@@ -23,6 +23,15 @@ export default function AICoachPanel({ analysis, onAnalyze, loading }) {
       </CardHeader>
 
       <CardContent className="p-6">
+        {error && (
+          <div className="flex gap-2.5 items-start bg-semantic-red-bg/25 border border-semantic-red/30 p-4 rounded-lg text-semantic-red animate-fade-in text-xs sm:text-sm mb-6">
+            <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold">AI Assistant Error</p>
+              <p className="opacity-90 leading-relaxed font-mono text-[11px] break-all">{error}</p>
+            </div>
+          </div>
+        )}
         {loading ? (
           <div className="space-y-4">
             <div className="h-4 w-3/4 bg-hover rounded animate-pulse" />
