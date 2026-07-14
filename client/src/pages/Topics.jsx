@@ -104,7 +104,7 @@ export default function Topics() {
       const newOrder = [...currentOrder]
       newOrder.splice(oldIndex, 1)
       newOrder.splice(newIndex, 0, draggedCategory)
-      
+
       setLocalOrders((prev) => ({
         ...prev,
         [subject]: newOrder
@@ -152,7 +152,7 @@ export default function Topics() {
         const newOrder = [...currentOrder]
         newOrder.splice(oldIndex, 1)
         newOrder.splice(newIndex, 0, draggedCategory)
-        
+
         setLocalOrders((prev) => ({
           ...prev,
           [subject]: newOrder
@@ -165,7 +165,7 @@ export default function Topics() {
     await handleDragEnd()
   }
 
-  
+
   const [showAddSection, setShowAddSection] = useState(false)
   const [newSectionName, setNewSectionName] = useState('')
   const [sectionSubject, setSectionSubject] = useState('OS')
@@ -240,7 +240,7 @@ export default function Topics() {
         if (!groups[t.category]) groups[t.category] = []
         groups[t.category].push(t)
       })
-      
+
       const order = localOrders['DSA'] || []
       const sortedGroups = {}
       const sortedKeys = Object.keys(groups).sort((a, b) => {
@@ -268,7 +268,7 @@ export default function Topics() {
             if (!groups[sub][t.category]) groups[sub][t.category] = []
             groups[sub][t.category].push(t)
           })
-          
+
           const order = localOrders[sub] || []
           const sortedCategories = {}
           const sortedKeys = Object.keys(groups[sub]).sort((a, b) => {
@@ -467,8 +467,8 @@ export default function Topics() {
             </Button>
           )}
         </div>
-
-        {showAddSection ? (
+        {/* Changed the ? to && here */}
+        {showAddSection && (
           <div className="w-full bg-card p-4 rounded-card border border-border-subtle space-y-3 animate-fade-in">
             <h3 className="text-body font-semibold text-text-primary">Create New Section / Category</h3>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -478,7 +478,7 @@ export default function Topics() {
                 onChange={(e) => setNewSectionName(e.target.value)}
                 className="flex-1 text-xs"
               />
-              
+
               {activeTab === 'cs-theory' && (
                 <select
                   value={sectionSubject}
@@ -758,10 +758,10 @@ export default function Topics() {
             }
             return Object.values(catOrSub).some((list) => list.some(filterTopic))
           }) && (
-            <div className="text-center py-12 bg-card rounded-card border border-border-subtle">
-              <p className="text-secondary text-text-secondary">No topics match your search criteria.</p>
-            </div>
-          )}
+              <div className="text-center py-12 bg-card rounded-card border border-border-subtle">
+                <p className="text-secondary text-text-secondary">No topics match your search criteria.</p>
+              </div>
+            )}
         </div>
       )}
       {/* Delete Section Dialog */}
