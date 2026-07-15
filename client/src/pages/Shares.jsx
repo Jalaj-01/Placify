@@ -147,6 +147,7 @@ export default function Shares() {
           /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(data.name || '')
 
         if (isPdf && data.url) {
+          const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(data.url)}&embedded=true`
           return (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -155,11 +156,14 @@ export default function Shares() {
                   className="text-[10px] text-accent-light hover:underline shrink-0 ml-2">Open in tab ↗</a>
               </div>
               <iframe
-                src={data.url}
+                src={googleViewerUrl}
                 title={data.name}
                 className="w-full rounded-lg border border-border-subtle bg-surface"
                 style={{ height: '60vh' }}
               />
+              <p className="text-[10px] text-text-muted text-center">
+                If the preview is blank, <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-accent-light hover:underline">open in a new tab ↗</a>
+              </p>
             </div>
           )
         }
