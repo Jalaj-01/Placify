@@ -315,38 +315,62 @@ export default function Playground() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Language Toggle */}
-          <div className="flex bg-surface p-1 rounded-lg border border-border-subtle shrink-0">
-            <button
-              onClick={() => handleLanguageChange('python')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                language === 'python'
-                  ? 'bg-accent text-white shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
+          {/* Language Toggle + Wasm Badge inline */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex bg-surface p-1 rounded-lg border border-border-subtle">
+              <button
+                onClick={() => handleLanguageChange('python')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  language === 'python'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Python
+              </button>
+              <button
+                onClick={() => handleLanguageChange('java')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  language === 'java'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Java
+              </button>
+              <button
+                onClick={() => handleLanguageChange('verilog')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  language === 'verilog'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Verilog
+              </button>
+            </div>
+
+            {/* Engine status badge — inline with language toggle */}
+            <Badge
+              variant={language === 'python' && loadingRunner ? 'secondary' : 'success'}
+              className="h-7 flex gap-1.5 text-micro items-center whitespace-nowrap"
             >
-              Python
-            </button>
-            <button
-              onClick={() => handleLanguageChange('java')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                language === 'java'
-                  ? 'bg-accent text-white shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              Java
-            </button>
-            <button
-              onClick={() => handleLanguageChange('verilog')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                language === 'verilog'
-                  ? 'bg-accent text-white shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              Verilog
-            </button>
+              {language === 'python' ? (
+                loadingRunner ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" /> Load Wasm Engine
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-semantic-green shrink-0" /> Wasm Active
+                  </>
+                )
+              ) : (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-semantic-green shrink-0" /> Cloud Compiler Active
+                </>
+              )}
+            </Badge>
           </div>
 
           {/* File selector */}
@@ -365,29 +389,8 @@ export default function Playground() {
               ))}
             </SelectContent>
           </Select>
-
-          {/* Engine Load indicator */}
-          <Badge
-            variant={language === 'python' && loadingRunner ? 'secondary' : 'success'}
-            className="h-7 flex gap-1.5 text-micro items-center"
-          >
-            {language === 'python' ? (
-              loadingRunner ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" /> Load Wasm Engine
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-semantic-green shrink-0" /> Wasm Active
-                </>
-              )
-            ) : (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5 text-semantic-green shrink-0" /> Cloud Compiler Active
-              </>
-            )}
-          </Badge>
         </div>
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

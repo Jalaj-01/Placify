@@ -112,6 +112,18 @@ export default function Shares() {
     return data.name || data.title || 'Untitled Shared Item'
   }
 
+  const getItemTypeName = (type) => {
+    switch (type) {
+      case 'course': return 'Course'
+      case 'bookmark': return 'Bookmark'
+      case 'problem': return 'Problem'
+      case 'library': return 'Resource Document'
+      case 'playground': return 'Playground File'
+      case 'preparation': return 'Preparation Package'
+      default: return 'Item'
+    }
+  }
+
   const getShareSub = (share) => {
     switch (share.itemType) {
       case 'course': return share.itemData.isPlaylist ? 'Course Playlist' : 'Single Video Course'
