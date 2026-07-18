@@ -150,6 +150,18 @@ export async function renameCustomSubject(uid, oldName, newName) {
   await recordActivity(uid)
 }
 
+export async function deleteSubjectTopics(uid, subjects) {
+  for (const subject of subjects) {
+    const q = query(userPath(uid, 'topics'), where('subject', '==', subject))
+    const snap = await getDocs(q)
+    if (snap.docs.length > 0) {
+      const batch = writeBatch(db)
+      snap.docs.forEach((d) => batch.delete(d.ref))
+      await batch.commit()
+    }
+  }
+  await recordActivity(uid)
+}
 
 export async function updateCategoryOrder(uid, subject, order) {
   if (subject === 'customSubjects') {

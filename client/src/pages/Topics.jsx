@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { BookOpen, Plus, Pencil, Check, X } from 'lucide-react'
+import { BookOpen, Plus, Pencil, Check, X, Trash2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/hooks/useAuth'
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 
 export default function Topics() {
   const { user } = useAuth()
-  const { topics, loading, updateTopic, addTopic, deleteTopic, deleteCategory, renameCategory, renameCustomSubject, profile, updateCategoryOrder } = useTopics(user?.uid)
+  const { topics, loading, updateTopic, addTopic, deleteTopic, deleteCategory, renameCategory, renameCustomSubject, deleteSubjectTopics, updateTabLabel, hideTab, restoreTab, profile, updateCategoryOrder } = useTopics(user?.uid)
 
   const [localOrders, setLocalOrders] = useState({})
   const [draggedCategory, setDraggedCategory] = useState(null)
@@ -197,7 +197,78 @@ export default function Topics() {
     setEditingSubject(null)
   }
 
-  const [activeTab, setActiveTab] = useState('dsa')
+  // Tab edit/delete state
+  const ALL_TABS = [
+    { id: 'dsa', defaultLabel: 'DSA' },
+    { id: 'cs-theory', defaultLabel: 'CS Theory' },
+    { id: 'aptitude', defaultLabel: 'Aptitude' },
+    { id: 'custom', defaultLabel: 'Custom' },
+  ]
+  const TAB_SUBJECTS = {
+    'dsa': ['DSA'],
+    'cs-theory': ['OS', 'DBMS', 'CN', 'OOPS'],
+    'aptitude': ['Aptitude-Quant', 'Aptitude-Logical', 'Aptitude-Verbal'],
+    'custom': customSubjects
+  }
+  const hiddenTabs = profile?.hiddenTabs || []
+  const visibleTabs = ALL_TABS.filter(t => !hiddenTabs.includes(t.id))
+  const getTabLabel = (tabId) => (profile?.tabLabels || {})[tabId] || ALL_TABS.find(t => t.id === tabId)?.defaultLabel || tabId
+
+  const [editingTab, setEditingTab] = useState(null)
+  const [editTabValue, setEditTabValue] = useState('')
+  const [deleteTabConfirm, setDeleteTabConfirm] = useState(null)
+  const [showRestoreTabs, setShowRestoreTabs] = useState(false)
+  const tabEditRef = useRef(null)
+
+  useEffect(() => {
+    if (editingTab && tabEditRef.current) {
+      tabEditRef.current.focus()
+      tabEditRef.current.select()
+    }
+  }, [editingTab])
+
+  const handleTabRenameConfirm = async () => {
+    const trimmed = editTabValue.trim()
+    if (!trimmed || !editingTab) {
+      setEditingTab(null)
+      return
+    }
+    await updateTabLabel(editingTab, trimmed)
+    setEditingTab(null)
+  }
+
+  const handleTabDelete = async (tabId) => {
+    const subjects = TAB_SUBJECTS[tabId] || []
+    if (subjects.length > 0) {
+      await deleteSubjectTopics(subjects)
+    }
+    if (tabId === 'custom') {
+      await updateCategoryOrder('customSubjects', [])
+      setCustomSubjects([])
+    }
+    await hideTab(tabId)
+    if (activeTab === tabId) {
+      const remaining = visibleTabs.filter(t => t.id !== tabId)
+      if (remaining.length > 0) setActiveTab(remaining[0].id)
+    }
+    setDeleteTabConfirm(null)
+  }
+
+  const handleTabRestore = async (tabId) => {
+    await restoreTab(tabId)
+    setShowRestoreTabs(false)
+  }
+
+  const tabTopicCount = (tabId) => {
+    const subjects = TAB_SUBJECTS[tabId] || []
+    return topics.filter(t => subjects.includes(t.subject)).length
+  }
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const hidden = []
+    const first = ALL_TABS.find(t => !hidden.includes(t.id))
+    return first ? first.id : 'dsa'
+  })
 
   // Auto reset subject selection when tab changes
   useEffect(() => {
@@ -448,13 +519,90 @@ export default function Topics() {
       </div>
 
       {/* Tabs list */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6 bg-surface p-1 border border-border-subtle">
-          <TabsTrigger value="dsa">DSA</TabsTrigger>
-          <TabsTrigger value="cs-theory">CS Theory</TabsTrigger>
-          <TabsTrigger value="aptitude">Aptitude</TabsTrigger>
-          <TabsTrigger value="custom">Custom</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={(val) => { if (!editingTab) setActiveTab(val) }} className="w-full">
+        <div className="flex gap-2 items-center mb-6">
+          <TabsList
+            className="flex-1 bg-surface p-1 border border-border-subtle"
+            style={{ display: 'grid', gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}
+          >
+            {visibleTabs.map((tab) => (
+              <TabsTrigger key={tab.id} value={tab.id} className="relative group/tab">
+                {editingTab === tab.id ? (
+                  <div className="flex items-center gap-1 w-full" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                    <input
+                      ref={tabEditRef}
+                      value={editTabValue}
+                      onChange={e => setEditTabValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleTabRenameConfirm()
+                        if (e.key === 'Escape') setEditingTab(null)
+                      }}
+                      className="w-full bg-transparent text-xs font-medium text-center focus:outline-none border-b border-accent text-text-primary"
+                    />
+                    <button onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); handleTabRenameConfirm() }} className="p-0.5 rounded text-semantic-green hover:bg-semantic-green/10 shrink-0">
+                      <Check className="h-3 w-3" />
+                    </button>
+                    <button onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setEditingTab(null) }} className="p-0.5 rounded text-text-muted hover:bg-hover shrink-0">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <span className="flex items-center gap-1 justify-center">
+                    {getTabLabel(tab.id)}
+                    <span className="inline-flex items-center gap-0.5 opacity-0 group-hover/tab:opacity-100 transition-opacity ml-0.5">
+                      <button
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={e => { e.stopPropagation(); e.preventDefault(); setEditingTab(tab.id); setEditTabValue(getTabLabel(tab.id)) }}
+                        className="p-0.5 rounded hover:bg-hover text-text-muted hover:text-accent-light transition-colors"
+                        title="Rename tab"
+                      >
+                        <Pencil className="h-2.5 w-2.5" />
+                      </button>
+                      <button
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={e => { e.stopPropagation(); e.preventDefault(); setDeleteTabConfirm(tab.id) }}
+                        className="p-0.5 rounded hover:bg-hover text-text-muted hover:text-semantic-red transition-colors"
+                        title="Delete tab"
+                      >
+                        <Trash2 className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {hiddenTabs.length > 0 && (
+            <div className="relative">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowRestoreTabs(!showRestoreTabs)}
+                className="h-8 w-8 p-0 bg-elevated border border-border-subtle text-text-muted hover:text-accent-light hover:bg-hover"
+                title="Restore hidden tabs"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+              {showRestoreTabs && (
+                <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border-subtle rounded-lg shadow-lg p-2 min-w-[150px] animate-fade-in">
+                  <p className="text-[10px] text-text-muted font-semibold uppercase tracking-wider mb-1.5 px-1">Restore Tab</p>
+                  {hiddenTabs.map(tabId => {
+                    const tab = ALL_TABS.find(t => t.id === tabId)
+                    return (
+                      <button
+                        key={tabId}
+                        onClick={() => handleTabRestore(tabId)}
+                        className="w-full text-left px-2 py-1.5 text-xs text-text-primary rounded hover:bg-hover transition-colors"
+                      >
+                        {tab?.defaultLabel || tabId}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </Tabs>
 
       {/* Filters */}
@@ -842,6 +990,32 @@ export default function Topics() {
               }}
             >
               Delete Section
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Tab Dialog */}
+      <Dialog open={!!deleteTabConfirm} onOpenChange={() => setDeleteTabConfirm(null)}>
+        <DialogContent className="sm:max-w-[425px] bg-card border border-border-subtle">
+          <DialogHeader>
+            <DialogTitle className="text-body font-bold text-text-primary">Delete Tab</DialogTitle>
+            <DialogDescription className="text-xs text-text-secondary">
+              Are you sure you want to delete the &quot;{deleteTabConfirm ? getTabLabel(deleteTabConfirm) : ''}&quot; tab?
+              This will permanently delete <strong>{deleteTabConfirm ? tabTopicCount(deleteTabConfirm) : 0} topic(s)</strong> and hide the tab.
+              You can restore it later from the ↻ button.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-2 mt-4 text-xs">
+            <Button variant="ghost" size="sm" onClick={() => setDeleteTabConfirm(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => deleteTabConfirm && handleTabDelete(deleteTabConfirm)}
+            >
+              Delete Tab
             </Button>
           </DialogFooter>
         </DialogContent>
