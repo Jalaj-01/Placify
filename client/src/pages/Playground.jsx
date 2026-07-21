@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Terminal as TerminalIcon, Play, Save, Trash2, Plus, Loader2, FileCode, CheckCircle2, Download, Pencil, Share2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Terminal as TerminalIcon, Play, Save, Trash2, Plus, Loader2, FileCode, CheckCircle2, Download, Pencil, Share2, FolderOpen, Upload } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { usePlayground } from '@/hooks/usePlayground'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,8 @@ export default function Playground() {
   const [running, setRunning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showShareDialog, setShowShareDialog] = useState(false)
+
+  const fileInputRef = useRef(null)
 
   const PYTHON_DEFAULT_FILE = 'solution.py'
   const PYTHON_DEFAULT_CODE = "print('Hello from Python Playground!')\n\n# Try writing a function:\ndef add(a, b):\n    return a + b\n\nprint('Result:', add(5, 7))"
@@ -173,6 +175,36 @@ export default function Playground() {
     document.body.appendChild(element)
     element.click()
     document.body.removeChild(element)
+  }
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const content = event.target?.result || ''
+      const ext = file.name.split('.').pop()?.toLowerCase()
+
+      if (ext === 'py') {
+        setLanguage('python')
+      } else if (ext === 'java') {
+        setLanguage('java')
+      } else if (ext === 'v' || ext === 'sv' || ext === 'vhdl' || ext === 'verilog') {
+        setLanguage('verilog')
+      }
+
+      setFileName(file.name)
+      setCode(content)
+      setCurrentFileId('')
+      setOutput(`Loaded file from local device: "${file.name}"\n`)
+    }
+    reader.onerror = () => {
+      setOutput(`Failed to read file: ${file.name}`)
+    }
+    reader.readAsText(file)
+
+    e.target.value = ''
   }
 
   const handleRun = async () => {
@@ -372,6 +404,15 @@ export default function Playground() {
               )}
             </Badge>
 
+            {/* Hidden File Input for Opening Local Files */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".py,.java,.v,.sv,.verilog,.vhdl,.txt,.c,.cpp,.js,.ts,.html,.css,.json"
+              className="hidden"
+            />
+
             {/* File selector — inline on same row */}
             <Select value={currentFileId || 'new'} onValueChange={handleSelectFile}>
               <SelectTrigger className="w-[160px] bg-surface border border-border-subtle text-xs shrink-0">
@@ -388,6 +429,18 @@ export default function Playground() {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Open Local File button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-9 px-3 bg-surface border border-border-subtle text-xs text-text-secondary hover:text-text-primary flex items-center gap-1.5 shrink-0"
+              title="Open file from your local device (.py, .java, .v, etc.)"
+            >
+              <FolderOpen className="h-3.5 w-3.5 text-accent-light" />
+              <span>Open Local File</span>
+            </Button>
           </div>
         </div>
 
@@ -412,6 +465,9 @@ export default function Playground() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title="Open local file">
+                  <FolderOpen className="h-4 w-4 text-accent-light" />
+                </Button>
                 <Button variant="ghost" size="icon" onClick={() => handleSelectFile('new')} title="New file">
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -451,15 +507,25 @@ export default function Playground() {
               />
             </CardContent>
 
-            <div className="p-3 bg-surface flex justify-between items-center border-t border-border-subtle shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownload}
-                className="flex items-center gap-1.5 text-xs text-text-secondary bg-elevated border border-border hover:bg-hover"
-              >
-                <Download className="h-4 w-4 text-text-muted" /> Download {language === 'python' ? '.py' : language === 'java' ? '.java' : '.v'}
-              </Button>
+            <div className="p-3 bg-surface flex flex-wrap gap-2 justify-between items-center border-t border-border-subtle shrink-0">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 text-xs text-text-secondary bg-elevated border border-border hover:bg-hover"
+                >
+                  <FolderOpen className="h-4 w-4 text-accent-light" /> Open File
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownload}
+                  className="flex items-center gap-1.5 text-xs text-text-secondary bg-elevated border border-border hover:bg-hover"
+                >
+                  <Download className="h-4 w-4 text-text-muted" /> Download {language === 'python' ? '.py' : language === 'java' ? '.java' : '.v'}
+                </Button>
+              </div>
               
               <div className="flex gap-2">
                 <Button
