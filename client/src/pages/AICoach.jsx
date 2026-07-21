@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, Send, Trash2, Gauge, Code, Building, BookOpen, Loader2, Bot } from 'lucide-react'
+import { Sparkles, Send, Trash2, Gauge, Code, Building, BookOpen, Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useProblems } from '@/hooks/useProblems'
 import { useTopics } from '@/hooks/useTopics'
@@ -69,8 +69,8 @@ export default function AICoach() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] max-w-5xl mx-auto px-2 sm:px-4">
-      {/* Top Header Bar - Open & Borderless */}
+    <div className="flex flex-col h-[calc(100vh-5.5rem)] max-w-5xl mx-auto px-2 sm:px-4">
+      {/* Top Header Bar - Borderless & Seamless */}
       <div className="py-3 px-2 flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 border border-accent/30 text-accent-light">
@@ -78,7 +78,7 @@ export default function AICoach() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-section font-bold text-text-primary">Placify AI Coach</h1>
+              <h1 className="text-section font-bold text-text-primary">Placify Copilot</h1>
               <span className="flex h-2 w-2 rounded-full bg-semantic-green animate-pulse" />
             </div>
             <p className="text-secondary text-text-secondary">Ask doubts, debug code, or run preparation diagnostics</p>
@@ -87,7 +87,7 @@ export default function AICoach() {
 
         {/* Top Header Actions */}
         <div className="flex items-center gap-2">
-          {/* Prominent Analyze Prep Button matching platform accent */}
+          {/* Prominent Analyze Prep Button */}
           <Button
             onClick={handleAnalyzePrepClick}
             disabled={loading}
@@ -118,7 +118,7 @@ export default function AICoach() {
         {loading && (
           <div className="flex items-center gap-3 my-4 p-3.5 rounded-2xl bg-surface border border-border-subtle text-accent-light text-xs font-mono animate-pulse w-fit">
             <Loader2 className="h-4 w-4 animate-spin text-accent" />
-            <span>Placify AI is thinking & analyzing...</span>
+            <span>Placify Copilot is thinking & analyzing...</span>
           </div>
         )}
 
@@ -196,10 +196,10 @@ export default function AICoach() {
           </button>
         </div>
 
-        {/* Input Form Container with Accent Glow Focus */}
+        {/* Input Form Container */}
         <form onSubmit={handleSend} className="relative flex items-center">
           <textarea
-            placeholder="Message Placify AI... Ask any doubt, code question, or placement query (Press Enter to send)"
+            placeholder="Message Placify Copilot... Ask any doubt, code question, or placement query (Press Enter to send)"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
