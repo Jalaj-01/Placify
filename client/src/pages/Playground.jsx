@@ -429,18 +429,6 @@ export default function Playground() {
                 ))}
               </SelectContent>
             </Select>
-
-            {/* Open Local File button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="h-9 px-3 bg-surface border border-border-subtle text-xs text-text-secondary hover:text-text-primary flex items-center gap-1.5 shrink-0"
-              title="Open file from your local device (.py, .java, .v, etc.)"
-            >
-              <FolderOpen className="h-3.5 w-3.5 text-accent-light" />
-              <span>Open Local File</span>
-            </Button>
           </div>
         </div>
 
@@ -507,25 +495,15 @@ export default function Playground() {
               />
             </CardContent>
 
-            <div className="p-3 bg-surface flex flex-wrap gap-2 justify-between items-center border-t border-border-subtle shrink-0">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 text-xs text-text-secondary bg-elevated border border-border hover:bg-hover"
-                >
-                  <FolderOpen className="h-4 w-4 text-accent-light" /> Open File
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownload}
-                  className="flex items-center gap-1.5 text-xs text-text-secondary bg-elevated border border-border hover:bg-hover"
-                >
-                  <Download className="h-4 w-4 text-text-muted" /> Download {language === 'python' ? '.py' : language === 'java' ? '.java' : '.v'}
-                </Button>
-              </div>
+            <div className="p-3 bg-surface flex justify-between items-center border-t border-border-subtle shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                className="flex items-center gap-1.5 text-xs text-text-secondary bg-elevated border border-border hover:bg-hover"
+              >
+                <Download className="h-4 w-4 text-text-muted" /> Download {language === 'python' ? '.py' : language === 'java' ? '.java' : '.v'}
+              </Button>
               
               <div className="flex gap-2">
                 <Button
