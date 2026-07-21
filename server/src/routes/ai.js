@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { analyzePreparation, generateInterviewBrief, explainTopic } from '../services/geminiService.js'
+import { analyzePreparation, generateInterviewBrief, explainTopic, chatWithGemini } from '../services/geminiService.js'
 
 const router = Router()
 
@@ -29,6 +29,19 @@ router.post('/explain-topic', async (req, res) => {
     res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message || 'Explanation failed' })
+  }
+})
+
+router.post('/chat', async (req, res) => {
+  try {
+    const { messages, userContext } = req.body
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: 'messages array is required' })
+    }
+    const result = await chatWithGemini({ messages, userContext })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Chat generation failed' })
   }
 })
 

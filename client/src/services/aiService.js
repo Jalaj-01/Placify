@@ -15,3 +15,7 @@ export async function generateInterviewBrief(data) {
 export async function explainTopic(topicName) {
   return apiCall('/api/ai/explain-topic', { method: 'POST', body: { topicName } })
 }
+
+export async function chatWithAI(messages, userContext = null) {
+  return apiCall('/api/ai/chat', { method: 'POST', body: { messages, userContext } })
+}
