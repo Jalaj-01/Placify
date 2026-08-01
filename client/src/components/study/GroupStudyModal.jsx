@@ -6,8 +6,25 @@ import {
 
 export default function GroupStudyModal({ isOpen, onClose, user }) {
   const [activeTab, setActiveTab] = useState('cowatch') // 'cowatch' | 'code' | 'scores'
-  const [videoUrl, setVideoUrl] = useState('https://www.youtube.com/embed/8hly31xKLI0')
-  const [videoTitle, setVideoTitle] = useState('Dynamic Programming & Graph Algorithms Masterclass')
+  const [videoUrlInput, setVideoUrlInput] = useState('https://www.youtube.com/watch?v=rfscVS0vtbw')
+  const [videoEmbedUrl, setVideoEmbedUrl] = useState('https://www.youtube.com/embed/rfscVS0vtbw')
+  const [videoTitle, setVideoTitle] = useState('Dynamic Programming & Data Structures Masterclass')
+
+  // Convert regular YouTube link (e.g. watch?v=xxx or output) to embed format
+  const handleUpdateVideo = (e) => {
+    e.preventDefault()
+    if (!videoUrlInput.trim()) return
+    let raw = videoUrlInput.trim()
+    let embed = raw
+    if (raw.includes('watch?v=')) {
+      const id = raw.split('watch?v=')[1]?.split('&')[0]
+      if (id) embed = `https://www.youtube.com/embed/${id}`
+    } else if (raw.includes('youtu.be/')) {
+      const id = raw.split('youtu.be/')[1]?.split('?')[0]
+      if (id) embed = `https://www.youtube.com/embed/${id}`
+    }
+    setVideoEmbedUrl(embed)
+  }
 
   // Shared Notes State
   const [notes, setNotes] = useState([
@@ -70,7 +87,6 @@ console.log(minCostClimbingStairs([10, 15, 20]));`)
     setOutput('Executing code in shared sandbox...')
     setTimeout(() => {
       try {
-        // Safe evaluation simulation
         setOutput('Output:\n15\n\n✅ Test Case Passed: minCostClimbingStairs([10, 15, 20]) -> 15')
       } catch (err) {
         setOutput('Error executing script: ' + err.message)
@@ -88,10 +104,10 @@ console.log(minCostClimbingStairs([10, 15, 20]));`)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-5xl h-[85vh] rounded-2xl bg-[#0b0c13] border border-white/10 flex flex-col overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto">
+      <div className="w-full max-w-5xl max-h-[92vh] flex flex-col rounded-2xl bg-[#0b0c13] border border-white/10 overflow-hidden shadow-2xl">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-surface/40">
+        <div className="px-4 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between bg-surface/40 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 text-accent">
               <Users className="h-5 w-5 text-accent-light" />
@@ -103,7 +119,9 @@ console.log(minCostClimbingStairs([10, 15, 20]));`)
                   <span className="h-1.5 w-1.5 rounded-full bg-semantic-green animate-pulse" /> Live Room (3 Online)
                 </span>
               </div>
-              <p className="text-xs text-text-muted">Co-watch lectures, write shared notes, run code & track peer contribution scores.</p>
+              <p className="text-xs text-text-muted">
+                Co-watch lectures, write shared notes, run pair code & earn peer contribution scores automatically!
+              </p>
             </div>
           </div>
 
@@ -116,10 +134,10 @@ console.log(minCostClimbingStairs([10, 15, 20]));`)
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 px-6 pt-3 bg-surface/20 border-b border-white/5">
+        <div className="flex items-center gap-2 px-4 sm:px-6 pt-3 bg-surface/20 border-b border-white/5 shrink-0 overflow-x-auto">
           <button
             onClick={() => setActiveTab('cowatch')}
-            className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-all flex items-center gap-2 border-b-2 ${
+            className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-all flex items-center gap-2 border-b-2 whitespace-nowrap ${
               activeTab === 'cowatch'
                 ? 'border-accent text-accent bg-accent/10'
                 : 'border-transparent text-text-muted hover:text-text-primary'
@@ -130,7 +148,7 @@ console.log(minCostClimbingStairs([10, 15, 20]));`)
           </button>
           <button
             onClick={() => setActiveTab('code')}
-            className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-all flex items-center gap-2 border-b-2 ${
+            className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-all flex items-center gap-2 border-b-2 whitespace-nowrap ${
               activeTab === 'code'
                 ? 'border-semantic-purple text-semantic-purple bg-semantic-purple/10'
                 : 'border-transparent text-text-muted hover:text-text-primary'
@@ -141,7 +159,7 @@ console.log(minCostClimbingStairs([10, 15, 20]));`)
           </button>
           <button
             onClick={() => setActiveTab('scores')}
-            className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-all flex items-center gap-2 border-b-2 ${
+            className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-all flex items-center gap-2 border-b-2 whitespace-nowrap ${
               activeTab === 'scores'
                 ? 'border-semantic-green text-semantic-green bg-semantic-green/10'
                 : 'border-transparent text-text-muted hover:text-text-primary'
@@ -153,25 +171,42 @@ console.log(minCostClimbingStairs([10, 15, 20]));`)
         </div>
 
         {/* Body Content */}
-        <div className="flex-1 overflow-hidden p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {/* TAB 1: Co-Watch & Notes */}
           {activeTab === 'cowatch' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[420px]">
               {/* Video Player */}
               <div className="lg:col-span-7 flex flex-col space-y-3">
+                {/* YouTube Link Input */}
+                <form onSubmit={handleUpdateVideo} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={videoUrlInput}
+                    onChange={(e) => setVideoUrlInput(e.target.value)}
+                    placeholder="Paste YouTube Video URL to watch together..."
+                    className="flex-1 bg-base border border-white/15 rounded-lg px-3 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent-light transition-colors"
+                  >
+                    Load Video
+                  </button>
+                </form>
+
                 <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-white/10 shadow-lg">
                   <iframe
-                    src={videoUrl}
+                    src={videoEmbedUrl}
                     title="Course Video"
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
                 </div>
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-xs font-medium text-text-primary">{videoTitle}</span>
-                  <span className="text-[11px] text-text-muted flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> Synced at 14:20
+                <div className="flex items-center justify-between px-1 text-xs">
+                  <span className="font-medium text-text-primary truncate">{videoTitle}</span>
+                  <span className="text-text-muted flex items-center gap-1 shrink-0">
+                    <Clock className="h-3 w-3" /> Synced Room
                   </span>
                 </div>
               </div>

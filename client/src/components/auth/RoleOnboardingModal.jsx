@@ -35,8 +35,8 @@ export default function RoleOnboardingModal({ user, onRoleSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-xl rounded-2xl bg-[#0c0d14] border border-white/10 p-6 md:p-8 shadow-2xl space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
+      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0c0d14] dark:bg-[#0c0d14] border border-white/10 p-5 sm:p-8 shadow-2xl space-y-6 scrollbar-thin">
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent/20 text-accent mb-2">
@@ -49,7 +49,7 @@ export default function RoleOnboardingModal({ user, onRoleSaved }) {
         </div>
 
         {/* Role Options */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Student */}
           <button
             type="button"
@@ -128,13 +128,13 @@ export default function RoleOnboardingModal({ user, onRoleSaved }) {
               <label className="text-xs text-text-secondary block">Teacher ID / Verification Passcode *</label>
               <input
                 type="text"
-                placeholder="Enter Teacher ID (e.g. TEACHER2026)"
+                placeholder="Enter Teacher ID (e.g. JALAJ2026 or TEACHER2026)"
                 value={teacherId}
                 onChange={(e) => setTeacherId(e.target.value)}
                 className="w-full bg-base/80 border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-semantic-purple"
               />
               <p className="text-[11px] text-text-muted">
-                Demo Faculty Key: <code className="text-semantic-purple font-mono">TEACHER2026</code>
+                Demo Faculty Keys: <code className="text-semantic-purple font-mono">JALAJ2026</code> or <code className="text-semantic-purple font-mono">TEACHER2026</code>
               </p>
             </div>
 

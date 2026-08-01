@@ -30,8 +30,20 @@ import { requestNotificationPermission, runNotificationScheduler } from '@/utils
 function AppContent() {
   const { user, signOut, loading: authLoading } = useAuth()
   const setOffline = useAppStore((s) => s.setOffline)
+  const theme = useAppStore((s) => s.theme)
   const { streakData } = useStreak(user?.uid)
   const { applications } = useApplications(user?.uid)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('placify_theme') || 'dark'
+    if (saved === 'dark') {
+      document.documentElement.classList.add('dark')
+      document.documentElement.classList.remove('light')
+    } else {
+      document.documentElement.classList.add('light')
+      document.documentElement.classList.remove('dark')
+    }
+  }, [theme])
 
   useEffect(() => {
     const handleOnline = () => setOffline(false)

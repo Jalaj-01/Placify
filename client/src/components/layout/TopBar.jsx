@@ -1,10 +1,10 @@
-import { WifiOff, FolderOpen, Youtube, Bookmark, LogOut, Share2 } from 'lucide-react'
+import { WifiOff, FolderOpen, Youtube, Bookmark, LogOut, Share2, Sun, Moon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function TopBar({ title }) {
-  const { isOffline } = useAppStore()
+  const { isOffline, theme, toggleTheme } = useAppStore()
   const { signOut } = useAuth()
 
   return (
@@ -18,6 +18,13 @@ export default function TopBar({ title }) {
               Offline
             </div>
           )}
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          >
+            {theme === 'dark' ? <Sun className="h-4.5 w-4.5 text-yellow-400" /> : <Moon className="h-4.5 w-4.5 text-accent" />}
+          </button>
           <Link to="/library" className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors" title="Library">
             <FolderOpen className="h-4.5 w-4.5" />
           </Link>

@@ -14,12 +14,12 @@ export default function PageWrapper({ children }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'min-h-screen pb-20 lg:pb-0 transition-all duration-300',
+        'min-h-screen pb-20 lg:pb-0 transition-all duration-300 overflow-x-hidden',
         sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
         aiCoachOpen && 'lg:pr-[400px]'
       )}
     >
-      <div className="mx-auto max-w-[1200px] p-4 md:p-6">
+      <div className="mx-auto max-w-[1400px] w-full p-3 sm:p-5 md:p-6">
         {children}
       </div>
     </motion.main>

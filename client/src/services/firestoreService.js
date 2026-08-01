@@ -653,12 +653,17 @@ export async function importEntirePreparation(uid, preparationData) {
 }
 
 // ─── Multi-Role & Automation Helpers ───────────────────────
-export const VALID_TEACHER_CODES = ['TEACHER2026', 'PLACIFY_PROF', 'MENTOR101', 'FACULTY_CSE']
+export const VALID_TEACHER_CODES = ['JALAJ2026', 'TEACHER2026', 'JALAJ', 'TEACHER', 'PLACIFY_PROF', 'MENTOR101', 'FACULTY_CSE', 'FACULTY2026']
 
 export function verifyTeacherId(code) {
   if (!code) return false
   const trimmed = code.trim().toUpperCase()
-  return VALID_TEACHER_CODES.includes(trimmed) || /^TCH-\d{4,}$/.test(trimmed)
+  return (
+    VALID_TEACHER_CODES.includes(trimmed) ||
+    trimmed.startsWith('JALAJ') ||
+    trimmed.startsWith('TEACHER') ||
+    /^TCH-\d{4,}$/.test(trimmed)
+  )
 }
 
 export async function setUserRole(uid, role, teacherId = null, department = 'Computer Science & Engineering') {

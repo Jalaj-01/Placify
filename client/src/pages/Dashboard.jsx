@@ -4,12 +4,13 @@ import { useProblems } from '@/hooks/useProblems'
 import { useTopics } from '@/hooks/useTopics'
 import { useApplications } from '@/hooks/useApplications'
 import { useStreak } from '@/hooks/useStreak'
+import { useAppStore } from '@/store/useAppStore'
 import { Skeleton } from '@/components/ui/skeleton'
 import RoleOnboardingModal from '@/components/auth/RoleOnboardingModal'
 import StudentDashboard from '@/components/dashboard/StudentDashboard'
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard'
 import PhdDashboard from '@/components/dashboard/PhdDashboard'
-import { ShieldCheck, UserCheck } from 'lucide-react'
+import { ShieldCheck, UserCheck, Sun, Moon, RotateCcw } from 'lucide-react'
 
 export default function Dashboard() {
   const { user, profile } = useAuth()
@@ -17,6 +18,8 @@ export default function Dashboard() {
   const { topics, loading: loadingTopics, updateTopic } = useTopics(user?.uid)
   const { applications, loading: loadingApps } = useApplications(user?.uid)
   const { streakData } = useStreak(user?.uid)
+
+  const { theme, toggleTheme } = useAppStore()
 
   const [activeRole, setActiveRole] = useState(null)
   const [showRoleOnboarding, setShowRoleOnboarding] = useState(false)
@@ -33,7 +36,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="space-y-6 animate-pulse p-2">
         <div className="flex gap-4">
           <Skeleton className="h-12 w-64 bg-surface/60 rounded-xl" />
         </div>
@@ -58,18 +61,38 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Role Switcher Bar */}
-      <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-surface/30 border border-white/5 text-xs text-text-muted">
-        <div className="flex items-center gap-2">
-          <UserCheck className="h-3.5 w-3.5 text-accent" />
-          <span>Active Role View: <strong className="text-text-primary uppercase font-semibold">{currentRole}</strong></span>
+    <div className="space-y-5 w-full max-w-full">
+      {/* Sleek Master Header Action Bar */}
+      <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-surface/40 border border-white/10 backdrop-blur-md shadow-sm text-xs text-text-muted">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/15 text-accent font-semibold">
+            <UserCheck className="h-3.5 w-3.5" />
+            <span className="capitalize">{currentRole} Workspace</span>
+          </div>
+          <button
+            onClick={() => setShowRoleOnboarding(true)}
+            className="text-[11px] text-text-secondary hover:text-accent hover:underline transition-colors flex items-center gap-1 font-medium"
+          >
+            <RotateCcw className="h-3 w-3" /> Switch Role
+          </button>
         </div>
+
+        {/* Light / Dark Mode Toggle */}
         <button
-          onClick={() => setShowRoleOnboarding(true)}
-          className="text-[11px] text-accent hover:underline font-medium"
+          onClick={toggleTheme}
+          className="px-3 py-1.5 rounded-xl border border-white/10 bg-base/60 hover:bg-white/10 text-text-primary text-xs font-semibold flex items-center gap-2 transition-all shadow-sm"
         >
-          Change Role Settings
+          {theme === 'dark' ? (
+            <>
+              <Sun className="h-3.5 w-3.5 text-yellow-400 fill-current" />
+              <span>Light Mode</span>
+            </>
+          ) : (
+            <>
+              <Moon className="h-3.5 w-3.5 text-accent fill-current" />
+              <span>Dark Mode</span>
+            </>
+          )}
         </button>
       </div>
 
