@@ -128,14 +128,11 @@ export default function RoleOnboardingModal({ user, onRoleSaved }) {
               <label className="text-xs text-text-secondary block">Teacher ID / Verification Passcode *</label>
               <input
                 type="text"
-                placeholder="Enter Teacher ID (e.g. JALAJ2026 or TEACHER2026)"
+                placeholder="Enter official Teacher ID / Faculty Key"
                 value={teacherId}
                 onChange={(e) => setTeacherId(e.target.value)}
                 className="w-full bg-base/80 border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-semantic-purple"
               />
-              <p className="text-[11px] text-text-muted">
-                Demo Faculty Keys: <code className="text-semantic-purple font-mono">JALAJ2026</code> or <code className="text-semantic-purple font-mono">TEACHER2026</code>
-              </p>
             </div>
 
             <div className="space-y-1">

@@ -4,8 +4,10 @@ import {
   Calendar, Send, Plus, BellRing, Sparkles, FileSpreadsheet, ShieldCheck
 } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
+import { useAppStore } from '@/store/useAppStore'
 
 export default function TeacherDashboard({ user, profile }) {
+  const { openAICoach } = useAppStore()
   const [activeCourse, setActiveCourse] = useState('dsa')
   const [showBroadcastModal, setShowBroadcastModal] = useState(false)
   const [broadcastText, setBroadcastText] = useState('')
@@ -108,6 +110,26 @@ export default function TeacherDashboard({ user, profile }) {
         >
           <BellRing className="h-4 w-4" />
           <span>Broadcast Class Notice</span>
+        </button>
+      </div>
+
+      {/* Prominent AI Lesson & Syllabus Assistant Widget */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-semantic-purple/20 via-surface/60 to-accent/20 border border-semantic-purple/30 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-semantic-purple/20 text-semantic-purple">
+            <Sparkles className="h-5 w-5 text-semantic-purple-light animate-pulse" />
+          </div>
+          <div>
+            <h3 className="font-bold text-text-primary text-sm">AI Lesson Planner & Curriculum Assistant</h3>
+            <p className="text-xs text-text-muted">Generate lab assignments, auto-create quiz questions, or draft lecture notes in seconds.</p>
+          </div>
+        </div>
+        <button
+          onClick={openAICoach}
+          className="px-4 py-2 rounded-xl bg-semantic-purple text-white font-semibold text-xs hover:bg-purple-600 transition-colors flex items-center justify-center gap-2 shrink-0 shadow-md shadow-semantic-purple/20"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>Ask AI Assistant</span>
         </button>
       </div>
 

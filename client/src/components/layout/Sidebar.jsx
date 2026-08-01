@@ -9,20 +9,26 @@ import {
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/problems', icon: Code2, label: 'Problems' },
-  { to: '/topics', icon: BookOpen, label: 'Topics' },
-  { to: '/applications', icon: Briefcase, label: 'Applications' },
-  { to: '/ai-coach', icon: Sparkles, label: 'AI Coach', isAICoach: true },
-  { to: '/playground', icon: Terminal, label: 'Playground' },
-  { to: '/library', icon: FolderOpen, label: 'Library' },
-  { to: '/courses', icon: Youtube, label: 'Course Vault' },
-  { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks' },
-  { to: '/shares', icon: Share2, label: 'Shares' },
+import { useAuth } from '@/hooks/useAuth'
+
+const allNavItems = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['student', 'teacher', 'phd'] },
+  { to: '/problems', icon: Code2, label: 'Problems', roles: ['student'] },
+  { to: '/topics', icon: BookOpen, label: 'Topics', roles: ['student', 'teacher'] },
+  { to: '/applications', icon: Briefcase, label: 'Applications', roles: ['student'] },
+  { to: '/ai-coach', icon: Sparkles, label: 'AI Coach', isAICoach: true, roles: ['student', 'teacher', 'phd'] },
+  { to: '/playground', icon: Terminal, label: 'Playground', roles: ['student', 'phd'] },
+  { to: '/library', icon: FolderOpen, label: 'Library', roles: ['student', 'teacher', 'phd'] },
+  { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student', 'teacher', 'phd'] },
+  { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student', 'teacher', 'phd'] },
+  { to: '/shares', icon: Share2, label: 'Shares', roles: ['student', 'teacher', 'phd'] },
 ]
 
 export default function Sidebar({ user, onSignOut }) {
+  const { profile } = useAuth()
+  const currentRole = profile?.role || 'student'
+
+  const navItems = allNavItems.filter((item) => item.roles.includes(currentRole))
   const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed, openAICoach, aiCoachOpen } = useAppStore()
   const [isHovered, setIsHovered] = useState(false)
 
