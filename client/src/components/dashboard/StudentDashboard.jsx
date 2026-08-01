@@ -10,8 +10,12 @@ import AssessmentTimer from '@/components/dashboard/AssessmentTimer'
 import GroupStudyModal from '@/components/study/GroupStudyModal'
 import { computeAutomatedProgress } from '@/services/firestoreService'
 
+import ApplicationsKanban from '@/components/applications/ApplicationsKanban'
+import PeerInterviewMatcher from '@/components/study/PeerInterviewMatcher'
+
 export default function StudentDashboard({ user, profile, problems, topics, applications, streakData, updateProblem, updateTopic }) {
   const [isGroupStudyOpen, setIsGroupStudyOpen] = useState(false)
+  const [activeStudentTab, setActiveStudentTab] = useState('overview') // 'overview' | 'kanban' | 'peer'
 
   // Compute automated progress without manual checkbox dependency
   const autoProgress = computeAutomatedProgress(problems, topics)
@@ -57,89 +61,138 @@ export default function StudentDashboard({ user, profile, problems, topics, appl
         </button>
       </div>
 
-      {/* Stats Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          title="Problems Logged"
-          value={totalProblems}
-          icon={Code2}
-          description="Auto-synced with topics & skills"
-        />
-        <StatsCard
-          title="Topics Completed"
-          value={`${completedTopics}/${totalTopics}`}
-          icon={CheckSquare}
-          description="Auto-computed subject mastery"
-        />
-        <StatsCard
-          title="Active Applications"
-          value={activeApps}
-          icon={Briefcase}
-          description="In wishlist, interview or OA stages"
-        />
-        <StatsCard
-          title="Current Streak"
-          value={`${currentStreak} days`}
-          icon={Flame}
-          description="Keep solving to maintain streak"
-        />
+      {/* Sub-Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+        <button
+          onClick={() => setActiveStudentTab('overview')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
+            activeStudentTab === 'overview'
+              ? 'bg-accent text-white shadow-md shadow-accent/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          Dashboard Overview
+        </button>
+        <button
+          onClick={() => setActiveStudentTab('kanban')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
+            activeStudentTab === 'kanban'
+              ? 'bg-accent text-white shadow-md shadow-accent/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          Application Kanban Pipeline
+        </button>
+        <button
+          onClick={() => setActiveStudentTab('peer')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
+            activeStudentTab === 'peer'
+              ? 'bg-accent text-white shadow-md shadow-accent/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          1v1 Peer Mock Matcher
+        </button>
       </div>
 
-      {/* Daily Focus Queue */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-section font-semibold text-text-primary flex items-center gap-2">
-            <Target className="h-4 w-4 text-accent" />
-            Automated Daily Focus Queue
-          </h2>
-          <span className="text-[11px] text-text-muted">Auto-suggested based on practice velocity</span>
-        </div>
-        <DailyFocusQueue
-          problems={problems}
-          topics={topics}
-          applications={applications}
-          onUpdateProblem={updateProblem}
-          onUpdateTopic={updateTopic}
-        />
-      </div>
+      {activeStudentTab === 'kanban' && (
+        <ApplicationsKanban applications={applications} />
+      )}
 
-      {/* Activity Heatmap Bar */}
-      <div className="space-y-3">
-        <h2 className="text-section font-semibold text-text-primary">Activity Log & Streak</h2>
-        <StreakBar streakData={streakData} />
-      </div>
+      {activeStudentTab === 'peer' && (
+        <PeerInterviewMatcher user={user} />
+      )}
 
-      {/* Progress & Competency Coverage Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      {activeStudentTab === 'overview' && (
+        <>
+          {/* Stats Overview Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatsCard
+              title="Problems Logged"
+              value={totalProblems}
+              icon={Code2}
+              description="Auto-synced with topics & skills"
+            />
+            <StatsCard
+              title="Topics Completed"
+              value={`${completedTopics}/${totalTopics}`}
+              icon={CheckSquare}
+              description="Auto-computed subject mastery"
+            />
+            <StatsCard
+              title="Active Applications"
+              value={activeApps}
+              icon={Briefcase}
+              description="In wishlist, interview or OA stages"
+            />
+            <StatsCard
+              title="Current Streak"
+              value={`${currentStreak} days`}
+              icon={Flame}
+              description="Keep solving to maintain streak"
+            />
+          </div>
+
+          {/* Daily Focus Queue */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-section font-semibold text-text-primary">Automated Subject Coverage</h2>
-              <span className="text-[11px] text-accent font-medium bg-accent/10 px-2 py-0.5 rounded-md">
-                Auto-calculated
-              </span>
+              <h2 className="text-section font-semibold text-text-primary flex items-center gap-2">
+                <Target className="h-4 w-4 text-accent" />
+                Automated Daily Focus Queue
+              </h2>
+              <span className="text-[11px] text-text-muted">Auto-suggested based on practice velocity</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <ProgressRing percentage={autoProgress.dsaPct} label="DSA Mastery" strokeColor="stroke-accent" />
-              <ProgressRing percentage={autoProgress.csPct} label="CS Theory" strokeColor="stroke-semantic-purple" />
-              <ProgressRing percentage={autoProgress.aptPct} label="Aptitude" strokeColor="stroke-semantic-green" />
-            </div>
+            <DailyFocusQueue
+              problems={problems}
+              topics={topics}
+              applications={applications}
+              onUpdateProblem={updateProblem}
+              onUpdateTopic={updateTopic}
+            />
           </div>
 
+          {/* Peer Matcher Quick Teaser */}
+          <PeerInterviewMatcher user={user} />
+
+          {/* Activity Heatmap Bar */}
           <div className="space-y-3">
-            <h2 className="text-section font-semibold text-text-primary">Timed Assessment Mock</h2>
-            <AssessmentTimer />
+            <h2 className="text-section font-semibold text-text-primary">Activity Log & Streak</h2>
+            <StreakBar streakData={streakData} />
           </div>
-        </div>
 
-        <div className="space-y-3">
-          <h2 className="text-section font-semibold text-text-primary">Competency Map</h2>
-          <RadarCompetency topics={topics} />
-        </div>
-      </div>
+          {/* Progress & Competency Coverage Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-section font-semibold text-text-primary">Automated Subject Coverage</h2>
+                  <span className="text-[11px] text-accent font-medium bg-accent/10 px-2 py-0.5 rounded-md">
+                    Auto-calculated
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <ProgressRing percentage={autoProgress.dsaPct} label="DSA Mastery" strokeColor="stroke-accent" />
+                  <ProgressRing percentage={autoProgress.csPct} label="CS Theory" strokeColor="stroke-semantic-purple" />
+                  <ProgressRing percentage={autoProgress.aptPct} label="Aptitude" strokeColor="stroke-semantic-green" />
+                </div>
+              </div>
 
-      {/* Weekly snapshot statistics */}
-      <WeeklySnapshot problems={problems} topics={topics} applications={applications} />
+              <div className="space-y-3">
+                <h2 className="text-section font-semibold text-text-primary">Timed Assessment Mock</h2>
+                <AssessmentTimer />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-section font-semibold text-text-primary">Competency Map</h2>
+              <RadarCompetency topics={topics} />
+            </div>
+          </div>
+
+          {/* Weekly snapshot statistics */}
+          <WeeklySnapshot problems={problems} topics={topics} applications={applications} />
+        </>
+      )}
 
       {/* Group Study Modal */}
       <GroupStudyModal

@@ -266,6 +266,57 @@ export default function TeacherDashboard({ user, profile }) {
         </button>
       </div>
 
+      {/* Sub-Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-white/10 pb-2 overflow-x-auto">
+        <button
+          onClick={() => setActiveTeacherTab('overview')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap ${
+            activeTeacherTab === 'overview'
+              ? 'bg-semantic-purple text-white shadow-md shadow-semantic-purple/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          Dashboard Overview
+        </button>
+        <button
+          onClick={() => setActiveTeacherTab('chart')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap ${
+            activeTeacherTab === 'chart'
+              ? 'bg-semantic-purple text-white shadow-md shadow-semantic-purple/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          Recharts Syllabus Pace
+        </button>
+        <button
+          onClick={() => setActiveTeacherTab('gradebook')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap ${
+            activeTeacherTab === 'gradebook'
+              ? 'bg-semantic-purple text-white shadow-md shadow-semantic-purple/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          Digital Gradebook & CSV Export
+        </button>
+        <button
+          onClick={() => setActiveTeacherTab('quiz')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap ${
+            activeTeacherTab === 'quiz'
+              ? 'bg-semantic-purple text-white shadow-md shadow-semantic-purple/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          AI Quiz Generator
+        </button>
+      </div>
+
+      {activeTeacherTab === 'chart' && <PaceChart courses={courses} />}
+      {activeTeacherTab === 'gradebook' && <GradebookVault />}
+      {activeTeacherTab === 'quiz' && <AIQuizGenerator />}
+
+      {activeTeacherTab === 'overview' && (
+        <>
+
       {/* Faculty Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
@@ -506,6 +557,8 @@ export default function TeacherDashboard({ user, profile }) {
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* MODAL 1: Add / Edit Course Modal */}
       {showCourseModal && (

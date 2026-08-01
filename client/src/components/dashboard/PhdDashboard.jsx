@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
 import {
   BookOpenCheck, FileText, Award, Bookmark, Plus, ExternalLink,
-  CheckCircle, Clock, Sparkles, FolderGit2, AlertCircle, Trash2, Edit3, X, Check
+  CheckCircle, Clock, Sparkles, FolderGit2, AlertCircle, Trash2, Edit3, X, Check, Users, MessageSquare
 } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
 import { useAppStore } from '@/store/useAppStore'
+import TAOperationsView from '@/components/phd/TAOperationsView'
+import SupervisorLogbook from '@/components/phd/SupervisorLogbook'
+import GrantExpenseTracker from '@/components/phd/GrantExpenseTracker'
 
 export default function PhdDashboard({ user, profile }) {
   const { openAICoach } = useAppStore()
+  const [activePhdTab, setActivePhdTab] = useState('overview') // 'overview' | 'ta' | 'supervisor' | 'grants'
 
   // Persistent papers state
   const [papers, setPapers] = useState(() => {
@@ -170,6 +174,57 @@ export default function PhdDashboard({ user, profile }) {
           <span>Ask AI Assistant</span>
         </button>
       </div>
+
+      {/* Sub-Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-white/10 pb-2 overflow-x-auto">
+        <button
+          onClick={() => setActivePhdTab('overview')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap ${
+            activePhdTab === 'overview'
+              ? 'bg-semantic-green text-white shadow-md shadow-semantic-green/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          Dashboard Overview
+        </button>
+        <button
+          onClick={() => setActivePhdTab('ta')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap ${
+            activePhdTab === 'ta'
+              ? 'bg-semantic-green text-white shadow-md shadow-semantic-green/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          TA Operations & Proctoring
+        </button>
+        <button
+          onClick={() => setActivePhdTab('supervisor')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap ${
+            activePhdTab === 'supervisor'
+              ? 'bg-semantic-green text-white shadow-md shadow-semantic-green/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          Supervisor Meeting Logbook
+        </button>
+        <button
+          onClick={() => setActivePhdTab('grants')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap ${
+            activePhdTab === 'grants'
+              ? 'bg-semantic-green text-white shadow-md shadow-semantic-green/20'
+              : 'text-text-muted hover:text-text-primary hover:bg-surface/50'
+          }`}
+        >
+          Grants & Expense Tracker
+        </button>
+      </div>
+
+      {activePhdTab === 'ta' && <TAOperationsView />}
+      {activePhdTab === 'supervisor' && <SupervisorLogbook />}
+      {activePhdTab === 'grants' && <GrantExpenseTracker />}
+
+      {activePhdTab === 'overview' && (
+        <>
 
       {/* PhD Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -341,6 +396,8 @@ export default function PhdDashboard({ user, profile }) {
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Add / Edit Research Paper Modal */}
       {showAddPaperModal && (

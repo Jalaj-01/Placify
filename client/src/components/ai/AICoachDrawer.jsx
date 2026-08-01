@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 
 export default function AICoachDrawer() {
   const { aiCoachOpen, closeAICoach } = useAppStore()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
 
   const { problems } = useProblems(user?.uid)
@@ -217,6 +217,33 @@ export default function AICoachDrawer() {
               </form>
             </div>
           )}
+
+          {/* Quick Actions & Prompt Chips */}
+          <div className="p-3 bg-card border-t border-border-subtle space-y-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {(profile?.role === 'teacher' ? [
+                { label: 'Generate Quiz Questions', text: 'Generate a 5-question MCQ quiz on Graph Algorithms with answer keys.' },
+                { label: 'Draft Lesson Plan', text: 'Draft a 1-hour lecture outline for Database Concurrency Control.' },
+                { label: 'Lecture Pacing', text: 'Suggest pacing strategy for completing OS syllabus in 4 weeks.' }
+              ] : profile?.role === 'phd' ? [
+                { label: 'Summarize IEEE Abstract', text: 'Summarize the core methodology and contributions of this IEEE paper.' },
+                { label: 'LaTeX Citation', text: 'Format a BibTeX LaTeX citation for an ACM SIGCOMM paper.' },
+                { label: 'Supervisor Update', text: 'Help me draft a concise email update for my PhD advisor meeting.' }
+              ] : [
+                { label: 'Code Debug Hints', text: 'I have a bug in my Graph BFS code. How can I trace infinite loops?' },
+                { label: 'Mock Interview Prep', text: 'Give me 3 top technical interview questions asked at Google for SDE-1.' },
+                { label: 'Analyze Prep Velocity', text: 'How can I balance DSA problem solving with CS Theory revision?' }
+              ]).map((chip, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => sendMessage(chip.text)}
+                  className="px-2.5 py-1 rounded-lg bg-surface hover:bg-surface/80 border border-border-subtle text-text-muted hover:text-text-primary text-[11px] whitespace-nowrap transition-colors"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Bottom Action Chips & Compact Input Box */}
           <div className="p-3 bg-surface border-t border-border-subtle space-y-2 shrink-0">
