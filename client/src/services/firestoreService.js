@@ -652,3 +652,58 @@ export async function importEntirePreparation(uid, preparationData) {
   await recordActivity(uid)
 }
 
+// ─── Multi-Role & Automation Helpers ───────────────────────
+export const VALID_TEACHER_CODES = ['TEACHER2026', 'PLACIFY_PROF', 'MENTOR101', 'FACULTY_CSE']
+
+export function verifyTeacherId(code) {
+  if (!code) return false
+  const trimmed = code.trim().toUpperCase()
+  return VALID_TEACHER_CODES.includes(trimmed) || /^TCH-\d{4,}$/.test(trimmed)
+}
+
+export async function setUserRole(uid, role, teacherId = null, department = 'Computer Science & Engineering') {
+  const profileRef = doc(db, 'users', uid, 'profile', 'main')
+  const updates = {
+    role,
+    department,
+    onboardingComplete: true,
+    updatedAt: serverTimestamp(),
+  }
+  if (role === 'teacher') {
+    updates.teacherId = teacherId
+    updates.verifiedTeacher = true
+  }
+  await updateDoc(profileRef, updates)
+  await recordActivity(uid)
+}
+
+export function computeAutomatedProgress(problems = [], topics = []) {
+  // Automated subject mastery based on solved problems count + completed topics
+  const dsaProbs = problems.filter((p) => p.tags?.some((t) => ['DSA', 'LeetCode', 'Array', 'Tree', 'Graph', 'DP'].includes(t)))
+  const csProbs = problems.filter((p) => p.tags?.some((t) => ['OS', 'DBMS', 'CN', 'OOPS', 'SQL', 'Theory'].includes(t)))
+  const aptProbs = problems.filter((p) => p.tags?.some((t) => ['Aptitude', 'Math', 'Logic', 'Verbal'].includes(t)))
+
+  // Topics completion
+  const dsaTopics = topics.filter((t) => t.subject === 'DSA')
+  const csTopics = topics.filter((t) => ['OS', 'DBMS', 'CN', 'OOPS'].includes(t.subject))
+  const aptTopics = topics.filter((t) => t.subject?.startsWith('Aptitude'))
+
+  const calcPct = (probCount, topicList) => {
+    if (!topicList || topicList.length === 0) {
+      return Math.min(100, probCount * 10)
+    }
+    const topicDone = topicList.filter((t) => t.status === 'Done').length
+    const rawPct = (topicDone / topicList.length) * 70 + Math.min(30, probCount * 5)
+    return Math.min(100, Math.round(rawPct))
+  }
+
+  return {
+    dsaPct: calcPct(dsaProbs.length, dsaTopics),
+    csPct: calcPct(csProbs.length, csTopics),
+    aptPct: calcPct(aptProbs.length, aptTopics),
+    totalProblemsSolved: problems.length,
+    activeStreak: problems.length > 0 ? Math.min(30, problems.length * 2) : 0,
+  }
+}
+
+
