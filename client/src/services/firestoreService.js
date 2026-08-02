@@ -683,21 +683,31 @@ export async function setUserRole(uid, role, teacherId = null, department = 'Com
 }
 
 export function computeAutomatedProgress(problems = [], topics = []) {
+  const safeProblems = Array.isArray(problems) ? problems : []
+  const safeTopics = Array.isArray(topics) ? topics : []
+
   // Automated subject mastery based on solved problems count + completed topics
-  const dsaProbs = problems.filter((p) => p.tags?.some((t) => ['DSA', 'LeetCode', 'Array', 'Tree', 'Graph', 'DP'].includes(t)))
-  const csProbs = problems.filter((p) => p.tags?.some((t) => ['OS', 'DBMS', 'CN', 'OOPS', 'SQL', 'Theory'].includes(t)))
-  const aptProbs = problems.filter((p) => p.tags?.some((t) => ['Aptitude', 'Math', 'Logic', 'Verbal'].includes(t)))
+  const hasTag = (p, tagList) => {
+    if (!p || !p.tags) return false
+    if (Array.isArray(p.tags)) return p.tags.some((t) => tagList.includes(t))
+    if (typeof p.tags === 'string') return tagList.some((t) => p.tags.includes(t))
+    return false
+  }
+
+  const dsaProbs = safeProblems.filter((p) => hasTag(p, ['DSA', 'LeetCode', 'Array', 'Tree', 'Graph', 'DP']))
+  const csProbs = safeProblems.filter((p) => hasTag(p, ['OS', 'DBMS', 'CN', 'OOPS', 'SQL', 'Theory']))
+  const aptProbs = safeProblems.filter((p) => hasTag(p, ['Aptitude', 'Math', 'Logic', 'Verbal']))
 
   // Topics completion
-  const dsaTopics = topics.filter((t) => t.subject === 'DSA')
-  const csTopics = topics.filter((t) => ['OS', 'DBMS', 'CN', 'OOPS'].includes(t.subject))
-  const aptTopics = topics.filter((t) => t.subject?.startsWith('Aptitude'))
+  const dsaTopics = safeTopics.filter((t) => t && t.subject === 'DSA')
+  const csTopics = safeTopics.filter((t) => t && ['OS', 'DBMS', 'CN', 'OOPS'].includes(t.subject))
+  const aptTopics = safeTopics.filter((t) => t && typeof t.subject === 'string' && t.subject.startsWith('Aptitude'))
 
   const calcPct = (probCount, topicList) => {
     if (!topicList || topicList.length === 0) {
       return Math.min(100, probCount * 10)
     }
-    const topicDone = topicList.filter((t) => t.status === 'Done').length
+    const topicDone = topicList.filter((t) => t && t.status === 'Done').length
     const rawPct = (topicDone / topicList.length) * 70 + Math.min(30, probCount * 5)
     return Math.min(100, Math.round(rawPct))
   }
@@ -706,8 +716,8 @@ export function computeAutomatedProgress(problems = [], topics = []) {
     dsaPct: calcPct(dsaProbs.length, dsaTopics),
     csPct: calcPct(csProbs.length, csTopics),
     aptPct: calcPct(aptProbs.length, aptTopics),
-    totalProblemsSolved: problems.length,
-    activeStreak: problems.length > 0 ? Math.min(30, problems.length * 2) : 0,
+    totalProblemsSolved: safeProblems.length,
+    activeStreak: safeProblems.length > 0 ? Math.min(30, safeProblems.length * 2) : 0,
   }
 }
 

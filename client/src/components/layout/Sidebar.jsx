@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles,
   ChevronLeft, ChevronRight, LogOut, Terminal, FolderOpen, Youtube,
-  Bookmark, Share2,
+  Bookmark, Share2, Sun, Moon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -143,6 +143,26 @@ export default function Sidebar({ user, onSignOut }) {
             </div>
           )}
         </div>
+
+        <button
+          onClick={useAppStore.getState().toggleTheme}
+          className={cn(
+            'flex items-center gap-3 w-full px-3 py-2 rounded-xl text-text-secondary hover:bg-hover hover:text-text-primary transition-colors mt-1',
+            !isExpanded && 'justify-center'
+          )}
+          title={`Switch to ${useAppStore.getState().theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+        >
+          {useAppStore.getState().theme === 'dark' ? (
+            <Sun className="h-4 w-4 text-yellow-400 fill-current shrink-0" />
+          ) : (
+            <Moon className="h-4 w-4 text-accent fill-current shrink-0" />
+          )}
+          {isExpanded && (
+            <span className="text-secondary font-medium">
+              {useAppStore.getState().theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </span>
+          )}
+        </button>
 
         <button
           onClick={onSignOut}

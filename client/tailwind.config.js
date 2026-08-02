@@ -2,19 +2,19 @@ import forms from '@tailwindcss/forms'
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ['class'],
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
-        base: '#0a0a0f',
-        surface: '#111118',
-        card: '#1a1a24',
-        elevated: '#22222f',
-        hover: '#2a2a3a',
+        base: 'var(--bg-base)',
+        surface: 'var(--bg-surface)',
+        card: 'var(--bg-card)',
+        elevated: 'var(--bg-elevated)',
+        hover: 'var(--bg-hover)',
         accent: {
-          DEFAULT: '#6366f1',
-          light: '#818cf8',
+          DEFAULT: 'var(--accent-color)',
+          light: 'var(--accent-light)',
           glow: 'rgba(99, 102, 241, 0.15)',
         },
         semantic: {
@@ -29,13 +29,13 @@ export default {
           purple: '#a855f7',
           'purple-bg': 'rgba(168, 85, 247, 0.1)',
         },
-        'text-primary': '#f1f1f3',
-        'text-secondary': '#8b8b9e',
-        'text-muted': '#4a4a5e',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-muted': 'var(--text-muted)',
         border: {
-          subtle: 'rgba(255, 255, 255, 0.06)',
-          DEFAULT: 'rgba(255, 255, 255, 0.10)',
-          hover: 'rgba(255, 255, 255, 0.16)',
+          subtle: 'var(--border-subtle)',
+          DEFAULT: 'var(--border-color)',
+          hover: 'rgba(99, 102, 241, 0.3)',
         },
       },
       fontFamily: {
@@ -54,8 +54,8 @@ export default {
         card: '12px',
       },
       boxShadow: {
-        card: '0 0 0 1px rgba(255, 255, 255, 0.06)',
-        'card-hover': '0 4px 24px rgba(0, 0, 0, 0.3)',
+        card: '0 0 0 1px var(--border-color)',
+        'card-hover': '0 4px 24px rgba(0, 0, 0, 0.15)',
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out',
