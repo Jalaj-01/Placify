@@ -2,25 +2,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CalendarRange, Code2, CheckSquare, RefreshCw, Milestone } from 'lucide-react'
 import { startOfWeek } from '@/utils/dateHelpers'
 
-export default function WeeklySnapshot({ problems, topics, applications }) {
+export default function WeeklySnapshot({ problems = [], topics = [], applications = [] }) {
   const weekStart = startOfWeek()
+  const safeProblems = Array.isArray(problems) ? problems : []
+  const safeTopics = Array.isArray(topics) ? topics : []
+  const safeApps = Array.isArray(applications) ? applications : []
 
   // 1. Problems logged this week
-  const problemsThisWeek = problems.filter((p) => {
+  const problemsThisWeek = safeProblems.filter((p) => {
+    if (!p || !p.createdAt) return false
     const d = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt)
-    return d >= weekStart
+    return !isNaN(d.getTime()) && d >= weekStart
   }).length
 
   // 2. Topics completed this week
-  const topicsCompletedThisWeek = topics.filter((t) => {
-    if (t.status !== 'Done') return false
+  const topicsCompletedThisWeek = safeTopics.filter((t) => {
+    if (!t || t.status !== 'Done' || !t.updatedAt) return false
     const d = t.updatedAt?.toDate ? t.updatedAt.toDate() : new Date(t.updatedAt)
-    return d >= weekStart
+    return !isNaN(d.getTime()) && d >= weekStart
   }).length
 
   // 3. Red -> Green conversions this week
-  const redToGreenConversions = problems.filter((p) => {
-    if (p.confidenceStatus !== 'Green') return false
+  const redToGreenConversions = safeProblems.filter((p) => {
+    if (!p || p.confidenceStatus !== 'Green') return false
     const history = p.statusHistory || []
     const hasRed = history.some((h) => h.status === 'Red')
     if (!hasRed) return false
@@ -30,18 +34,20 @@ export default function WeeklySnapshot({ problems, topics, applications }) {
     if (!lastGreen) return false
 
     const greenTime = lastGreen.timestamp?.toDate ? lastGreen.timestamp.toDate() : new Date(lastGreen.timestamp)
-    return greenTime >= weekStart
+    return !isNaN(greenTime.getTime()) && greenTime >= weekStart
   }).length
 
   // 4. Applications moved forward this week
-  const appsMovedThisWeek = applications.filter((app) => {
+  const appsMovedThisWeek = safeApps.filter((app) => {
+    if (!app) return false
     const history = app.statusHistory || []
     if (history.length <= 1) return false // No state change after creation
 
     // Check if any status change (excluding the initial creation) occurred this week
     const changesThisWeek = history.slice(1).some((h) => {
+      if (!h || !h.timestamp) return false
       const time = h.timestamp?.toDate ? h.timestamp.toDate() : new Date(h.timestamp)
-      return time >= weekStart
+      return !isNaN(time.getTime()) && time >= weekStart
     })
     return changesThisWeek
   }).length

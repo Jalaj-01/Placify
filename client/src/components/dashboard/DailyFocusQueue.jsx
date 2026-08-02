@@ -6,21 +6,25 @@ import { Button } from '@/components/ui/button'
 import { formatDate } from '@/utils/dateHelpers'
 
 export default function DailyFocusQueue({
-  problems,
-  topics,
-  applications,
+  problems = [],
+  topics = [],
+  applications = [],
   onUpdateProblem,
   onUpdateTopic,
 }) {
   const navigate = useNavigate()
   const today = new Date()
 
+  const safeProblems = Array.isArray(problems) ? problems : []
+  const safeTopics = Array.isArray(topics) ? topics : []
+  const safeApps = Array.isArray(applications) ? applications : []
+
   // 1. Due Problem for review
-  const dueProblems = problems
+  const dueProblems = safeProblems
     .filter((p) => {
-      if (p.confidenceStatus === 'Green') return false
+      if (!p || p.confidenceStatus === 'Green' || !p.nextReviewDate) return false
       const revDate = p.nextReviewDate?.toDate ? p.nextReviewDate.toDate() : new Date(p.nextReviewDate)
-      return revDate <= today
+      return !isNaN(revDate.getTime()) && revDate <= today
     })
     .sort((a, b) => {
       const da = a.nextReviewDate?.toDate ? a.nextReviewDate.toDate() : new Date(a.nextReviewDate)
@@ -32,11 +36,11 @@ export default function DailyFocusQueue({
   // 2. Stale DSA Topic (In Progress for >= 3 days)
   const threeDaysAgo = new Date()
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
-  const staleDsaTopics = topics
+  const staleDsaTopics = safeTopics
     .filter((t) => {
-      if (t.subject !== 'DSA' || t.status !== 'In Progress') return false
+      if (!t || t.subject !== 'DSA' || t.status !== 'In Progress' || !t.updatedAt) return false
       const updDate = t.updatedAt?.toDate ? t.updatedAt.toDate() : new Date(t.updatedAt)
-      return updDate <= threeDaysAgo
+      return !isNaN(updDate.getTime()) && updDate <= threeDaysAgo
     })
     .sort((a, b) => {
       const da = a.updatedAt?.toDate ? a.updatedAt.toDate() : new Date(a.updatedAt)
@@ -46,19 +50,20 @@ export default function DailyFocusQueue({
   const focusDsaTopic = staleDsaTopics[0]
 
   // 3. Next CS Theory Topic (Not Started)
-  const focusCsTopic = topics.find(
-    (t) => ['OS', 'DBMS', 'CN', 'OOPS'].includes(t.subject) && t.status === 'Not Started'
+  const focusCsTopic = safeTopics.find(
+    (t) => t && ['OS', 'DBMS', 'CN', 'OOPS'].includes(t.subject) && t.status === 'Not Started'
   )
 
   // 4. Next Aptitude Topic (Not Started or In Progress)
-  const focusAptTopic = topics.find(
-    (t) => t.subject.startsWith('Aptitude-') && (t.status === 'In Progress' || t.status === 'Not Started')
+  const focusAptTopic = safeTopics.find(
+    (t) => t && typeof t.subject === 'string' && t.subject.startsWith('Aptitude') && (t.status === 'In Progress' || t.status === 'Not Started')
   )
 
   // 5. Urgent Applications (roundDate <= 48 hours in future)
-  const urgentApps = applications.filter((app) => {
-    if (!app.roundDate) return false
+  const urgentApps = safeApps.filter((app) => {
+    if (!app || !app.roundDate) return false
     const d = app.roundDate.toDate ? app.roundDate.toDate() : new Date(app.roundDate)
+    if (isNaN(d.getTime())) return false
     const diff = d.getTime() - Date.now()
     return diff > 0 && diff <= 48 * 60 * 60 * 1000
   })

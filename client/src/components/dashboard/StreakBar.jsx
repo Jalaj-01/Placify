@@ -1,5 +1,6 @@
 import { Flame, Trophy } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { formatDate } from '@/utils/dateHelpers'
 
 export default function StreakBar({ streakData }) {
   const { currentStreak = 0, longestStreak = 0, activityLog = [] } = streakData || {}
@@ -10,6 +11,8 @@ export default function StreakBar({ streakData }) {
     d.setDate(d.getDate() - (13 - idx)) // 13 days ago to today
     return d.toISOString().split('T')[0]
   })
+
+  const formattedLastActive = formatDate(streakData?.lastActiveDate) || 'No activity logged'
 
   return (
     <Card>
@@ -25,7 +28,7 @@ export default function StreakBar({ streakData }) {
                 {currentStreak} <span className="text-body font-medium text-text-muted">days</span>
               </h3>
               <p className="text-[10px] text-text-muted mt-0.5">
-                Last active: {streakData?.lastActiveDate ? new Date(streakData.lastActiveDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No activity logged'}
+                Last active: {formattedLastActive}
               </p>
             </div>
           </div>

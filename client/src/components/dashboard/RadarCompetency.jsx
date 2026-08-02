@@ -2,10 +2,12 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Award } from 'lucide-react'
 
-export default function RadarCompetency({ topics }) {
+export default function RadarCompetency({ topics = [] }) {
+  const safeTopics = Array.isArray(topics) ? topics : []
+
   // Aggregate stats for 6 dimensions
   const getSubjectStats = (subjectKey, matchFn) => {
-    const list = topics.filter(matchFn)
+    const list = safeTopics.filter((t) => t && matchFn(t))
     if (!list.length) return 0
     const completed = list.filter((t) => t.status === 'Done').length
     return Math.round((completed / list.length) * 100)
@@ -17,7 +19,7 @@ export default function RadarCompetency({ topics }) {
     { subject: 'DBMS', value: getSubjectStats('DBMS', (t) => t.subject === 'DBMS') },
     { subject: 'CN', value: getSubjectStats('CN', (t) => t.subject === 'CN') },
     { subject: 'OOPS', value: getSubjectStats('OOPS', (t) => t.subject === 'OOPS') },
-    { subject: 'Aptitude', value: getSubjectStats('Aptitude', (t) => t.subject.startsWith('Aptitude-')) },
+    { subject: 'Aptitude', value: getSubjectStats('Aptitude', (t) => typeof t?.subject === 'string' && t.subject.startsWith('Aptitude')) },
   ]
 
   return (
