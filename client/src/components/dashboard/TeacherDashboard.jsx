@@ -9,6 +9,7 @@ import { useAppStore } from '@/store/useAppStore'
 
 export default function TeacherDashboard({ user, profile }) {
   const { openAICoach } = useAppStore()
+  const [activeTeacherTab, setActiveTeacherTab] = useState('overview') // 'overview' | 'chart' | 'gradebook' | 'quiz'
 
   // 1. Persistent Courses State
   const [courses, setCourses] = useState(() => {
