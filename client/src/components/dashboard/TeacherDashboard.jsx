@@ -113,6 +113,10 @@ export default function TeacherDashboard({ user, profile }) {
   })
 
   const [showFullScheduleModal, setShowFullScheduleModal] = useState(false)
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false)
+  const [broadcastText, setBroadcastText] = useState('')
+  const [broadcastClass, setBroadcastClass] = useState(courses[0]?.section || 'Sec 3A')
+  const [broadcastSuccess, setBroadcastSuccess] = useState(false)
   // Helper to handle manual teacher progress updates
   const handleUpdateModulesDone = (courseId, delta) => {
     setCourses((prev) =>
