@@ -113,10 +113,30 @@ export default function TeacherDashboard({ user, profile }) {
   })
 
   const [showFullScheduleModal, setShowFullScheduleModal] = useState(false)
-  const [showBroadcastModal, setShowBroadcastModal] = useState(false)
-  const [broadcastText, setBroadcastText] = useState('')
-  const [broadcastClass, setBroadcastClass] = useState(courses[0]?.section || 'Sec 3A')
-  const [broadcastSuccess, setBroadcastSuccess] = useState(false)
+  // Helper to handle manual teacher progress updates
+  const handleUpdateModulesDone = (courseId, delta) => {
+    setCourses((prev) =>
+      prev.map((c) => {
+        if (c.id === courseId) {
+          const total = c.totalModules || 10
+          const newDone = Math.min(total, Math.max(0, (c.modulesDone || 0) + delta))
+          const newPct = Math.round((newDone / total) * 100)
+          let newStatus = c.paceStatus
+          if (newPct >= 80) newStatus = 'Ahead of Pace'
+          else if (newPct >= 50) newStatus = 'On Schedule'
+          else newStatus = 'Review Needed'
+
+          return {
+            ...c,
+            modulesDone: newDone,
+            completedPct: newPct,
+            paceStatus: newStatus,
+          }
+        }
+        return c
+      })
+    )
+  }
 
   // Course Handlers
   const handleOpenCourseModal = (courseToEdit = null) => {
@@ -375,68 +395,96 @@ export default function TeacherDashboard({ user, profile }) {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {courses.map((c) => (
               <div
                 key={c.id}
-                className="p-5 rounded-2xl border border-white/10 bg-surface/40 hover:bg-surface/70 transition-all space-y-4 relative group"
+                className="p-6 rounded-3xl border border-border-subtle bg-surface/90 hover:border-purple-500/50 transition-all shadow-xl space-y-4 relative group backdrop-blur-xl flex flex-col justify-between"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="px-2 py-0.5 rounded bg-white/10 text-[10px] font-mono text-text-muted">
-                      {c.code} • {c.section}
-                    </span>
-                    <h3 className="font-semibold text-text-primary text-sm mt-1">{c.name}</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px] font-mono font-bold">
+                        {c.code} • {c.section}
+                      </span>
+                      <h3 className="font-extrabold text-text-primary text-base mt-2 leading-tight">{c.name}</h3>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                          c.paceStatus === 'Ahead of Pace'
+                            ? 'bg-semantic-green/15 text-semantic-green border-semantic-green/30'
+                            : c.paceStatus === 'On Schedule'
+                            ? 'bg-accent/15 text-accent-light border-accent/30'
+                            : 'bg-semantic-red/15 text-semantic-red border-semantic-red/30'
+                        }`}
+                      >
+                        {c.paceStatus}
+                      </span>
+                      <button
+                        onClick={() => handleOpenCourseModal(c)}
+                        className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors"
+                        title="Edit Course Details"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCourse(c.id)}
+                        className="p-1.5 rounded-lg text-text-muted hover:text-semantic-red hover:bg-semantic-red/10 transition-colors"
+                        title="Delete Course"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                        c.paceStatus === 'Ahead of Pace'
-                          ? 'bg-semantic-green/15 text-semantic-green border-semantic-green/30'
-                          : c.paceStatus === 'On Schedule'
-                          ? 'bg-accent/15 text-accent border-accent/30'
-                          : 'bg-semantic-red/15 text-semantic-red border-semantic-red/30'
-                      }`}
-                    >
-                      {c.paceStatus}
-                    </span>
-                    <button
-                      onClick={() => handleOpenCourseModal(c)}
-                      className="p-1 rounded text-text-muted hover:text-white hover:bg-white/10"
-                      title="Edit Course"
-                    >
-                      <Edit3 className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCourse(c.id)}
-                      className="p-1 rounded text-text-muted hover:text-semantic-red hover:bg-semantic-red/10"
-                      title="Delete Course"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+
+                  {/* Syllabus Completion & Direct User-Input Progress Controls */}
+                  <div className="space-y-2 pt-2 border-t border-border-subtle">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-text-muted">Syllabus Completed</span>
+                      <span className="text-purple-400 font-mono text-sm">{c.completedPct}%</span>
+                    </div>
+
+                    <div className="h-2.5 w-full rounded-full bg-base overflow-hidden border border-border-subtle p-0.5">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-purple-600 via-accent to-cyan-400 transition-all duration-300"
+                        style={{ width: `${c.completedPct}%` }}
+                      />
+                    </div>
+
+                    {/* Interactive User Module Counter Buttons */}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs text-text-muted font-medium">Completed Modules:</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleUpdateModulesDone(c.id, -1)}
+                          className="h-7 w-7 rounded-lg bg-hover hover:bg-surface text-text-primary font-black text-sm flex items-center justify-center border border-border-subtle shadow-sm active:scale-95 transition-all"
+                          title="Decrease completed module count"
+                        >
+                          -
+                        </button>
+                        <span className="text-xs font-mono font-bold text-text-primary bg-base px-2.5 py-1 rounded-lg border border-border-subtle">
+                          {c.modulesDone} / {c.totalModules}
+                        </span>
+                        <button
+                          onClick={() => handleUpdateModulesDone(c.id, 1)}
+                          className="h-7 w-7 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-black text-sm flex items-center justify-center shadow-sm active:scale-95 transition-all"
+                          title="Increase completed module count"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-text-muted">Syllabus Completed</span>
-                    <span className="font-bold text-text-primary">{c.completedPct}%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-base overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-semantic-purple to-accent transition-all duration-500"
-                      style={{ width: `${c.completedPct}%` }}
-                    />
-                  </div>
-                  <p className="text-[11px] text-text-muted">
-                    Modules: {c.modulesDone}/{c.totalModules} completed
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-white/5 text-[11px] text-text-secondary flex items-center justify-between">
-                  <span className="truncate max-w-[180px]">Next: {c.nextTopic || 'Next Module'}</span>
-                  <span className="text-text-muted font-medium">{c.studentsCount} Students</span>
+                <div className="pt-3 border-t border-border-subtle text-xs text-text-secondary flex items-center justify-between gap-2 font-medium">
+                  <span className="truncate max-w-[160px]" title={c.nextTopic}>
+                    Next: <strong className="text-text-primary">{c.nextTopic || 'Next Topic'}</strong>
+                  </span>
+                  <span className="text-text-muted font-mono font-bold text-[11px] shrink-0">
+                    {c.studentsCount} Students
+                  </span>
                 </div>
               </div>
             ))}

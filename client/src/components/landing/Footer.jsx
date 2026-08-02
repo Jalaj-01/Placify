@@ -1,4 +1,4 @@
-import { Code2, Github, Twitter, Linkedin, ShieldCheck } from 'lucide-react'
+import { Github, Twitter, Linkedin } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export default function Footer() {
@@ -12,12 +12,12 @@ export default function Footer() {
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-2xl bg-gradient-to-tr from-accent via-indigo-600 to-cyan-500 p-0.5 shadow-lg shadow-accent/20">
               <div className="h-full w-full rounded-[14px] bg-base flex items-center justify-center">
-                <span className="font-black text-lg bg-gradient-to-tr from-accent via-cyan-400 to-white bg-clip-text text-transparent">
-                  P
+                <span className="font-black text-xs tracking-tighter bg-gradient-to-tr from-accent via-cyan-400 to-white bg-clip-text text-transparent">
+                  CG
                 </span>
               </div>
             </div>
-            <span className="font-black text-lg text-text-primary uppercase tracking-tight">Placify</span>
+            <span className="font-black text-lg text-text-primary uppercase tracking-tight">CampusGrid</span>
           </div>
 
           <p className="text-text-secondary leading-relaxed font-medium">
@@ -54,11 +54,10 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Column 4: Platform & Compliance */}
+        {/* Column 4: Platform & Security */}
         <div className="space-y-3">
           <h4 className="font-black text-text-primary uppercase tracking-wider text-xs">Platform & Security</h4>
           <ul className="space-y-2 font-medium text-text-secondary">
-            <li><a href="#comparison" className="hover:text-accent transition-colors">Why Placify vs Legacy LMS</a></li>
             <li><a href="#pricing" className="hover:text-accent transition-colors">Campus Enterprise License</a></li>
             <li><span className="text-text-muted">Privacy Policy & FERPA Compliance</span></li>
             <li><span className="text-text-muted">ISO 27001 Security Standard</span></li>
@@ -79,8 +78,7 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto mt-12 pt-6 border-t border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-text-muted">
-        <p>© {new Date().getFullYear()} Placify Platform • Built for Students, Faculty & Research Scholars.</p>
-        <p className="font-mono">Google Firebase & Gemini 2.5 Flash Powered</p>
+        <p>© {new Date().getFullYear()} CampusGrid Platform • Built for Students, Faculty & Research Scholars. All rights reserved.</p>
       </div>
     </footer>
   )

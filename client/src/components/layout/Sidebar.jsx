@@ -57,8 +57,8 @@ export default function Sidebar({ user, onSignOut }) {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border-subtle shrink-0">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="h-8 w-8 rounded-xl bg-accent text-white flex items-center justify-center font-bold shrink-0 shadow">
-            P
+          <div className="h-8 w-8 rounded-xl bg-accent text-white flex items-center justify-center font-black text-xs shrink-0 shadow">
+            CG
           </div>
           <AnimatePresence>
             {isExpanded && (
@@ -66,9 +66,9 @@ export default function Sidebar({ user, onSignOut }) {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
-                className="text-card-title font-bold text-text-primary whitespace-nowrap"
+                className="text-card-title font-black text-text-primary whitespace-nowrap tracking-tight"
               >
-                Placify
+                CampusGrid
               </motion.span>
             )}
           </AnimatePresence>

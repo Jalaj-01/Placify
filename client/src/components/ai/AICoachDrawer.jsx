@@ -96,7 +96,7 @@ export default function AICoachDrawer() {
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-          className="fixed right-0 top-0 h-screen w-full sm:w-[380px] lg:w-[400px] z-40 bg-[#0c0d15] border-l border-border-subtle shadow-2xl flex flex-col overflow-hidden"
+          className="fixed right-0 top-0 h-screen w-full sm:w-[380px] lg:w-[400px] z-40 bg-surface border-l border-border-subtle shadow-2xl flex flex-col overflow-hidden transition-colors duration-300"
         >
           {/* Header */}
           <div className="px-4 py-3 bg-card border-b border-border-subtle flex items-center justify-between shrink-0">

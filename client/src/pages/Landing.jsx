@@ -3,7 +3,6 @@ import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import Metrics from '@/components/landing/Metrics'
 import FeaturesGrid from '@/components/landing/FeaturesGrid'
-import Comparison from '@/components/landing/Comparison'
 import Pricing from '@/components/landing/Pricing'
 import Footer from '@/components/landing/Footer'
 
@@ -140,13 +139,17 @@ function Canvas3DBackground() {
 }
 
 export default function Landing() {
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [])
+
   return (
-    <div className="min-h-screen bg-base text-text-primary relative overflow-hidden font-sans selection:bg-accent/30 selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-base text-text-primary relative overflow-x-hidden font-sans selection:bg-accent/30 selection:text-white transition-colors duration-300">
       {/* 3D WebGL Canvas Background */}
       <Canvas3DBackground />
 
       {/* Decorative Radial Spotlight Gradients */}
-      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[1200px] h-[700px] bg-gradient-to-tr from-accent/20 via-cyan-500/15 to-purple-600/15 rounded-full blur-[170px] pointer-events-none z-0" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[700px] bg-gradient-to-tr from-accent/20 via-cyan-500/15 to-purple-600/15 rounded-full blur-[170px] pointer-events-none z-0" />
       <div className="absolute top-[40%] right-[-10%] w-[800px] h-[800px] bg-semantic-green/10 rounded-full blur-[180px] pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[700px] h-[700px] bg-purple-600/10 rounded-full blur-[160px] pointer-events-none z-0" />
 
@@ -156,7 +159,7 @@ export default function Landing() {
       {/* 1. Header / Navigation Bar */}
       <Navbar />
 
-      {/* 2. High-Impact Hero Section with Interactive Live Role Sandbox */}
+      {/* 2. High-Impact Hero Section */}
       <Hero />
 
       {/* 3. Social Proof & Metrics Bar */}
@@ -165,13 +168,10 @@ export default function Landing() {
       {/* 4. Interactive Feature Bento Box Grid */}
       <FeaturesGrid />
 
-      {/* 5. "Why Placify vs. Legacy Tools" Comparison Table */}
-      <Comparison />
-
-      {/* 6. Interactive Pricing / Access Tiers */}
+      {/* 5. Interactive Pricing / Access Tiers */}
       <Pricing />
 
-      {/* 7. World-Class Footer */}
+      {/* 6. World-Class Footer */}
       <Footer />
     </div>
   )
