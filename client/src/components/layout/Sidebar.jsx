@@ -29,7 +29,7 @@ export default function Sidebar({ user, onSignOut }) {
   const currentRole = profile?.role || 'student'
 
   const navItems = allNavItems.filter((item) => item.roles.includes(currentRole))
-  const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed, openAICoach, aiCoachOpen } = useAppStore()
+  const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed, openAICoach, aiCoachOpen, theme, toggleTheme } = useAppStore()
   const [isHovered, setIsHovered] = useState(false)
 
   // Sidebar is visually expanded if manually uncollapsed OR hovered over
@@ -145,21 +145,21 @@ export default function Sidebar({ user, onSignOut }) {
         </div>
 
         <button
-          onClick={useAppStore.getState().toggleTheme}
+          onClick={toggleTheme}
           className={cn(
             'flex items-center gap-3 w-full px-3 py-2 rounded-xl text-text-secondary hover:bg-hover hover:text-text-primary transition-colors mt-1',
             !isExpanded && 'justify-center'
           )}
-          title={`Switch to ${useAppStore.getState().theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
         >
-          {useAppStore.getState().theme === 'dark' ? (
+          {theme === 'dark' ? (
             <Sun className="h-4 w-4 text-yellow-400 fill-current shrink-0" />
           ) : (
             <Moon className="h-4 w-4 text-accent fill-current shrink-0" />
           )}
           {isExpanded && (
             <span className="text-secondary font-medium">
-              {useAppStore.getState().theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </span>
           )}
         </button>

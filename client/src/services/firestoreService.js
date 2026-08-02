@@ -77,9 +77,14 @@ export async function seedTopics(uid) {
 
 export function subscribeTopics(uid, callback) {
   const q = query(userPath(uid, 'topics'), orderBy('createdAt', 'asc'))
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-  })
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (err) => {
+      console.warn('subscribeTopics Firestore error:', err)
+      callback([])
+    }
+  )
 }
 
 export async function updateTopic(uid, topicId, data) {
@@ -196,9 +201,14 @@ export async function addTopic(uid, data) {
 // ─── Problems ──────────────────────────────────────────────
 export function subscribeProblems(uid, callback) {
   const q = query(userPath(uid, 'problems'), orderBy('createdAt', 'desc'))
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-  })
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (err) => {
+      console.warn('subscribeProblems Firestore error:', err)
+      callback([])
+    }
+  )
 }
 
 export async function addProblem(uid, data) {
@@ -330,9 +340,14 @@ export async function importCompanyKit(uid, kitName) {
 // ─── Applications ──────────────────────────────────────────
 export function subscribeApplications(uid, callback) {
   const q = query(userPath(uid, 'applications'), orderBy('createdAt', 'desc'))
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-  })
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (err) => {
+      console.warn('subscribeApplications Firestore error:', err)
+      callback([])
+    }
+  )
 }
 
 export async function addApplication(uid, data) {
@@ -362,16 +377,28 @@ export async function deleteApplication(uid, appId) {
 }
 
 export function subscribeProfile(uid, callback) {
-  return onSnapshot(doc(db, 'users', uid, 'profile', 'main'), (snap) => {
-    if (snap.exists()) callback(snap.data())
-  })
+  return onSnapshot(
+    doc(db, 'users', uid, 'profile', 'main'),
+    (snap) => {
+      if (snap.exists()) callback(snap.data())
+    },
+    (err) => {
+      console.warn('subscribeProfile Firestore error:', err)
+      callback({})
+    }
+  )
 }
 
 export function subscribePlaygroundFiles(uid, callback) {
   const q = query(collection(db, 'users', uid, 'playground'), orderBy('updatedAt', 'desc'))
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-  })
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (err) => {
+      console.warn('subscribePlaygroundFiles Firestore error:', err)
+      callback([])
+    }
+  )
 }
 
 export async function savePlaygroundFile(uid, fileId, name, code) {
@@ -394,10 +421,14 @@ export async function deletePlaygroundFile(uid, fileId) {
 // ─── Library ───────────────────────────────────────────────
 export function subscribeLibrary(uid, callback) {
   const q = query(userPath(uid, 'library'), orderBy('createdAt', 'desc'))
-  return onSnapshot(q, (snap) => {
-    const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-    callback(data)
-  })
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))),
+    (err) => {
+      console.warn('subscribeLibrary Firestore error:', err)
+      callback([])
+    }
+  )
 }
 
 export async function addLibraryDoc(uid, name, url, type, size) {
@@ -420,10 +451,14 @@ export async function deleteLibraryDoc(uid, docId) {
 // ─── Courses ───────────────────────────────────────────────
 export function subscribeCourses(uid, callback) {
   const q = query(userPath(uid, 'courses'), orderBy('createdAt', 'desc'))
-  return onSnapshot(q, (snap) => {
-    const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-    callback(data)
-  })
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))),
+    (err) => {
+      console.warn('subscribeCourses Firestore error:', err)
+      callback([])
+    }
+  )
 }
 
 export async function addCourseDoc(uid, name, url, embedId, isPlaylist) {
@@ -463,9 +498,14 @@ export async function updateCourseProgressDoc(uid, courseId, progress) {
 // ─── Bookmarks ─────────────────────────────────────────────
 export function subscribeBookmarks(uid, callback) {
   const q = query(userPath(uid, 'bookmarks'), orderBy('createdAt', 'desc'))
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-  })
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (err) => {
+      console.warn('subscribeBookmarks Firestore error:', err)
+      callback([])
+    }
+  )
 }
 
 export async function addBookmarkDoc(uid, title, url, category, description, tags) {

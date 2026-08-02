@@ -109,10 +109,10 @@ export default function Dashboard() {
         <StudentDashboard
           user={user}
           profile={profile}
-          problems={problems}
-          topics={topics}
-          applications={applications}
-          streakData={streakData}
+          problems={problems || []}
+          topics={topics || []}
+          applications={applications || []}
+          streakData={streakData || {}}
           updateProblem={updateProblem}
           updateTopic={updateTopic}
         />
