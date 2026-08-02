@@ -26,9 +26,17 @@ const allNavItems = [
 
 export default function Sidebar({ user, onSignOut }) {
   const { profile } = useAuth()
-  const currentRole = profile?.role || 'student'
+  const roleRaw = (profile?.role || 'student').toLowerCase()
+  const isTeacher = roleRaw === 'teacher' || roleRaw === 'faculty'
+  const isPhd = roleRaw === 'phd' || roleRaw === 'research'
+  const isStudent = !isTeacher && !isPhd
 
-  const navItems = allNavItems.filter((item) => item.roles.includes(currentRole))
+  const navItems = allNavItems.filter((item) => {
+    if (isStudent && item.roles.includes('student')) return true
+    if (isTeacher && item.roles.includes('teacher')) return true
+    if (isPhd && item.roles.includes('phd')) return true
+    return false
+  })
   const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed, openAICoach, aiCoachOpen, theme, toggleTheme } = useAppStore()
   const [isHovered, setIsHovered] = useState(false)
 

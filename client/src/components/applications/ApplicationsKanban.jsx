@@ -143,22 +143,24 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
         </button>
       </div>
 
-      {/* Kanban Board Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 overflow-x-auto pb-4">
+      {/* Kanban Board Horizontal Scroll Container */}
+      <div className="flex gap-5 overflow-x-auto pb-6 pt-2 scrollbar-thin">
         {columns.map((col) => {
           const colApps = apps.filter((a) => a.status === col.key)
           return (
-            <div key={col.key} className="flex flex-col rounded-2xl bg-surface/30 border border-white/5 p-3 min-w-[220px]">
-              <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/5">
-                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${col.badgeBg}`}>
+            <div key={col.key} className="w-[270px] shrink-0 flex flex-col rounded-3xl bg-surface/90 border border-border-subtle p-4 shadow-xl backdrop-blur-xl">
+              <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-border-subtle">
+                <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold border ${col.badgeBg}`}>
                   {col.title}
                 </span>
-                <span className="text-xs text-text-muted font-bold">{colApps.length}</span>
+                <span className="text-xs font-mono text-text-muted bg-base px-2.5 py-0.5 rounded-full border border-border-subtle font-bold">
+                  {colApps.length}
+                </span>
               </div>
 
-              <div className="space-y-2.5 flex-1 overflow-y-auto max-h-[500px] pr-1">
+              <div className="space-y-3 flex-1 overflow-y-auto max-h-[540px] pr-1">
                 {colApps.length === 0 ? (
-                  <div className="p-4 text-center text-text-muted text-[11px] border border-dashed border-white/10 rounded-xl">
+                  <div className="p-6 text-center text-text-muted text-xs border border-dashed border-border-subtle rounded-2xl bg-base/50">
                     No applications
                   </div>
                 ) : (
@@ -166,36 +168,36 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
                     <div
                       key={app.id}
                       onClick={() => setSelectedApp(app)}
-                      className="p-3.5 rounded-xl bg-card border border-white/10 hover:border-accent/40 transition-all cursor-pointer space-y-2 group shadow-sm"
+                      className="p-4 rounded-2xl bg-base/80 border border-border-subtle hover:border-accent/50 transition-all cursor-pointer space-y-3 group shadow-md backdrop-blur-md"
                     >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-bold text-text-primary text-xs group-hover:text-accent transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5 flex-1 min-w-0">
+                          <h4 className="font-extrabold text-text-primary text-sm group-hover:text-accent transition-colors truncate">
                             {app.company}
                           </h4>
-                          <p className="text-[11px] text-text-secondary truncate">{app.role}</p>
+                          <p className="text-xs text-text-secondary truncate font-medium">{app.role}</p>
                         </div>
-                        <span className="text-[10px] font-mono text-semantic-green font-semibold">
+                        <span className="text-xs font-mono text-semantic-green font-extrabold bg-semantic-green/10 px-2 py-0.5 rounded-md border border-semantic-green/20 shrink-0">
                           {app.ctc}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between text-[10px] text-text-muted pt-1 border-t border-white/5">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" /> {app.oaDate}
+                      <div className="flex items-center justify-between text-xs text-text-muted pt-2 border-t border-border-subtle font-medium">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-accent" /> {app.oaDate}
                         </span>
-                        <span className="text-accent hover:underline flex items-center gap-0.5 font-medium">
-                          Notes <ChevronRight className="h-3 w-3" />
+                        <span className="text-accent hover:underline flex items-center gap-0.5 font-bold">
+                          Notes <ChevronRight className="h-3.5 w-3.5" />
                         </span>
                       </div>
 
-                      {/* Quick Move Buttons */}
-                      <div className="pt-2 flex items-center justify-between border-t border-white/5 text-[10px] opacity-80 group-hover:opacity-100 transition-opacity">
+                      {/* Quick Move Status Select Dropdown */}
+                      <div className="pt-2 border-t border-border-subtle">
                         <select
                           value={app.status}
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => handleMoveStatus(app.id, e.target.value)}
-                          className="bg-base border border-white/10 rounded px-1.5 py-0.5 text-[10px] text-text-muted focus:outline-none focus:border-accent"
+                          className="w-full bg-surface border border-border-subtle rounded-xl px-2.5 py-1.5 text-xs text-text-primary font-bold focus:outline-none focus:border-accent shadow-sm"
                         >
                           {columns.map((c) => (
                             <option key={c.key} value={c.key}>

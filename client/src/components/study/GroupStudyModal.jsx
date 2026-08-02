@@ -256,35 +256,35 @@ console.log(minCostClimbingStairs([10, 15, 20]));`)
 
           {/* TAB 2: Pair Code Execution */}
           {activeTab === 'code' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[340px]">
               {/* Code Editor */}
-              <div className="lg:col-span-7 flex flex-col space-y-3 h-full">
+              <div className="lg:col-span-7 flex flex-col space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-text-primary">Collaborative JavaScript Editor</span>
+                  <span className="text-xs font-bold text-text-primary">Collaborative JavaScript Editor</span>
                   <button
                     onClick={handleRunCode}
                     disabled={isExecuting}
-                    className="px-4 py-1.5 rounded-lg bg-semantic-purple text-white text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-md shadow-semantic-purple/20"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-accent text-white text-xs font-bold hover:opacity-95 transition-all flex items-center gap-1.5 shadow-lg shadow-purple-600/25"
                   >
                     <Play className="h-3.5 w-3.5 fill-current" />
-                    {isExecuting ? 'Running...' : 'Run Code Together'}
+                    {isExecuting ? 'Running Sandbox...' : 'Run Code Together'}
                   </button>
                 </div>
                 <textarea
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="flex-1 w-full bg-[#07080d] border border-white/15 rounded-xl p-4 font-mono text-xs text-accent-light focus:outline-none focus:border-semantic-purple resize-none leading-relaxed"
+                  className="min-h-[280px] w-full bg-[#080911] border border-purple-500/30 rounded-2xl p-4 font-mono text-xs text-cyan-300 focus:outline-none focus:border-accent resize-none leading-relaxed shadow-inner"
                 />
               </div>
 
               {/* Console Output */}
-              <div className="lg:col-span-5 flex flex-col space-y-3 h-full">
-                <span className="text-xs font-semibold text-text-primary">Execution Output</span>
-                <div className="flex-1 bg-black border border-white/10 rounded-xl p-4 font-mono text-xs text-semantic-green space-y-2 overflow-y-auto">
-                  <div className="text-text-muted text-[11px] pb-2 border-b border-white/10">
+              <div className="lg:col-span-5 flex flex-col space-y-3">
+                <span className="text-xs font-bold text-text-primary">Execution Output</span>
+                <div className="min-h-[280px] bg-[#050508] border border-border-subtle rounded-2xl p-4 font-mono text-xs text-semantic-green space-y-2 overflow-y-auto shadow-inner">
+                  <div className="text-text-muted text-[11px] pb-2 border-b border-border-subtle font-bold">
                     Live Session Output Log
                   </div>
-                  <pre className="whitespace-pre-wrap">{output || 'Click "Run Code Together" to execute.'}</pre>
+                  <pre className="whitespace-pre-wrap leading-relaxed">{output || 'Click "Run Code Together" to execute.'}</pre>
                 </div>
               </div>
             </div>
