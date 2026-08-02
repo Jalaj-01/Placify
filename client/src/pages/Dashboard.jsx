@@ -76,24 +76,6 @@ export default function Dashboard() {
             <RotateCcw className="h-3 w-3" /> Switch Role
           </button>
         </div>
-
-        {/* Light / Dark Mode Toggle */}
-        <button
-          onClick={toggleTheme}
-          className="px-3 py-1.5 rounded-xl border border-white/10 bg-base/60 hover:bg-white/10 text-text-primary text-xs font-semibold flex items-center gap-2 transition-all shadow-sm"
-        >
-          {theme === 'dark' ? (
-            <>
-              <Sun className="h-3.5 w-3.5 text-yellow-400 fill-current" />
-              <span>Light Mode</span>
-            </>
-          ) : (
-            <>
-              <Moon className="h-3.5 w-3.5 text-accent fill-current" />
-              <span>Dark Mode</span>
-            </>
-          )}
-        </button>
       </div>
 
       {/* Render Specific Role Dashboard */}
