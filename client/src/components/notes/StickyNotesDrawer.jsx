@@ -154,43 +154,43 @@ export default function StickyNotesDrawer() {
                     placeholder="Note title"
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
-                    className="w-full bg-base/80 border border-white/15 rounded-2xl px-4 py-3 text-sm font-bold text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent shadow-sm"
+                    className="w-full bg-[#131424] dark:bg-[#131424] border border-white/20 rounded-2xl px-4 py-3 text-sm font-extrabold text-white dark:text-white placeholder:text-neutral-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400/50 shadow-sm"
                   />
 
                   {/* Rich Formatting Toolbar (Matching Screenshot 5) */}
-                  <div className="rounded-2xl border border-white/15 bg-base/80 overflow-hidden shadow-sm flex flex-col flex-1">
+                  <div className="rounded-2xl border border-white/20 bg-[#131424] dark:bg-[#131424] overflow-hidden shadow-sm flex flex-col flex-1">
                     <div className="p-2 border-b border-white/10 flex items-center gap-1 flex-wrap text-text-muted">
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                         <Bold className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                         <Italic className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                         <Underline className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors font-bold text-xs">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors font-bold text-xs">
                         H2
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                         <List className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                         <ListOrdered className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                         <Link2 className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                         <Image className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                         <Undo className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-text-primary transition-colors">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                         <Redo className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -200,7 +200,7 @@ export default function StickyNotesDrawer() {
                       placeholder="Write your note body content here..."
                       value={noteContent}
                       onChange={(e) => setNoteContent(e.target.value)}
-                      className="w-full flex-1 p-4 bg-transparent text-xs text-text-primary placeholder:text-text-muted focus:outline-none resize-none leading-relaxed"
+                      className="w-full flex-1 p-4 bg-transparent text-xs font-semibold text-white dark:text-white placeholder:text-neutral-500 focus:outline-none resize-none leading-relaxed"
                     />
                   </div>
 

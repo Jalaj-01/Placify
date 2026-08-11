@@ -20,6 +20,8 @@ const getLocalNotes = () => {
 const saveLocalNotes = (notes) => {
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(notes))
+    // Broadcast event across all components in current window
+    window.dispatchEvent(new Event('placify_sticky_notes_changed'))
   } catch (err) {
     console.warn('Failed saving sticky notes to local storage', err)
   }
@@ -30,21 +32,32 @@ export function useStickyNotes(uid) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Listen for local changes broadcasted from any component instance
+    const handleLocalChange = () => {
+      setNotes(getLocalNotes())
+    }
+    window.addEventListener('placify_sticky_notes_changed', handleLocalChange)
+
     if (!uid) {
       setNotes(getLocalNotes())
       setLoading(false)
-      return
+      return () => {
+        window.removeEventListener('placify_sticky_notes_changed', handleLocalChange)
+      }
     }
 
     const unsub = subscribeStickyNotes(uid, (firestoreNotes) => {
-      if (firestoreNotes && firestoreNotes.length >= 0) {
+      if (firestoreNotes && firestoreNotes.length > 0) {
         setNotes(firestoreNotes)
-        saveLocalNotes(firestoreNotes)
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(firestoreNotes))
       }
       setLoading(false)
     })
 
-    return () => unsub()
+    return () => {
+      unsub()
+      window.removeEventListener('placify_sticky_notes_changed', handleLocalChange)
+    }
   }, [uid])
 
   const addNote = async (data) => {
@@ -57,8 +70,9 @@ export function useStickyNotes(uid) {
       createdAt: new Date().toISOString(),
     }
 
-    // Optimistic local update
-    const updated = [newNote, ...notes]
+    // Optimistic reactive local update across all components
+    const current = getLocalNotes()
+    const updated = [newNote, ...current.filter((n) => n.id !== newNote.id)]
     setNotes(updated)
     saveLocalNotes(updated)
 
@@ -72,7 +86,8 @@ export function useStickyNotes(uid) {
   }
 
   const updateNote = async (noteId, updates) => {
-    const updated = notes.map((n) => (n.id === noteId ? { ...n, ...updates } : n))
+    const current = getLocalNotes()
+    const updated = current.map((n) => (n.id === noteId ? { ...n, ...updates } : n))
     setNotes(updated)
     saveLocalNotes(updated)
 
@@ -86,7 +101,8 @@ export function useStickyNotes(uid) {
   }
 
   const deleteNote = async (noteId) => {
-    const updated = notes.filter((n) => n.id !== noteId)
+    const current = getLocalNotes()
+    const updated = current.filter((n) => n.id !== noteId)
     setNotes(updated)
     saveLocalNotes(updated)
 
