@@ -8,6 +8,7 @@ import PageWrapper from '@/components/layout/PageWrapper'
 import AICoachDrawer from '@/components/ai/AICoachDrawer'
 import StickyNotesDrawer from '@/components/notes/StickyNotesDrawer'
 import TopFloatingTimerCapsule from '@/components/layout/TopFloatingTimerCapsule'
+import MockTimerSetupModal from '@/components/layout/MockTimerSetupModal'
 import Dashboard from '@/pages/Dashboard'
 import Problems from '@/pages/Problems'
 import Topics from '@/pages/Topics'
@@ -100,6 +101,7 @@ function AppContent() {
       <BottomNav />
       <AICoachDrawer />
       <StickyNotesDrawer />
+      <MockTimerSetupModal />
       <TopFloatingTimerCapsule />
       <Routes>
         {/* Redirect root to dashboard when authenticated */}

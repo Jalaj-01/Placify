@@ -179,9 +179,13 @@ export default function DailyFocusQueue({
                     <Button variant="outline" size="sm">Open Link</Button>
                   </a>
                 )}
-                <Button size="sm" onClick={item.action} className="flex items-center gap-1.5">
-                  {item.actionLabel} <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
+                <button
+                  onClick={item.action}
+                  className="px-4 py-2 rounded-xl bg-accent text-white font-extrabold text-xs hover:bg-accent-light transition-all flex items-center gap-1.5 shadow-md shadow-accent/20 shrink-0"
+                >
+                  <span>{item.actionLabel}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
               </div>
             </CardContent>
           </Card>

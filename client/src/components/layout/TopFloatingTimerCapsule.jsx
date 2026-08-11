@@ -4,12 +4,24 @@ import { useAppStore } from '@/store/useAppStore'
 import { showNotification } from '@/utils/notifications'
 
 export default function TopFloatingTimerCapsule() {
-  const { assessmentTimerOpen, closeAssessmentTimer } = useAppStore()
-  const [duration, setDuration] = useState(45 * 60) // Default 45 mins in seconds
-  const [timeLeft, setTimeLeft] = useState(45 * 60)
+  const { assessmentTimerOpen, closeAssessmentTimer, activeTimerSeconds } = useAppStore()
+  const [duration, setDuration] = useState(activeTimerSeconds || 45 * 60)
+  const [timeLeft, setTimeLeft] = useState(activeTimerSeconds || 45 * 60)
   const [isRunning, setIsRunning] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const timerRef = useRef(null)
+
+  // Sync with activeTimerSeconds from setup modal
+  useEffect(() => {
+    if (assessmentTimerOpen && activeTimerSeconds) {
+      setDuration(activeTimerSeconds)
+      setTimeLeft(activeTimerSeconds)
+      setIsRunning(true)
+      const targetEnd = Date.now() + activeTimerSeconds * 1000
+      localStorage.setItem('oa_timer_end_time', targetEnd.toString())
+      localStorage.setItem('oa_timer_running', 'true')
+    }
+  }, [assessmentTimerOpen, activeTimerSeconds])
 
   // Load saved active state from local storage on mount
   useEffect(() => {

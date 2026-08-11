@@ -25,7 +25,7 @@ export default function StudentDashboard({
   updateProblem,
   updateTopic
 }) {
-  const { openAICoach, openAssessmentTimer } = useAppStore()
+  const { openAICoach, openTimerSetup } = useAppStore()
   const [isGroupStudyOpen, setIsGroupStudyOpen] = useState(false)
   const [activeStudentTab, setActiveStudentTab] = useState('overview') // 'overview' | 'kanban'
 
@@ -75,7 +75,7 @@ export default function StudentDashboard({
 
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
             <button
-              onClick={openAssessmentTimer}
+              onClick={openTimerSetup}
               className="px-4 py-2.5 rounded-xl bg-surface/90 hover:bg-surface border border-accent/40 text-accent-light text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98]"
             >
               <Play className="h-3.5 w-3.5 text-accent fill-current" />
@@ -163,24 +163,30 @@ export default function StudentDashboard({
             />
           </div>
 
-          {/* Daily Focus Queue */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-section font-semibold text-text-primary flex items-center gap-2">
-                <Target className="h-4 w-4 text-accent" />
-                Automated Daily Focus Queue
-              </h2>
-              <span className="text-[11px] text-text-muted font-medium bg-surface/60 px-2.5 py-0.5 rounded-lg border border-white/10">
-                Auto-suggested based on weak areas
-              </span>
+          {/* Prominent Top Grid: Daily Focus Queue + Sticky Notes Card */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-section font-semibold text-text-primary flex items-center gap-2">
+                  <Target className="h-4 w-4 text-accent" />
+                  Automated Daily Focus Queue
+                </h2>
+                <span className="text-[11px] text-text-muted font-medium bg-surface/60 px-2.5 py-0.5 rounded-lg border border-white/10">
+                  Auto-suggested based on weak areas
+                </span>
+              </div>
+              <DailyFocusQueue
+                problems={safeProblems}
+                topics={safeTopics}
+                applications={safeApps}
+                onUpdateProblem={updateProblem}
+                onUpdateTopic={updateTopic}
+              />
             </div>
-            <DailyFocusQueue
-              problems={safeProblems}
-              topics={safeTopics}
-              applications={safeApps}
-              onUpdateProblem={updateProblem}
-              onUpdateTopic={updateTopic}
-            />
+
+            <div>
+              <StickyNotesCard />
+            </div>
           </div>
 
           {/* Activity Heatmap Bar */}
@@ -210,12 +216,9 @@ export default function StudentDashboard({
               <WeeklySnapshot problems={safeProblems} topics={safeTopics} applications={safeApps} />
             </div>
 
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <h2 className="text-section font-semibold text-text-primary">Competency Map</h2>
-                <RadarCompetency topics={safeTopics} />
-              </div>
-              <StickyNotesCard />
+            <div className="space-y-3">
+              <h2 className="text-section font-semibold text-text-primary">Competency Map</h2>
+              <RadarCompetency topics={safeTopics} />
             </div>
           </div>
         </>

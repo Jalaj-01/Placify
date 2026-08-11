@@ -36,9 +36,20 @@ export const useAppStore = create((set) => ({
 
   // Top Sticky Floating Assessment Timer Capsule State
   assessmentTimerOpen: false,
+  timerSetupModalOpen: false,
+  activeTimerSeconds: 45 * 60, // Default 45 mins
+  openTimerSetup: () => set({ timerSetupModalOpen: true }),
+  closeTimerSetup: () => set({ timerSetupModalOpen: false }),
   openAssessmentTimer: () => set({ assessmentTimerOpen: true }),
   closeAssessmentTimer: () => set({ assessmentTimerOpen: false }),
   toggleAssessmentTimer: () => set((s) => ({ assessmentTimerOpen: !s.assessmentTimerOpen })),
+  startTimerWithDuration: (seconds) => {
+    set({
+      activeTimerSeconds: seconds,
+      timerSetupModalOpen: false,
+      assessmentTimerOpen: true,
+    })
+  },
 
   // Right Slide-Over Sticky Notes Drawer State
   stickyNotesOpen: false,

@@ -41,7 +41,7 @@ export default function Sidebar({ user, onSignOut }) {
   })
   const {
     sidebarCollapsed, toggleSidebar, setSidebarCollapsed,
-    openAICoach, aiCoachOpen, toggleAssessmentTimer, assessmentTimerOpen,
+    openAICoach, aiCoachOpen, openTimerSetup, assessmentTimerOpen,
     toggleStickyNotes, stickyNotesOpen,
     theme, toggleTheme
   } = useAppStore()
@@ -57,7 +57,7 @@ export default function Sidebar({ user, onSignOut }) {
       setIsHovered(false)
     } else if (item.isTimer) {
       e.preventDefault()
-      toggleAssessmentTimer()
+      openTimerSetup()
       setIsHovered(false)
     } else if (item.isAICoach) {
       e.preventDefault()
