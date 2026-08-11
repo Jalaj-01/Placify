@@ -41,6 +41,10 @@ export default function GroupStudyModal({ user }) {
   const [isExecuting, setIsExecuting] = useState(false)
   const [isSavingCode, setIsSavingCode] = useState(false)
 
+  // Prompt State
+  const [promptConfig, setPromptConfig] = useState({ isOpen: false, title: '', defaultValue: '', onConfirm: null })
+  const [promptValue, setPromptValue] = useState('')
+
   // Invite State
   const [showInvite, setShowInvite] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -148,35 +152,54 @@ export default function GroupStudyModal({ user }) {
     }, 800)
   }
 
-  const handleSaveCode = async () => {
-    setIsSavingCode(true)
-    try {
-      await savePlaygroundFile(user.uid, null, `Study Code - ${new Date().toLocaleDateString()}`, code)
-      setOutput('✅ Code saved successfully to your Playground!')
-    } catch (err) {
-      setOutput('Error saving code: ' + err.message)
-    } finally {
-      setIsSavingCode(false)
-      setTimeout(() => setOutput(''), 3000)
-    }
+  const handleSaveCode = () => {
+    setPromptValue(`Study Code - ${new Date().toLocaleDateString()}`)
+    setPromptConfig({
+      isOpen: true,
+      title: 'Name your Code Snippet',
+      onConfirm: async (fileName) => {
+        setPromptConfig({ isOpen: false })
+        if (!fileName) return
+
+        setIsSavingCode(true)
+        try {
+          await savePlaygroundFile(user.uid, null, fileName, code)
+          setOutput(`✅ Code saved successfully as "${fileName}" to your Playground!`)
+        } catch (err) {
+          setOutput('Error saving code: ' + err.message)
+        } finally {
+          setIsSavingCode(false)
+          setTimeout(() => setOutput(''), 4000)
+        }
+      }
+    })
   }
 
-  const handleSaveNotesToDashboard = async () => {
-    setIsSavingNotes(true)
-    try {
-      const bundledHtml = notes.map(n => `<p><strong>${n.author}</strong> <span style="color: gray; font-size: 10px;">${n.time}</span><br/>${n.text}</p>`).join('<hr/>')
-      await addNote({
-        title: `Study Notes - ${new Date().toLocaleDateString()}`,
-        content: bundledHtml,
-        color: 'blue',
-        isPinned: false
-      })
-      // Could show a toast, but this is simple inline feedback for now
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setIsSavingNotes(false)
-    }
+  const handleSaveNotesToDashboard = () => {
+    setPromptValue(`Study Notes - ${new Date().toLocaleDateString()}`)
+    setPromptConfig({
+      isOpen: true,
+      title: 'Name your Study Notes',
+      onConfirm: async (noteTitle) => {
+        setPromptConfig({ isOpen: false })
+        if (!noteTitle) return
+
+        setIsSavingNotes(true)
+        try {
+          const bundledHtml = notes.map(n => `<p><strong>${n.author}</strong> <span style="color: gray; font-size: 10px;">${n.time}</span><br/>${n.text}</p>`).join('<hr/>')
+          await addNote({
+            title: noteTitle,
+            content: bundledHtml,
+            color: 'blue',
+            isPinned: false
+          })
+        } catch (err) {
+          console.error(err)
+        } finally {
+          setIsSavingNotes(false)
+        }
+      }
+    })
   }
 
   const handleSendInvite = async (e, emailToUse = inviteEmail) => {
@@ -289,7 +312,7 @@ export default function GroupStudyModal({ user }) {
       <div className="flex-1 overflow-hidden p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Side: Video (Top) & Code (Bottom) */}
-        <div className="lg:col-span-8 flex flex-col gap-6 h-full">
+        <div className="lg:col-span-8 flex flex-col gap-6 h-full overflow-y-auto pr-1 scrollbar-thin pb-4">
           {/* Video Player Section */}
           <div className="flex flex-col gap-3 shrink-0">
             <div className="flex items-center justify-between">
@@ -319,7 +342,7 @@ export default function GroupStudyModal({ user }) {
           </div>
 
           {/* Code Editor Section */}
-          <div className="flex flex-col gap-3 flex-1 min-h-[250px]">
+          <div className="flex flex-col gap-3 min-h-[400px]">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-text-primary flex items-center gap-2">
                 <Code2 className="h-4 w-4 text-semantic-purple" /> Live Pair Code
@@ -421,6 +444,40 @@ export default function GroupStudyModal({ user }) {
         </div>
 
       </div>
+      {/* Custom Prompt Modal */}
+      {promptConfig.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#11131f] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-accent/20 animate-in zoom-in-95">
+            <h3 className="text-lg font-black text-white mb-4">{promptConfig.title}</h3>
+            <input 
+              type="text" 
+              value={promptValue}
+              onChange={(e) => setPromptValue(e.target.value)}
+              className="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-accent mb-6"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') promptConfig.onConfirm(promptValue)
+                if (e.key === 'Escape') setPromptConfig({ isOpen: false })
+              }}
+            />
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setPromptConfig({ isOpen: false })}
+                className="px-5 py-2.5 rounded-xl border border-white/10 text-white font-bold text-sm hover:bg-white/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => promptConfig.onConfirm(promptValue)}
+                className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-light text-white font-bold text-sm transition-colors shadow-lg"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

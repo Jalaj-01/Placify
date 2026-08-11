@@ -23,6 +23,7 @@ const allNavItems = [
   { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student', 'teacher', 'phd'] },
   { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student', 'teacher', 'phd'] },
   { to: '/shares', icon: Share2, label: 'Shares', roles: ['student', 'teacher', 'phd'] },
+  { to: '/notes', icon: StickyNote, label: 'My Notes', isStickyNotes: true, roles: ['student', 'teacher', 'phd'] },
   { to: '/invites', icon: MailOpen, label: 'Room Invites', isInvites: true, roles: ['student', 'teacher', 'phd'] },
 ]
 
