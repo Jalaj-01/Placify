@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   StickyNote, X, Plus, Pin, Trash2, Search, ArrowLeft, Save,
-  Bold, Italic, Underline, Heading2, List, ListOrdered, Link2, Image, Undo, Redo, Check
+  Bold, Italic, Underline, Heading2, List, ListOrdered, Link2, Undo, Redo, Check
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
@@ -96,10 +96,6 @@ export default function StickyNotesDrawer() {
         break
       case 'link':
         replacement = `[${selectedText || 'link title'}](https://)`
-        cursorOffset = start + replacement.length - 1
-        break
-      case 'image':
-        replacement = `![${selectedText || 'image description'}](https://)`
         cursorOffset = start + replacement.length - 1
         break
       default:
@@ -307,14 +303,6 @@ export default function StickyNotesDrawer() {
                         title="Insert Link ([title](url))"
                       >
                         <Link2 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyFormat('image')}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-                        title="Insert Image (![alt](url))"
-                      >
-                        <Image className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
                       <button
