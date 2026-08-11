@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   StickyNote, X, Plus, Pin, Trash2, Search, ArrowLeft, Save,
-  Bold, Italic, Underline, Heading2, List, ListOrdered, Link2, Undo, Redo, Check
+  Bold, Italic, Underline, List, ListOrdered, Link2, Undo, Redo, Check
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
@@ -40,91 +40,30 @@ export default function StickyNotesDrawer() {
   const [filterTab, setFilterTab] = useState('ALL') // 'ALL' | 'PINNED' | color string
   const [editingNote, setEditingNote] = useState(null) // null = list view, object = editing view
 
-  // Form fields for Editor View (Matching Screenshot 5)
+  // Form fields for Editor View
   const [noteTitle, setNoteTitle] = useState('')
   const [noteContent, setNoteContent] = useState('')
   const [noteColor, setNoteColor] = useState('yellow')
   const [isPinned, setIsPinned] = useState(false)
 
-  // Textarea Ref & History Stack for formatting toolbar
-  const textareaRef = useRef(null)
-  const [history, setHistory] = useState([''])
-  const [historyIdx, setHistoryIdx] = useState(0)
+  // WYSIWYG ContentEditable Ref
+  const editorRef = useRef(null)
 
-  const updateContentWithHistory = (newText) => {
-    setNoteContent(newText)
-    const newHist = history.slice(0, historyIdx + 1)
-    newHist.push(newText)
-    setHistory(newHist)
-    setHistoryIdx(newHist.length - 1)
-  }
-
-  const applyFormat = (formatType) => {
-    if (!textareaRef.current) return
-    const textarea = textareaRef.current
-    const start = textarea.selectionStart || 0
-    const end = textarea.selectionEnd || 0
-    const selectedText = noteContent.substring(start, end)
-
-    let replacement = ''
-    let cursorOffset = start
-
-    switch (formatType) {
-      case 'bold':
-        replacement = `**${selectedText || 'bold text'}**`
-        cursorOffset = selectedText ? end + 4 : start + 2
-        break
-      case 'italic':
-        replacement = `*${selectedText || 'italic text'}*`
-        cursorOffset = selectedText ? end + 2 : start + 1
-        break
-      case 'underline':
-        replacement = `<u>${selectedText || 'underlined text'}</u>`
-        cursorOffset = selectedText ? end + 7 : start + 3
-        break
-      case 'h2':
-        replacement = `\n## ${selectedText || 'Heading 2'}\n`
-        cursorOffset = start + replacement.length
-        break
-      case 'list':
-        replacement = `\n• ${selectedText || 'List item'}`
-        cursorOffset = start + replacement.length
-        break
-      case 'numbered':
-        replacement = `\n1. ${selectedText || 'List item'}`
-        cursorOffset = start + replacement.length
-        break
-      case 'link':
-        replacement = `[${selectedText || 'link title'}](https://)`
-        cursorOffset = start + replacement.length - 1
-        break
-      default:
-        return
+  // Synchronize editor innerHTML when noteContent changes externally
+  useEffect(() => {
+    if (editorRef.current && editingNote) {
+      if (editorRef.current.innerHTML !== noteContent) {
+        editorRef.current.innerHTML = noteContent || ''
+      }
     }
+  }, [editingNote])
 
-    const nextText = noteContent.substring(0, start) + replacement + noteContent.substring(end)
-    updateContentWithHistory(nextText)
-
-    setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(cursorOffset, cursorOffset)
-    }, 10)
-  }
-
-  const handleUndo = () => {
-    if (historyIdx > 0) {
-      const prevIdx = historyIdx - 1
-      setHistoryIdx(prevIdx)
-      setNoteContent(history[prevIdx])
-    }
-  }
-
-  const handleRedo = () => {
-    if (historyIdx < history.length - 1) {
-      const nextIdx = historyIdx + 1
-      setHistoryIdx(nextIdx)
-      setNoteContent(history[nextIdx])
-    }
+  // Execute Rich Text Formatting Commands
+  const execCmd = (command, value = null) => {
+    if (!editorRef.current) return
+    editorRef.current.focus()
+    document.execCommand(command, false, value)
+    setNoteContent(editorRef.current.innerHTML)
   }
 
   const handleOpenNewEditor = () => {
@@ -133,24 +72,21 @@ export default function StickyNotesDrawer() {
     setNoteContent('')
     setNoteColor('yellow')
     setIsPinned(false)
-    setHistory([''])
-    setHistoryIdx(0)
   }
 
   const handleOpenExistingEditor = (note) => {
     setEditingNote(note)
     setNoteTitle(note.title || '')
-    const content = note.content || ''
-    setNoteContent(content)
+    setNoteContent(note.content || '')
     setNoteColor(note.color || 'yellow')
     setIsPinned(!!note.isPinned)
-    setHistory([content])
-    setHistoryIdx(0)
   }
 
   const handleSaveNote = async (e) => {
     if (e) e.preventDefault()
-    if (!noteTitle.trim() && !noteContent.trim()) {
+    const finalContent = editorRef.current ? editorRef.current.innerHTML : noteContent
+
+    if (!noteTitle.trim() && !finalContent.trim()) {
       setEditingNote(null)
       return
     }
@@ -158,14 +94,14 @@ export default function StickyNotesDrawer() {
     if (editingNote?.isNew) {
       await addNote({
         title: noteTitle.trim() || 'Untitled Note',
-        content: noteContent.trim(),
+        content: finalContent,
         color: noteColor,
         isPinned,
       })
     } else if (editingNote?.id) {
       await updateNote(editingNote.id, {
         title: noteTitle.trim() || 'Untitled Note',
-        content: noteContent.trim(),
+        content: finalContent,
         color: noteColor,
         isPinned,
       })
@@ -210,10 +146,10 @@ export default function StickyNotesDrawer() {
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
             className="fixed inset-y-0 right-0 w-full sm:w-[440px] bg-surface/95 dark:bg-[#0f101a] border-l border-white/10 shadow-2xl z-50 flex flex-col backdrop-blur-2xl text-text-primary"
           >
-            {/* VIEW 1: FULL NOTE EDITOR (Matching Screenshot 5) */}
+            {/* VIEW 1: FULL NOTE EDITOR (WYSIWYG) */}
             {editingNote ? (
               <div className="flex-1 flex flex-col h-full bg-surface/90 dark:bg-[#0f101a]">
-                {/* Editor Header Bar (Matching Screenshot 5) */}
+                {/* Editor Header Bar */}
                 <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
                   <button
                     onClick={() => setEditingNote(null)}
@@ -233,7 +169,7 @@ export default function StickyNotesDrawer() {
                 </div>
 
                 {/* Editor Form Body */}
-                <div className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-thin">
+                <div className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-thin flex flex-col">
                   {/* Note Title Input */}
                   <input
                     type="text"
@@ -243,99 +179,101 @@ export default function StickyNotesDrawer() {
                     className="w-full bg-[#131424] dark:bg-[#131424] border border-white/20 rounded-2xl px-4 py-3 text-sm font-extrabold text-white dark:text-white placeholder:text-neutral-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400/50 shadow-sm"
                   />
 
-                  {/* Rich Formatting Toolbar (Matching Screenshot 5) */}
+                  {/* WYSIWYG Formatting Toolbar */}
                   <div className="rounded-2xl border border-white/20 bg-[#131424] dark:bg-[#131424] overflow-hidden shadow-sm flex flex-col flex-1">
                     <div className="p-2 border-b border-white/10 flex items-center gap-1 flex-wrap text-text-muted">
                       <button
                         type="button"
-                        onClick={() => applyFormat('bold')}
+                        onClick={() => execCmd('bold')}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-                        title="Bold (**text**)"
+                        title="Bold"
                       >
                         <Bold className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => applyFormat('italic')}
+                        onClick={() => execCmd('italic')}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-                        title="Italic (*text*)"
+                        title="Italic"
                       >
                         <Italic className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => applyFormat('underline')}
+                        onClick={() => execCmd('underline')}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-                        title="Underline (<u>text</u>)"
+                        title="Underline"
                       >
                         <Underline className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
                       <button
                         type="button"
-                        onClick={() => applyFormat('h2')}
+                        onClick={() => execCmd('formatBlock', '<h2>')}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors font-bold text-xs"
-                        title="Heading 2 (## Heading)"
+                        title="Heading 2"
                       >
                         H2
                       </button>
                       <button
                         type="button"
-                        onClick={() => applyFormat('list')}
+                        onClick={() => execCmd('insertUnorderedList')}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-                        title="Bullet List (• Item)"
+                        title="Bullet List"
                       >
                         <List className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => applyFormat('numbered')}
+                        onClick={() => execCmd('insertOrderedList')}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-                        title="Numbered List (1. Item)"
+                        title="Numbered List"
                       >
                         <ListOrdered className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
                       <button
                         type="button"
-                        onClick={() => applyFormat('link')}
+                        onClick={() => {
+                          const url = prompt('Enter URL:', 'https://')
+                          if (url) execCmd('createLink', url)
+                        }}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-                        title="Insert Link ([title](url))"
+                        title="Insert Hyperlink"
                       >
                         <Link2 className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
                       <button
                         type="button"
-                        onClick={handleUndo}
-                        disabled={historyIdx <= 0}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30"
+                        onClick={() => execCmd('undo')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                         title="Undo"
                       >
                         <Undo className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
-                        onClick={handleRedo}
-                        disabled={historyIdx >= history.length - 1}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30"
+                        onClick={() => execCmd('redo')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                         title="Redo"
                       >
                         <Redo className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
-                    <textarea
-                      ref={textareaRef}
-                      rows={12}
+                    {/* ContentEditable WYSIWYG Area */}
+                    <div
+                      ref={editorRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      onInput={() => setNoteContent(editorRef.current?.innerHTML || '')}
                       placeholder="Write your note body content here..."
-                      value={noteContent}
-                      onChange={(e) => updateContentWithHistory(e.target.value)}
-                      className="w-full flex-1 p-4 bg-transparent text-xs font-semibold text-white dark:text-white placeholder:text-neutral-500 focus:outline-none resize-none leading-relaxed"
+                      className="w-full flex-1 p-4 bg-transparent text-xs font-medium text-white dark:text-white focus:outline-none overflow-y-auto leading-relaxed min-h-[220px]"
                     />
                   </div>
 
-                  {/* Color Selector & Pin Row (Matching Screenshot 5) */}
+                  {/* Color Selector & Pin Row */}
                   <div className="p-3.5 rounded-2xl border border-white/15 bg-base/80 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {COLOR_OPTIONS.map((c) => (
@@ -368,9 +306,9 @@ export default function StickyNotesDrawer() {
                 </div>
               </div>
             ) : (
-              /* VIEW 2: NOTES LIST & FILTER (Matching Screenshot 4) */
+              /* VIEW 2: NOTES LIST & FILTER */
               <>
-                {/* Header (Matching Screenshot 4) */}
+                {/* Header */}
                 <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-base/40">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-md">
@@ -400,7 +338,7 @@ export default function StickyNotesDrawer() {
                   </div>
                 </div>
 
-                {/* Search & Category Filter Pills Row (Matching Screenshot 4) */}
+                {/* Search & Category Filter Pills Row */}
                 <div className="p-4 space-y-3 border-b border-white/10 shrink-0 bg-base/20">
                   <div className="relative">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
@@ -409,7 +347,7 @@ export default function StickyNotesDrawer() {
                       placeholder="Search notes..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-base border border-white/15 rounded-2xl pl-9 pr-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-white/30"
+                      className="w-full bg-[#131424] dark:bg-[#131424] border border-white/15 rounded-2xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-neutral-400 focus:outline-none focus:border-white/30"
                     />
                   </div>
 
@@ -499,9 +437,10 @@ export default function StickyNotesDrawer() {
                           </div>
 
                           {note.content && (
-                            <p className="text-xs text-text-secondary whitespace-pre-wrap leading-relaxed line-clamp-3">
-                              {note.content}
-                            </p>
+                            <div
+                              className="text-xs text-text-secondary line-clamp-3 leading-relaxed font-normal overflow-hidden"
+                              dangerouslySetInnerHTML={{ __html: note.content }}
+                            />
                           )}
 
                           <div className="flex items-center justify-between pt-3 mt-2 border-t border-white/10 text-[10px] text-text-muted">

@@ -117,9 +117,10 @@ export default function StickyNotesCard() {
                 {note.isPinned && <Pin className="h-3 w-3 text-yellow-400 fill-current" />}
               </div>
               {note.content && (
-                <p className="text-[11px] text-text-secondary line-clamp-2 leading-snug">
-                  {note.content}
-                </p>
+                <div
+                  className="text-[11px] text-text-secondary line-clamp-2 leading-snug font-normal overflow-hidden"
+                  dangerouslySetInnerHTML={{ __html: note.content }}
+                />
               )}
             </div>
           ))}
