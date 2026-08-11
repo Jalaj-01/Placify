@@ -184,7 +184,10 @@ export default function StickyNotesDrawer() {
                     <div className="p-2 border-b border-white/10 flex items-center gap-1 flex-wrap text-text-muted">
                       <button
                         type="button"
-                        onClick={() => execCmd('bold')}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          execCmd('bold')
+                        }}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                         title="Bold"
                       >
@@ -192,7 +195,10 @@ export default function StickyNotesDrawer() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => execCmd('italic')}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          execCmd('italic')
+                        }}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                         title="Italic"
                       >
@@ -200,7 +206,10 @@ export default function StickyNotesDrawer() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => execCmd('underline')}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          execCmd('underline')
+                        }}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                         title="Underline"
                       >
@@ -209,7 +218,10 @@ export default function StickyNotesDrawer() {
                       <div className="h-4 w-px bg-white/10 mx-1" />
                       <button
                         type="button"
-                        onClick={() => execCmd('formatBlock', '<h2>')}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          execCmd('formatBlock', '<h2>')
+                        }}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors font-bold text-xs"
                         title="Heading 2"
                       >
@@ -217,7 +229,10 @@ export default function StickyNotesDrawer() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => execCmd('insertUnorderedList')}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          execCmd('insertUnorderedList')
+                        }}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                         title="Bullet List"
                       >
@@ -225,7 +240,10 @@ export default function StickyNotesDrawer() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => execCmd('insertOrderedList')}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          execCmd('insertOrderedList')
+                        }}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                         title="Numbered List"
                       >
@@ -234,7 +252,8 @@ export default function StickyNotesDrawer() {
                       <div className="h-4 w-px bg-white/10 mx-1" />
                       <button
                         type="button"
-                        onClick={() => {
+                        onMouseDown={(e) => {
+                          e.preventDefault()
                           const url = prompt('Enter URL:', 'https://')
                           if (url) execCmd('createLink', url)
                         }}
@@ -246,7 +265,10 @@ export default function StickyNotesDrawer() {
                       <div className="h-4 w-px bg-white/10 mx-1" />
                       <button
                         type="button"
-                        onClick={() => execCmd('undo')}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          execCmd('undo')
+                        }}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                         title="Undo"
                       >
@@ -254,7 +276,10 @@ export default function StickyNotesDrawer() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => execCmd('redo')}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          execCmd('redo')
+                        }}
                         className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                         title="Redo"
                       >
@@ -269,7 +294,7 @@ export default function StickyNotesDrawer() {
                       suppressContentEditableWarning
                       onInput={() => setNoteContent(editorRef.current?.innerHTML || '')}
                       placeholder="Write your note body content here..."
-                      className="w-full flex-1 p-4 bg-transparent text-xs font-medium text-white dark:text-white focus:outline-none overflow-y-auto leading-relaxed min-h-[220px]"
+                      className="w-full flex-1 p-4 bg-transparent text-xs font-medium text-white dark:text-white focus:outline-none overflow-y-auto leading-relaxed min-h-[220px] [&_h2]:text-sm [&_h2]:font-black [&_h2]:text-white [&_h2]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1 [&_a]:text-sky-400 [&_a]:underline"
                     />
                   </div>
 
