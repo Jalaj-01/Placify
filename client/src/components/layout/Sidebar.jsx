@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles,
   ChevronLeft, ChevronRight, LogOut, Terminal, FolderOpen, Youtube,
-  Bookmark, Share2, Sun, Moon, Timer, StickyNote
+  Bookmark, Share2, Sun, Moon, Timer, StickyNote, MailOpen
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -23,6 +23,7 @@ const allNavItems = [
   { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student', 'teacher', 'phd'] },
   { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student', 'teacher', 'phd'] },
   { to: '/shares', icon: Share2, label: 'Shares', roles: ['student', 'teacher', 'phd'] },
+  { to: '/invites', icon: MailOpen, label: 'Room Invites', isInvites: true, roles: ['student', 'teacher', 'phd'] },
 ]
 
 export default function Sidebar({ user, onSignOut }) {
@@ -42,7 +43,8 @@ export default function Sidebar({ user, onSignOut }) {
     sidebarCollapsed, toggleSidebar, setSidebarCollapsed,
     openAICoach, aiCoachOpen, openTimerSetup, assessmentTimerOpen,
     toggleStickyNotes, stickyNotesOpen,
-    theme, toggleTheme
+    theme, toggleTheme,
+    invitesDrawerOpen, toggleInvitesDrawer, pendingInvites
   } = useAppStore()
   const [isHovered, setIsHovered] = useState(false)
 
@@ -63,6 +65,10 @@ export default function Sidebar({ user, onSignOut }) {
       openAICoach()
       setIsHovered(false)
       setSidebarCollapsed(true)
+    } else if (item.isInvites) {
+      e.preventDefault()
+      toggleInvitesDrawer()
+      setIsHovered(false)
     } else {
       setIsHovered(false)
     }
@@ -108,10 +114,11 @@ export default function Sidebar({ user, onSignOut }) {
       {/* Navigation Items */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-none">
         {navItems.map((item) => {
-          const { to, icon: Icon, label, isAICoach, isTimer, isStickyNotes } = item
+          const { to, icon: Icon, label, isAICoach, isTimer, isStickyNotes, isInvites } = item
           const isActiveCoach = isAICoach && aiCoachOpen
           const isActiveTimer = isTimer && assessmentTimerOpen
           const isActiveStickyNotes = isStickyNotes && stickyNotesOpen
+          const isActiveInvites = isInvites && invitesDrawerOpen
 
           return (
             <NavLink
@@ -122,13 +129,13 @@ export default function Sidebar({ user, onSignOut }) {
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-secondary transition-all relative group',
-                  (isActive || isActiveCoach || isActiveTimer || isActiveStickyNotes)
+                  (isActive || isActiveCoach || isActiveTimer || isActiveStickyNotes || isActiveInvites)
                     ? 'bg-accent/15 text-accent-light font-semibold border border-accent/20'
                     : 'text-text-secondary hover:bg-hover hover:text-text-primary'
                 )
               }
             >
-              <Icon className={cn('h-5 w-5 shrink-0 transition-colors', (isActiveCoach || isActiveTimer || isActiveStickyNotes) && 'text-accent-light')} />
+              <Icon className={cn('h-5 w-5 shrink-0 transition-colors', (isActiveCoach || isActiveTimer || isActiveStickyNotes || isActiveInvites) && 'text-accent-light')} />
               <AnimatePresence>
                 {isExpanded && (
                   <motion.span
@@ -150,6 +157,11 @@ export default function Sidebar({ user, onSignOut }) {
               )}
               {isStickyNotes && stickyNotesOpen && (
                 <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
+              )}
+              {isInvites && pendingInvites.length > 0 && (
+                <span className="ml-auto bg-semantic-red text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">
+                  {pendingInvites.length}
+                </span>
               )}
             </NavLink>
           )

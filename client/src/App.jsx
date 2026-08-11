@@ -11,6 +11,7 @@ import TopFloatingTimerCapsule from '@/components/layout/TopFloatingTimerCapsule
 import MockTimerSetupModal from '@/components/layout/MockTimerSetupModal'
 import GroupStudyModal from '@/components/study/GroupStudyModal'
 import GlobalInviteListener from '@/components/study/GlobalInviteListener'
+import InvitesDrawer from '@/components/study/InvitesDrawer'
 import Dashboard from '@/pages/Dashboard'
 import Problems from '@/pages/Problems'
 import Topics from '@/pages/Topics'
@@ -107,6 +108,7 @@ function AppContent() {
       <TopFloatingTimerCapsule />
       <GroupStudyModal user={user} />
       <GlobalInviteListener />
+      <InvitesDrawer />
       <Routes>
         {/* Redirect root to dashboard when authenticated */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

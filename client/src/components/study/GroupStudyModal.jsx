@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Users, Video, FileText, Code2, Trophy, Play, Plus,
-  Send, X, Clock, UserPlus, LogOut, Check
+  Send, X, Clock, UserPlus, LogOut, Check, Save,
+  Bold, Italic, Underline, List, ListOrdered, Link2, Undo, Redo
 } from 'lucide-react'
 import { useSocket } from '@/hooks/useSocket'
 import { useAppStore } from '@/store/useAppStore'
-import { findUserByEmail } from '@/services/firestoreService'
+import { findUserByEmail, savePlaygroundFile } from '@/services/firestoreService'
+import { useStickyNotes } from '@/hooks/useStickyNotes'
 
 export default function GroupStudyModal({ user }) {
   const socket = useSocket(user?.uid)
+  const { addNote } = useStickyNotes(user?.uid)
   
   const isOpen = useAppStore(s => s.groupStudyOpen)
   const onClose = useAppStore(s => s.closeGroupStudy)
@@ -27,13 +30,16 @@ export default function GroupStudyModal({ user }) {
   const [notes, setNotes] = useState([
     { id: 1, author: 'System', text: 'Welcome to the Live Study Room!', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
   ])
-  const [newNote, setNewNote] = useState('')
+  const [noteContent, setNoteContent] = useState('')
   const notesEndRef = useRef(null)
+  const editorRef = useRef(null)
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
 
   // Code State
   const [code, setCode] = useState('// Pair Code Execution\nfunction run() {\n  console.log("Hello World");\n}\nrun();')
   const [output, setOutput] = useState('')
   const [isExecuting, setIsExecuting] = useState(false)
+  const [isSavingCode, setIsSavingCode] = useState(false)
 
   // Invite State
   const [showInvite, setShowInvite] = useState(false)
@@ -98,17 +104,26 @@ export default function GroupStudyModal({ user }) {
     setVideoEmbedUrl(embed)
   }
 
+  const execCmd = (command, value = null) => {
+    if (!editorRef.current) return
+    editorRef.current.focus()
+    document.execCommand(command, false, value)
+    setNoteContent(editorRef.current.innerHTML)
+  }
+
   const handleAddNote = (e) => {
     e.preventDefault()
-    if (!newNote.trim()) return
+    const finalContent = editorRef.current ? editorRef.current.innerHTML : noteContent
+    if (!finalContent.trim() || finalContent === '<br>') return
     const noteObj = {
       id: Date.now(),
       author: user?.displayName || 'You',
-      text: newNote.trim(),
+      text: finalContent,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
     setNotes((prev) => [...prev, noteObj])
-    setNewNote('')
+    if (editorRef.current) editorRef.current.innerHTML = ''
+    setNoteContent('')
     socket.emit('note-add', { roomId, note: noteObj })
     setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
@@ -131,6 +146,37 @@ export default function GroupStudyModal({ user }) {
         setIsExecuting(false)
       }
     }, 800)
+  }
+
+  const handleSaveCode = async () => {
+    setIsSavingCode(true)
+    try {
+      await savePlaygroundFile(user.uid, null, `Study Code - ${new Date().toLocaleDateString()}`, code)
+      setOutput('✅ Code saved successfully to your Playground!')
+    } catch (err) {
+      setOutput('Error saving code: ' + err.message)
+    } finally {
+      setIsSavingCode(false)
+      setTimeout(() => setOutput(''), 3000)
+    }
+  }
+
+  const handleSaveNotesToDashboard = async () => {
+    setIsSavingNotes(true)
+    try {
+      const bundledHtml = notes.map(n => `<p><strong>${n.author}</strong> <span style="color: gray; font-size: 10px;">${n.time}</span><br/>${n.text}</p>`).join('<hr/>')
+      await addNote({
+        title: `Study Notes - ${new Date().toLocaleDateString()}`,
+        content: bundledHtml,
+        color: 'blue',
+        isPinned: false
+      })
+      // Could show a toast, but this is simple inline feedback for now
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSavingNotes(false)
+    }
   }
 
   const handleSendInvite = async (e, emailToUse = inviteEmail) => {
@@ -245,7 +291,7 @@ export default function GroupStudyModal({ user }) {
         {/* Left Side: Video (Top) & Code (Bottom) */}
         <div className="lg:col-span-8 flex flex-col gap-6 h-full">
           {/* Video Player Section */}
-          <div className="flex flex-col gap-3 h-[45%]">
+          <div className="flex flex-col gap-3 shrink-0">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-text-primary flex items-center gap-2">
                 <Video className="h-4 w-4 text-accent" /> Synchronized Video
@@ -261,7 +307,7 @@ export default function GroupStudyModal({ user }) {
                 <button type="submit" className="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-xs font-semibold hover:bg-white/5">Load</button>
               </form>
             </div>
-            <div className="flex-1 rounded-2xl overflow-hidden bg-black border border-white/10 relative shadow-lg">
+            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 relative shadow-lg">
               <iframe
                 src={videoEmbedUrl}
                 title="Course Video"
@@ -273,18 +319,27 @@ export default function GroupStudyModal({ user }) {
           </div>
 
           {/* Code Editor Section */}
-          <div className="flex flex-col gap-3 h-[55%]">
+          <div className="flex flex-col gap-3 flex-1 min-h-[250px]">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-text-primary flex items-center gap-2">
                 <Code2 className="h-4 w-4 text-semantic-purple" /> Live Pair Code
               </span>
-              <button
-                onClick={handleRunCode}
-                disabled={isExecuting}
-                className="px-4 py-1.5 rounded-lg bg-semantic-purple/20 text-semantic-purple border border-semantic-purple/30 text-xs font-bold hover:bg-semantic-purple/30 transition-all flex items-center gap-1.5"
-              >
-                <Play className="h-3 w-3 fill-current" /> {isExecuting ? 'Running...' : 'Run Shared Code'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveCode}
+                  disabled={isSavingCode}
+                  className="px-4 py-1.5 rounded-lg bg-surface text-text-secondary border border-white/10 text-xs font-bold hover:text-white transition-all flex items-center gap-1.5"
+                >
+                  <Save className="h-3 w-3" /> {isSavingCode ? 'Saving...' : 'Save to Playground'}
+                </button>
+                <button
+                  onClick={handleRunCode}
+                  disabled={isExecuting}
+                  className="px-4 py-1.5 rounded-lg bg-semantic-purple/20 text-semantic-purple border border-semantic-purple/30 text-xs font-bold hover:bg-semantic-purple/30 transition-all flex items-center gap-1.5"
+                >
+                  <Play className="h-3 w-3 fill-current" /> {isExecuting ? 'Running...' : 'Run Shared Code'}
+                </button>
+              </div>
             </div>
             
             <div className="flex-1 flex gap-4 h-full overflow-hidden">
@@ -308,8 +363,15 @@ export default function GroupStudyModal({ user }) {
         <div className="lg:col-span-4 flex flex-col h-full bg-surface/30 border border-white/10 rounded-3xl overflow-hidden shadow-lg">
           <div className="p-4 border-b border-white/10 bg-surface/50 flex items-center justify-between">
             <span className="text-sm font-bold text-text-primary flex items-center gap-2">
-              <FileText className="h-4 w-4 text-accent" /> Shared Notes Chat
+              <FileText className="h-4 w-4 text-accent" /> Shared Notes
             </span>
+            <button
+              onClick={handleSaveNotesToDashboard}
+              disabled={isSavingNotes}
+              className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm"
+            >
+              <Save className="h-3 w-3" /> {isSavingNotes ? 'Saving...' : 'Save to Dashboard'}
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -319,26 +381,42 @@ export default function GroupStudyModal({ user }) {
                   <span className="font-bold text-accent">{n.author}</span>
                   <span className="text-text-muted text-[10px]">{n.time}</span>
                 </div>
-                <p className="text-sm text-text-secondary leading-relaxed">{n.text}</p>
+                <div 
+                  className="text-sm text-text-secondary leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_a]:text-blue-400"
+                  dangerouslySetInnerHTML={{ __html: n.text }}
+                />
               </div>
             ))}
             <div ref={notesEndRef} />
           </div>
 
-          <form onSubmit={handleAddNote} className="p-4 bg-surface/50 border-t border-white/10 flex gap-2">
-            <input
-              type="text"
-              placeholder="Type a note to the group..."
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2.5 rounded-xl bg-accent text-white hover:bg-accent-light transition-colors flex items-center justify-center shadow-lg"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+          <form onSubmit={handleAddNote} className="flex flex-col bg-surface/50 border-t border-white/10">
+            {/* WYSIWYG Toolbar */}
+            <div className="p-2 border-b border-white/10 flex items-center gap-1 flex-wrap text-text-muted bg-surface/80">
+              <button type="button" onClick={() => execCmd('bold')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Bold"><Bold className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => execCmd('italic')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Italic"><Italic className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => execCmd('underline')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Underline"><Underline className="h-3.5 w-3.5" /></button>
+              <div className="h-4 w-px bg-white/10 mx-1" />
+              <button type="button" onClick={() => execCmd('insertUnorderedList')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Bullet List"><List className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => execCmd('insertOrderedList')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Numbered List"><ListOrdered className="h-3.5 w-3.5" /></button>
+            </div>
+            
+            <div className="p-2 flex items-end gap-2">
+              <div 
+                ref={editorRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={() => setNoteContent(editorRef.current?.innerHTML || '')}
+                placeholder="Type a rich-text note..."
+                className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent min-h-[44px] max-h-[150px] overflow-y-auto [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 empty:before:content-[attr(placeholder)] empty:before:text-text-muted"
+              />
+              <button
+                type="submit"
+                className="p-3 rounded-xl bg-accent text-white hover:bg-accent-light transition-colors flex items-center justify-center shadow-lg shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </form>
         </div>
 

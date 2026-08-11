@@ -537,11 +537,20 @@ export async function deleteBookmarkDoc(uid, bookmarkId) {
 
 // ─── Sharing ───────────────────────────────────────────────
 export async function findUserByEmail(email) {
-  const q = query(
+  const exactQ = query(
     collectionGroup(db, 'profile'),
-    where('email', '==', email.toLowerCase().trim())
+    where('email', '==', email.trim())
   )
-  const snap = await getDocs(q)
+  let snap = await getDocs(exactQ)
+  
+  if (snap.empty) {
+    const lowerQ = query(
+      collectionGroup(db, 'profile'),
+      where('email', '==', email.toLowerCase().trim())
+    )
+    snap = await getDocs(lowerQ)
+  }
+
   if (snap.empty) {
     throw new Error('User not found with this email')
   }

@@ -82,7 +82,7 @@ export default function Dashboard() {
           {/* Quick Sticky Notes Trigger */}
           <button
             onClick={toggleStickyNotes}
-            className="px-3.5 py-1.5 rounded-xl bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/25 border border-yellow-500/30 transition-all font-bold flex items-center gap-1.5 shadow-sm"
+            className="px-3.5 py-1.5 rounded-xl bg-yellow-500/15 text-yellow-600 dark:text-yellow-300 hover:bg-yellow-500/25 border border-yellow-500/30 transition-all font-bold flex items-center gap-1.5 shadow-sm"
           >
             <span>📝 Sticky Notes</span>
           </button>

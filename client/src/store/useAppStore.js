@@ -62,5 +62,13 @@ export const useAppStore = create((set) => ({
   activeStudyRoomId: 'global-study-room',
   openGroupStudy: (roomId = 'global-study-room') => set({ groupStudyOpen: true, activeStudyRoomId: roomId }),
   closeGroupStudy: () => set({ groupStudyOpen: false }),
+
+  // Pending Invites State
+  pendingInvites: [],
+  invitesDrawerOpen: false,
+  toggleInvitesDrawer: () => set(s => ({ invitesDrawerOpen: !s.invitesDrawerOpen, sidebarCollapsed: true })),
+  closeInvitesDrawer: () => set({ invitesDrawerOpen: false }),
+  addInvite: (invite) => set((s) => ({ pendingInvites: [...s.pendingInvites, invite] })),
+  removeInvite: (roomId) => set((s) => ({ pendingInvites: s.pendingInvites.filter(i => i.roomId !== roomId) })),
 }))
 
