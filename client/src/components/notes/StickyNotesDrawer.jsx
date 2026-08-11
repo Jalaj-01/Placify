@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   StickyNote, X, Plus, Pin, Trash2, Search, ArrowLeft, Save,
@@ -46,20 +46,110 @@ export default function StickyNotesDrawer() {
   const [noteColor, setNoteColor] = useState('yellow')
   const [isPinned, setIsPinned] = useState(false)
 
+  // Textarea Ref & History Stack for formatting toolbar
+  const textareaRef = useRef(null)
+  const [history, setHistory] = useState([''])
+  const [historyIdx, setHistoryIdx] = useState(0)
+
+  const updateContentWithHistory = (newText) => {
+    setNoteContent(newText)
+    const newHist = history.slice(0, historyIdx + 1)
+    newHist.push(newText)
+    setHistory(newHist)
+    setHistoryIdx(newHist.length - 1)
+  }
+
+  const applyFormat = (formatType) => {
+    if (!textareaRef.current) return
+    const textarea = textareaRef.current
+    const start = textarea.selectionStart || 0
+    const end = textarea.selectionEnd || 0
+    const selectedText = noteContent.substring(start, end)
+
+    let replacement = ''
+    let cursorOffset = start
+
+    switch (formatType) {
+      case 'bold':
+        replacement = `**${selectedText || 'bold text'}**`
+        cursorOffset = selectedText ? end + 4 : start + 2
+        break
+      case 'italic':
+        replacement = `*${selectedText || 'italic text'}*`
+        cursorOffset = selectedText ? end + 2 : start + 1
+        break
+      case 'underline':
+        replacement = `<u>${selectedText || 'underlined text'}</u>`
+        cursorOffset = selectedText ? end + 7 : start + 3
+        break
+      case 'h2':
+        replacement = `\n## ${selectedText || 'Heading 2'}\n`
+        cursorOffset = start + replacement.length
+        break
+      case 'list':
+        replacement = `\n• ${selectedText || 'List item'}`
+        cursorOffset = start + replacement.length
+        break
+      case 'numbered':
+        replacement = `\n1. ${selectedText || 'List item'}`
+        cursorOffset = start + replacement.length
+        break
+      case 'link':
+        replacement = `[${selectedText || 'link title'}](https://)`
+        cursorOffset = start + replacement.length - 1
+        break
+      case 'image':
+        replacement = `![${selectedText || 'image description'}](https://)`
+        cursorOffset = start + replacement.length - 1
+        break
+      default:
+        return
+    }
+
+    const nextText = noteContent.substring(0, start) + replacement + noteContent.substring(end)
+    updateContentWithHistory(nextText)
+
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(cursorOffset, cursorOffset)
+    }, 10)
+  }
+
+  const handleUndo = () => {
+    if (historyIdx > 0) {
+      const prevIdx = historyIdx - 1
+      setHistoryIdx(prevIdx)
+      setNoteContent(history[prevIdx])
+    }
+  }
+
+  const handleRedo = () => {
+    if (historyIdx < history.length - 1) {
+      const nextIdx = historyIdx + 1
+      setHistoryIdx(nextIdx)
+      setNoteContent(history[nextIdx])
+    }
+  }
+
   const handleOpenNewEditor = () => {
     setEditingNote({ isNew: true })
     setNoteTitle('')
     setNoteContent('')
     setNoteColor('yellow')
     setIsPinned(false)
+    setHistory([''])
+    setHistoryIdx(0)
   }
 
   const handleOpenExistingEditor = (note) => {
     setEditingNote(note)
     setNoteTitle(note.title || '')
-    setNoteContent(note.content || '')
+    const content = note.content || ''
+    setNoteContent(content)
     setNoteColor(note.color || 'yellow')
     setIsPinned(!!note.isPinned)
+    setHistory([content])
+    setHistoryIdx(0)
   }
 
   const handleSaveNote = async (e) => {
@@ -160,46 +250,99 @@ export default function StickyNotesDrawer() {
                   {/* Rich Formatting Toolbar (Matching Screenshot 5) */}
                   <div className="rounded-2xl border border-white/20 bg-[#131424] dark:bg-[#131424] overflow-hidden shadow-sm flex flex-col flex-1">
                     <div className="p-2 border-b border-white/10 flex items-center gap-1 flex-wrap text-text-muted">
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => applyFormat('bold')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        title="Bold (**text**)"
+                      >
                         <Bold className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => applyFormat('italic')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        title="Italic (*text*)"
+                      >
                         <Italic className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => applyFormat('underline')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        title="Underline (<u>text</u>)"
+                      >
                         <Underline className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors font-bold text-xs">
+                      <button
+                        type="button"
+                        onClick={() => applyFormat('h2')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors font-bold text-xs"
+                        title="Heading 2 (## Heading)"
+                      >
                         H2
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => applyFormat('list')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        title="Bullet List (• Item)"
+                      >
                         <List className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => applyFormat('numbered')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        title="Numbered List (1. Item)"
+                      >
                         <ListOrdered className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => applyFormat('link')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        title="Insert Link ([title](url))"
+                      >
                         <Link2 className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => applyFormat('image')}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        title="Insert Image (![alt](url))"
+                      >
                         <Image className="h-3.5 w-3.5" />
                       </button>
                       <div className="h-4 w-px bg-white/10 mx-1" />
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+                      <button
+                        type="button"
+                        onClick={handleUndo}
+                        disabled={historyIdx <= 0}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30"
+                        title="Undo"
+                      >
                         <Undo className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+                      <button
+                        type="button"
+                        onClick={handleRedo}
+                        disabled={historyIdx >= history.length - 1}
+                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30"
+                        title="Redo"
+                      >
                         <Redo className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
                     <textarea
+                      ref={textareaRef}
                       rows={12}
                       placeholder="Write your note body content here..."
                       value={noteContent}
-                      onChange={(e) => setNoteContent(e.target.value)}
+                      onChange={(e) => updateContentWithHistory(e.target.value)}
                       className="w-full flex-1 p-4 bg-transparent text-xs font-semibold text-white dark:text-white placeholder:text-neutral-500 focus:outline-none resize-none leading-relaxed"
                     />
                   </div>
