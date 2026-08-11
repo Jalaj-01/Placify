@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { useProblems } from '@/hooks/useProblems'
 import QuickLogInput from '@/components/problems/QuickLogInput'
 import ProblemList from '@/components/problems/ProblemList'
-import CompanyKits from '@/components/problems/CompanyKits'
 
 export default function Problems() {
   const { user } = useAuth()
@@ -51,11 +50,6 @@ export default function Problems() {
       <div className="bg-surface rounded-card border border-border-subtle p-4">
         <h2 className="text-card-title font-semibold mb-3">Quick Log</h2>
         <QuickLogInput onSave={handleAdd} user={user} />
-      </div>
-
-      {/* Company Prep Kits Import Section */}
-      <div className="bg-surface rounded-card border border-border-subtle p-4">
-        <CompanyKits onImport={importCompanyKit} />
       </div>
 
       {/* Problems List Section */}
