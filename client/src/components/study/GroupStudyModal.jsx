@@ -229,6 +229,12 @@ export default function GroupStudyModal({ user }) {
         setRecentInvites(newRecents)
         localStorage.setItem('recent_invites', JSON.stringify(newRecents))
       }
+
+      // Auto dismiss popover after 2 seconds
+      setTimeout(() => {
+        setShowInvite(false)
+        setInviteStatus('')
+      }, 2000)
     } catch (err) {
       setInviteStatus('User not found. Check email.')
     }
@@ -275,17 +281,27 @@ export default function GroupStudyModal({ user }) {
       {/* Invite Dropdown / Panel */}
       {showInvite && (
         <div className="absolute top-20 right-6 w-80 bg-surface border border-white/15 rounded-2xl p-4 shadow-2xl z-50 animate-in slide-in-from-top-4">
-          <h3 className="font-bold text-sm mb-3">Invite Friend to Room</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-sm">Invite Friend to Room</h3>
+            <button 
+              onClick={() => { setShowInvite(false); setInviteStatus(''); }} 
+              className="text-text-muted hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+              title="Close invite popover"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
           <form onSubmit={handleSendInvite} className="flex gap-2 mb-2">
             <input 
               type="email" 
               placeholder="Friend's email..." 
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-accent"
+              className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-accent text-white placeholder:text-text-muted"
               required
             />
-            <button type="submit" className="bg-accent text-white px-3 rounded-lg text-xs font-bold">Send</button>
+            <button type="submit" className="bg-accent hover:bg-accent-light text-white px-3 rounded-lg text-xs font-bold transition-colors">Send</button>
           </form>
           {inviteStatus && <p className="text-[11px] text-accent mb-3">{inviteStatus}</p>}
           
