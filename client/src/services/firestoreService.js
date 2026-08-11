@@ -761,4 +761,47 @@ export function computeAutomatedProgress(problems = [], topics = []) {
   }
 }
 
+// ─── Sticky Notes ──────────────────────────────────────────
+export function subscribeStickyNotes(uid, callback) {
+  if (!uid) return () => {}
+  const q = query(userPath(uid, 'stickyNotes'), orderBy('createdAt', 'desc'))
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (err) => {
+      console.warn('subscribeStickyNotes Firestore error:', err)
+      callback([])
+    }
+  )
+}
+
+export async function addStickyNote(uid, data) {
+  if (!uid) return
+  const ref = await addDoc(userPath(uid, 'stickyNotes'), {
+    title: data.title || '',
+    content: data.content || '',
+    color: data.color || 'yellow', // 'yellow' | 'blue' | 'green' | 'pink' | 'purple'
+    isPinned: !!data.isPinned,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  await recordActivity(uid)
+  return ref.id
+}
+
+export async function updateStickyNote(uid, noteId, data) {
+  if (!uid || !noteId) return
+  await updateDoc(doc(db, 'users', uid, 'stickyNotes', noteId), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
+  await recordActivity(uid)
+}
+
+export async function deleteStickyNote(uid, noteId) {
+  if (!uid || !noteId) return
+  await deleteDoc(doc(db, 'users', uid, 'stickyNotes', noteId))
+}
+
+
 

@@ -4,6 +4,7 @@ import {
   CheckCircle, Clock, Sparkles, FolderGit2, AlertCircle, Trash2, Edit3, X, Check, Users, MessageSquare
 } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
+import StickyNotesCard from '@/components/notes/StickyNotesCard'
 import { useAppStore } from '@/store/useAppStore'
 import TAOperationsView from '@/components/phd/TAOperationsView'
 import SupervisorLogbook from '@/components/phd/SupervisorLogbook'
@@ -252,6 +253,16 @@ export default function PhdDashboard({ user, profile }) {
           icon={FolderGit2}
           description="Approved & pending grants"
         />
+      </div>
+
+      {/* Sticky Notes Widget Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          {/* Main research pipeline */}
+        </div>
+        <div>
+          <StickyNotesCard />
+        </div>
       </div>
 
       {/* Section 1: Research & Publication Pipeline */}

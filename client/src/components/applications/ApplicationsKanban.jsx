@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import {
   Briefcase, Calendar, Plus, FileText, CheckCircle, Clock,
-  ExternalLink, ChevronRight, AlertCircle, Building2, MapPin, DollarSign, X
+  ExternalLink, ChevronRight, AlertCircle, Building2, MapPin, DollarSign, X,
+  Bell, Mail, ShieldAlert
 } from 'lucide-react'
+import { triggerTestNotification, generateCalendarEmailUrl } from '@/utils/notifications'
 
-export default function ApplicationsKanban({ applications = [], onUpdateApplication }) {
+export default function ApplicationsKanban({ applications = [], onUpdateApplication, userEmail }) {
   const [apps, setApps] = useState(() => {
     if (applications && applications.length > 0) return applications
     return [
@@ -141,6 +143,45 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
           <Plus className="h-4 w-4" />
           <span>Add Application</span>
         </button>
+      </div>
+
+      {/* Deadline & PWA Push Notifications Alert Bar */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-accent/15 via-surface to-surface border border-accent/30 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 text-accent-light shrink-0">
+            <Bell className="h-5 w-5 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-text-primary">Deadline Protection & Notifications</span>
+              <span className="px-2 py-0.5 rounded-full bg-semantic-green/20 text-semantic-green text-[10px] font-bold border border-semantic-green/30">
+                PWA / Browser Active
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary">
+              Automated reminders fire 24h & 48h before Online Assessments (OA) and interview rounds.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => triggerTestNotification()}
+            className="px-3.5 py-1.5 rounded-xl bg-surface hover:bg-white/10 border border-accent/40 text-accent-light text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm"
+          >
+            <Bell className="h-3.5 w-3.5" />
+            <span>Test Push Alert</span>
+          </button>
+          {selectedApp && (
+            <a
+              href={generateCalendarEmailUrl(selectedApp, userEmail)}
+              className="px-3.5 py-1.5 rounded-xl bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent-light text-xs font-semibold transition-all flex items-center gap-1.5"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              <span>Send Mail Reminder</span>
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Kanban Board Horizontal Scroll Container */}

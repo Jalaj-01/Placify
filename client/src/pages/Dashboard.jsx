@@ -19,7 +19,7 @@ export default function Dashboard() {
   const { applications, loading: loadingApps } = useApplications(user?.uid)
   const { streakData } = useStreak(user?.uid)
 
-  const { theme, toggleTheme } = useAppStore()
+  const { theme, toggleTheme, toggleStickyNotes } = useAppStore()
 
   const [activeRole, setActiveRole] = useState(null)
   const [showRoleOnboarding, setShowRoleOnboarding] = useState(false)
@@ -62,18 +62,48 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 w-full max-w-full">
-      {/* Sleek Master Header Action Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-surface/40 border border-white/10 backdrop-blur-md shadow-sm text-xs text-text-muted">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/15 text-accent font-semibold">
-            <UserCheck className="h-3.5 w-3.5" />
+      {/* Sleek Master Workspace Header Action Bar (Matching User Screenshot 1) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 rounded-2xl bg-surface/60 border border-white/10 backdrop-blur-xl shadow-lg text-xs">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent/15 text-accent font-bold border border-accent/20">
+            <UserCheck className="h-4 w-4" />
             <span className="capitalize">{currentRole} Workspace</span>
           </div>
           <button
             onClick={() => setShowRoleOnboarding(true)}
-            className="text-[11px] text-text-secondary hover:text-accent hover:underline transition-colors flex items-center gap-1 font-medium"
+            className="px-3 py-1.5 rounded-xl bg-surface hover:bg-white/10 text-text-secondary hover:text-text-primary transition-all flex items-center gap-1.5 font-semibold border border-white/10"
           >
-            <RotateCcw className="h-3 w-3" /> Switch Role
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span>Switch Role</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2.5 self-end sm:self-auto">
+          {/* Quick Sticky Notes Trigger */}
+          <button
+            onClick={toggleStickyNotes}
+            className="px-3.5 py-1.5 rounded-xl bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/25 border border-yellow-500/30 transition-all font-bold flex items-center gap-1.5 shadow-sm"
+          >
+            <span>📝 Sticky Notes</span>
+          </button>
+
+          {/* Theme Switcher Toggle Pill (Matching Screenshot 1) */}
+          <button
+            onClick={toggleTheme}
+            className="px-3.5 py-1.5 rounded-xl bg-surface hover:bg-white/10 text-text-primary font-bold border border-white/15 transition-all flex items-center gap-2 shadow-sm"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          >
+            {theme === 'dark' ? (
+              <>
+                <Moon className="h-4 w-4 text-purple-400 fill-current" />
+                <span>Dark Mode</span>
+              </>
+            ) : (
+              <>
+                <Sun className="h-4 w-4 text-yellow-400 fill-current" />
+                <span>Light Mode</span>
+              </>
+            )}
           </button>
         </div>
       </div>

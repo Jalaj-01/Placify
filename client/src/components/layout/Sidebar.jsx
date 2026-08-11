@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles,
   ChevronLeft, ChevronRight, LogOut, Terminal, FolderOpen, Youtube,
-  Bookmark, Share2, Sun, Moon
+  Bookmark, Share2, Sun, Moon, Timer, StickyNote
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -16,6 +16,8 @@ const allNavItems = [
   { to: '/problems', icon: Code2, label: 'Problems', roles: ['student'] },
   { to: '/topics', icon: BookOpen, label: 'Topics', roles: ['student', 'teacher'] },
   { to: '/applications', icon: Briefcase, label: 'Applications', roles: ['student'] },
+  { to: '/timer', icon: Timer, label: 'Mock Timer', isTimer: true, roles: ['student'] },
+  { to: '/notes', icon: StickyNote, label: 'Sticky Notes', isStickyNotes: true, roles: ['student', 'teacher', 'phd'] },
   { to: '/ai-coach', icon: Sparkles, label: 'AI Coach', isAICoach: true, roles: ['student', 'teacher', 'phd'] },
   { to: '/playground', icon: Terminal, label: 'Playground', roles: ['student', 'phd'] },
   { to: '/library', icon: FolderOpen, label: 'Library', roles: ['student', 'teacher', 'phd'] },
@@ -37,14 +39,27 @@ export default function Sidebar({ user, onSignOut }) {
     if (isPhd && item.roles.includes('phd')) return true
     return false
   })
-  const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed, openAICoach, aiCoachOpen, theme, toggleTheme } = useAppStore()
+  const {
+    sidebarCollapsed, toggleSidebar, setSidebarCollapsed,
+    openAICoach, aiCoachOpen, toggleAssessmentTimer, assessmentTimerOpen,
+    toggleStickyNotes, stickyNotesOpen,
+    theme, toggleTheme
+  } = useAppStore()
   const [isHovered, setIsHovered] = useState(false)
 
   // Sidebar is visually expanded if manually uncollapsed OR hovered over
   const isExpanded = !sidebarCollapsed || isHovered
 
   const handleNavClick = (item, e) => {
-    if (item.isAICoach) {
+    if (item.isStickyNotes) {
+      e.preventDefault()
+      toggleStickyNotes()
+      setIsHovered(false)
+    } else if (item.isTimer) {
+      e.preventDefault()
+      toggleAssessmentTimer()
+      setIsHovered(false)
+    } else if (item.isAICoach) {
       e.preventDefault()
       openAICoach()
       setIsHovered(false)
@@ -94,8 +109,10 @@ export default function Sidebar({ user, onSignOut }) {
       {/* Navigation Items */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-none">
         {navItems.map((item) => {
-          const { to, icon: Icon, label, isAICoach } = item
+          const { to, icon: Icon, label, isAICoach, isTimer, isStickyNotes } = item
           const isActiveCoach = isAICoach && aiCoachOpen
+          const isActiveTimer = isTimer && assessmentTimerOpen
+          const isActiveStickyNotes = isStickyNotes && stickyNotesOpen
 
           return (
             <NavLink
@@ -106,13 +123,13 @@ export default function Sidebar({ user, onSignOut }) {
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-secondary transition-all relative group',
-                  (isActive || isActiveCoach)
+                  (isActive || isActiveCoach || isActiveTimer || isActiveStickyNotes)
                     ? 'bg-accent/15 text-accent-light font-semibold border border-accent/20'
                     : 'text-text-secondary hover:bg-hover hover:text-text-primary'
                 )
               }
             >
-              <Icon className={cn('h-5 w-5 shrink-0 transition-colors', (isActiveCoach) && 'text-accent-light')} />
+              <Icon className={cn('h-5 w-5 shrink-0 transition-colors', (isActiveCoach || isActiveTimer || isActiveStickyNotes) && 'text-accent-light')} />
               <AnimatePresence>
                 {isExpanded && (
                   <motion.span
@@ -128,6 +145,12 @@ export default function Sidebar({ user, onSignOut }) {
 
               {isAICoach && (
                 <span className="h-2 w-2 rounded-full bg-semantic-green animate-pulse shrink-0" />
+              )}
+              {isTimer && assessmentTimerOpen && (
+                <span className="h-2 w-2 rounded-full bg-accent animate-ping shrink-0" />
+              )}
+              {isStickyNotes && stickyNotesOpen && (
+                <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
               )}
             </NavLink>
           )

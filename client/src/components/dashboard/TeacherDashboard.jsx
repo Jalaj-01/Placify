@@ -5,6 +5,7 @@ import {
   Edit3, Trash2, X, Check, Eye
 } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
+import StickyNotesCard from '@/components/notes/StickyNotesCard'
 import { useAppStore } from '@/store/useAppStore'
 
 export default function TeacherDashboard({ user, profile }) {
@@ -368,6 +369,16 @@ export default function TeacherDashboard({ user, profile }) {
           icon={AlertTriangle}
           description="Auto-flagged for low activity"
         />
+      </div>
+
+      {/* Sticky Notes Quick Access */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          {/* Main overview content */}
+        </div>
+        <div>
+          <StickyNotesCard />
+        </div>
       </div>
 
       {/* Section 1: Course & Syllabus Pace Tracker */}

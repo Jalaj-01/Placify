@@ -6,6 +6,8 @@ import BottomNav from '@/components/layout/BottomNav'
 import TopBar from '@/components/layout/TopBar'
 import PageWrapper from '@/components/layout/PageWrapper'
 import AICoachDrawer from '@/components/ai/AICoachDrawer'
+import StickyNotesDrawer from '@/components/notes/StickyNotesDrawer'
+import TopFloatingTimerCapsule from '@/components/layout/TopFloatingTimerCapsule'
 import Dashboard from '@/pages/Dashboard'
 import Problems from '@/pages/Problems'
 import Topics from '@/pages/Topics'
@@ -97,6 +99,8 @@ function AppContent() {
       <Sidebar user={user} onSignOut={signOut} />
       <BottomNav />
       <AICoachDrawer />
+      <StickyNotesDrawer />
+      <TopFloatingTimerCapsule />
       <Routes>
         {/* Redirect root to dashboard when authenticated */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

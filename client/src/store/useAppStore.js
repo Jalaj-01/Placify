@@ -33,4 +33,17 @@ export const useAppStore = create((set) => ({
   openAICoach: () => set({ aiCoachOpen: true, sidebarCollapsed: true }),
   closeAICoach: () => set({ aiCoachOpen: false }),
   toggleAICoach: () => set((s) => ({ aiCoachOpen: !s.aiCoachOpen, sidebarCollapsed: true })),
+
+  // Top Sticky Floating Assessment Timer Capsule State
+  assessmentTimerOpen: false,
+  openAssessmentTimer: () => set({ assessmentTimerOpen: true }),
+  closeAssessmentTimer: () => set({ assessmentTimerOpen: false }),
+  toggleAssessmentTimer: () => set((s) => ({ assessmentTimerOpen: !s.assessmentTimerOpen })),
+
+  // Right Slide-Over Sticky Notes Drawer State
+  stickyNotesOpen: false,
+  openStickyNotes: () => set({ stickyNotesOpen: true, sidebarCollapsed: true }),
+  closeStickyNotes: () => set({ stickyNotesOpen: false }),
+  toggleStickyNotes: () => set((s) => ({ stickyNotesOpen: !s.stickyNotesOpen, sidebarCollapsed: true })),
 }))
+

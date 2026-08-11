@@ -80,3 +80,40 @@ export function runNotificationScheduler(streakData, applications) {
     }
   })
 }
+
+// Trigger test notification for PWA/Browser verification
+export function triggerTestNotification() {
+  if (!('Notification' in window)) {
+    alert('Browser notifications are not supported in this browser.')
+    return false
+  }
+  if (Notification.permission !== 'granted') {
+    Notification.requestPermission().then((perm) => {
+      if (perm === 'granted') {
+        showNotification(
+          'Placify Deadline Alert Active! 🚀',
+          'PWA notifications are enabled. You will receive automated alerts for job drive deadlines and OA/Interview schedules.'
+        )
+      } else {
+        alert('Notification permission denied. Please allow notifications in browser settings.')
+      }
+    })
+  } else {
+    showNotification(
+      'Placify Deadline Alert Active! 🚀',
+      'PWA notifications are enabled. You will receive automated alerts for job drive deadlines and OA/Interview schedules.'
+    )
+  }
+}
+
+// Generate email mailto link for sending deadline reminder to student's email/calendar
+export function generateCalendarEmailUrl(app, userEmail) {
+  const company = app.companyName || app.company || 'Target Company'
+  const role = app.role || 'Placement Drive'
+  const dateStr = app.roundDate ? formatDate(app.roundDate) : app.oaDate || 'Upcoming Date'
+  const subject = encodeURIComponent(`[Placify Deadline Alert] ${company} - ${role}`)
+  const body = encodeURIComponent(
+    `Hi,\n\nThis is a reminder for your upcoming placement drive:\n\nCompany: ${company}\nRole: ${role}\nStatus: ${app.status || 'Applied'}\nScheduled Date: ${dateStr}\nLink: ${app.link || 'N/A'}\nNotes: ${app.notes || app.prepNotes || 'None'}\n\nDon't miss this opportunity!\n- Placify Placement Tracker`
+  )
+  return `mailto:${userEmail || ''}?subject=${subject}&body=${body}`
+}
