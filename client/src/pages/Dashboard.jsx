@@ -10,7 +10,7 @@ import RoleOnboardingModal from '@/components/auth/RoleOnboardingModal'
 import StudentDashboard from '@/components/dashboard/StudentDashboard'
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard'
 import PhdDashboard from '@/components/dashboard/PhdDashboard'
-import { ShieldCheck, UserCheck, Sun, Moon, RotateCcw } from 'lucide-react'
+import { ShieldCheck, UserCheck, RotateCcw } from 'lucide-react'
 
 export default function Dashboard() {
   const { user, profile } = useAuth()
@@ -19,7 +19,7 @@ export default function Dashboard() {
   const { applications, loading: loadingApps } = useApplications(user?.uid)
   const { streakData } = useStreak(user?.uid)
 
-  const { theme, toggleTheme, toggleStickyNotes } = useAppStore()
+  const { toggleStickyNotes } = useAppStore()
 
   const [activeRole, setActiveRole] = useState(null)
   const [showRoleOnboarding, setShowRoleOnboarding] = useState(false)
@@ -85,25 +85,6 @@ export default function Dashboard() {
             className="px-3.5 py-1.5 rounded-xl bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/25 border border-yellow-500/30 transition-all font-bold flex items-center gap-1.5 shadow-sm"
           >
             <span>📝 Sticky Notes</span>
-          </button>
-
-          {/* Theme Switcher Toggle Pill (Matching Screenshot 1) */}
-          <button
-            onClick={toggleTheme}
-            className="px-3.5 py-1.5 rounded-xl bg-surface hover:bg-white/10 text-text-primary font-bold border border-white/15 transition-all flex items-center gap-2 shadow-sm"
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-          >
-            {theme === 'dark' ? (
-              <>
-                <Moon className="h-4 w-4 text-purple-400 fill-current" />
-                <span>Dark Mode</span>
-              </>
-            ) : (
-              <>
-                <Sun className="h-4 w-4 text-yellow-400 fill-current" />
-                <span>Light Mode</span>
-              </>
-            )}
           </button>
         </div>
       </div>
