@@ -1,5 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
 import cors from 'cors'
 import admin from 'firebase-admin'
 import { verifyAuth } from './middleware/auth.js'
@@ -9,6 +11,7 @@ import executeRouter from './routes/execute.js'
 import libraryRouter from './routes/library.js'
 
 const app = express()
+const httpServer = createServer(app)
 const PORT = process.env.PORT || 3001
 
 // Initialize Firebase Admin for token verification
@@ -47,6 +50,73 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' })
 })
 
-app.listen(PORT, () => {
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+})
+
+// Store user socket mapping for invites
+const userSockets = new Map()
+
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id)
+
+  // User Authentication / Registration for Invites
+  socket.on('register', (uid) => {
+    if (uid) {
+      userSockets.set(uid, socket.id)
+      socket.uid = uid
+      console.log(`User ${uid} registered with socket ${socket.id}`)
+    }
+  })
+
+  // Room Management
+  socket.on('join-room', (roomId) => {
+    socket.join(roomId)
+    console.log(`Socket ${socket.id} joined room ${roomId}`)
+    // Notify others in room
+    socket.to(roomId).emit('user-joined', socket.uid)
+  })
+
+  socket.on('leave-room', (roomId) => {
+    socket.leave(roomId)
+    socket.to(roomId).emit('user-left', socket.uid)
+  })
+
+  // Code Sync
+  socket.on('code-change', ({ roomId, code }) => {
+    socket.to(roomId).emit('code-update', code)
+  })
+
+  // Note Sync
+  socket.on('note-add', ({ roomId, note }) => {
+    socket.to(roomId).emit('note-receive', note)
+  })
+
+  // Video Sync
+  socket.on('video-sync', ({ roomId, state }) => {
+    socket.to(roomId).emit('video-update', state)
+  })
+
+  // Invite System
+  socket.on('send-invite', ({ toUid, fromName, roomId }) => {
+    const targetSocket = userSockets.get(toUid)
+    if (targetSocket) {
+      io.to(targetSocket).emit('receive-invite', { fromName, roomId })
+    }
+  })
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id)
+    if (socket.uid) {
+      userSockets.delete(socket.uid)
+    }
+  })
+})
+
+httpServer.listen(PORT, () => {
   console.log(`PlacementTracker API running on port ${PORT}`)
 })

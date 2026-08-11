@@ -10,7 +10,6 @@ import WeeklySnapshot from '@/components/dashboard/WeeklySnapshot'
 import DailyFocusQueue from '@/components/dashboard/DailyFocusQueue'
 import RadarCompetency from '@/components/dashboard/RadarCompetency'
 import StickyNotesCard from '@/components/notes/StickyNotesCard'
-import GroupStudyModal from '@/components/study/GroupStudyModal'
 import ApplicationsKanban from '@/components/applications/ApplicationsKanban'
 import { computeAutomatedProgress } from '@/services/firestoreService'
 import { useAppStore } from '@/store/useAppStore'
@@ -25,8 +24,7 @@ export default function StudentDashboard({
   updateProblem,
   updateTopic
 }) {
-  const { openAICoach, openTimerSetup } = useAppStore()
-  const [isGroupStudyOpen, setIsGroupStudyOpen] = useState(false)
+  const { openAICoach, openTimerSetup, openGroupStudy } = useAppStore()
   const [activeStudentTab, setActiveStudentTab] = useState('overview') // 'overview' | 'kanban'
 
   // Safe defaults
@@ -91,7 +89,7 @@ export default function StudentDashboard({
             </button>
 
             <button
-              onClick={() => setIsGroupStudyOpen(true)}
+              onClick={() => openGroupStudy()}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent to-accent-light text-white text-xs font-extrabold hover:opacity-95 transition-all shadow-lg shadow-accent/30 flex items-center gap-2 border border-white/20 hover:scale-[1.02] active:scale-[0.98]"
             >
               <Users className="h-4 w-4" />
@@ -224,12 +222,6 @@ export default function StudentDashboard({
         </>
       )}
 
-      {/* Group Study Modal */}
-      <GroupStudyModal
-        isOpen={isGroupStudyOpen}
-        onClose={() => setIsGroupStudyOpen(false)}
-        user={user}
-      />
     </div>
   )
 }

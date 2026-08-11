@@ -9,6 +9,8 @@ import AICoachDrawer from '@/components/ai/AICoachDrawer'
 import StickyNotesDrawer from '@/components/notes/StickyNotesDrawer'
 import TopFloatingTimerCapsule from '@/components/layout/TopFloatingTimerCapsule'
 import MockTimerSetupModal from '@/components/layout/MockTimerSetupModal'
+import GroupStudyModal from '@/components/study/GroupStudyModal'
+import GlobalInviteListener from '@/components/study/GlobalInviteListener'
 import Dashboard from '@/pages/Dashboard'
 import Problems from '@/pages/Problems'
 import Topics from '@/pages/Topics'
@@ -103,6 +105,8 @@ function AppContent() {
       <StickyNotesDrawer />
       <MockTimerSetupModal />
       <TopFloatingTimerCapsule />
+      <GroupStudyModal user={user} />
+      <GlobalInviteListener />
       <Routes>
         {/* Redirect root to dashboard when authenticated */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

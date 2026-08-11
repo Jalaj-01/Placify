@@ -56,5 +56,11 @@ export const useAppStore = create((set) => ({
   openStickyNotes: () => set({ stickyNotesOpen: true, sidebarCollapsed: true }),
   closeStickyNotes: () => set({ stickyNotesOpen: false }),
   toggleStickyNotes: () => set((s) => ({ stickyNotesOpen: !s.stickyNotesOpen, sidebarCollapsed: true })),
+
+  // Group Study Modal State
+  groupStudyOpen: false,
+  activeStudyRoomId: 'global-study-room',
+  openGroupStudy: (roomId = 'global-study-room') => set({ groupStudyOpen: true, activeStudyRoomId: roomId }),
+  closeGroupStudy: () => set({ groupStudyOpen: false }),
 }))
 
