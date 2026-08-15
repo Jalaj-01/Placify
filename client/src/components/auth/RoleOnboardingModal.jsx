@@ -119,29 +119,32 @@ export default function RoleOnboardingModal({ user, onRoleSaved }) {
 
         {/* Teacher Verification Section */}
         {selectedRole === 'teacher' && (
-          <div className="p-4 rounded-xl bg-semantic-purple/10 border border-semantic-purple/20 space-y-3 animate-in fade-in duration-150">
-            <div className="flex items-center gap-2 text-xs font-semibold text-semantic-purple-light">
-              <ShieldCheck className="h-4 w-4 text-semantic-purple" />
+          <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 space-y-3 animate-in fade-in duration-150">
+            <div className="flex items-center gap-2 text-xs font-bold text-purple-400">
+              <ShieldCheck className="h-4 w-4 text-purple-400" />
               Mandatory Faculty Verification
             </div>
-            <div className="space-y-2">
-              <label className="text-xs text-text-secondary block">Teacher ID / Verification Passcode *</label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-300 block">Teacher ID / Verification Passcode *</label>
+                <span className="text-[10px] text-accent font-mono">e.g. TEACHER2026 or JALAJ2026</span>
+              </div>
               <input
                 type="text"
-                placeholder="Enter official Teacher ID / Faculty Key"
+                placeholder="Enter TEACHER2026 or JALAJ2026"
                 value={teacherId}
                 onChange={(e) => setTeacherId(e.target.value)}
-                className="w-full bg-base/80 border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-semantic-purple"
+                className="w-full bg-[#161824] border border-white/20 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-gray-500 font-mono font-semibold focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs text-text-secondary block">Department</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-300 block">Department</label>
               <input
                 type="text"
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                className="w-full bg-base/80 border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-purple"
+                className="w-full bg-[#161824] border border-white/20 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
               />
             </div>
           </div>
