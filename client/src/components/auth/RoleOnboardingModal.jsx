@@ -25,6 +25,8 @@ export default function RoleOnboardingModal({ user, onRoleSaved }) {
     setLoading(true)
     try {
       await setUserRole(user.uid, selectedRole, teacherId.trim(), department.trim())
+      localStorage.setItem('placify_active_role', selectedRole)
+      window.dispatchEvent(new Event('placify-role-change'))
       onRoleSaved(selectedRole)
     } catch (err) {
       console.error('Failed to set role:', err)

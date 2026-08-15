@@ -31,6 +31,8 @@ export default function Dashboard() {
 
   const handleRoleSaved = (newRole) => {
     setActiveRole(newRole)
+    localStorage.setItem('placify_active_role', newRole)
+    window.dispatchEvent(new Event('placify-role-change'))
     setShowRoleOnboarding(false)
   }
 

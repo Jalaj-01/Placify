@@ -12,24 +12,47 @@ import { useAppStore } from '@/store/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
 
 const allNavItems = [
+  // Dashboard
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['student', 'teacher', 'phd'] },
-  { to: '/problems', icon: Code2, label: 'Problems', roles: ['student'] },
-  { to: '/topics', icon: BookOpen, label: 'Topics', roles: ['student', 'teacher'] },
-  {to: '/applications', icon: Briefcase, label: 'Applications', roles: ['student'] },
+
+  // Student-Only Tools
+  { to: '/problems', icon: Code2, label: 'Problem Log', roles: ['student'] },
+  { to: '/topics', icon: BookOpen, label: 'Topic Mastery', roles: ['student'] },
+  { to: '/applications', icon: Briefcase, label: 'Applications', roles: ['student'] },
   { to: '/timer', icon: Timer, label: 'Mock Timer', isTimer: true, roles: ['student'] },
-  { to: '/ai-coach', icon: Sparkles, label: 'AI Coach', isAICoach: true, roles: ['student', 'teacher', 'phd'] },
-  { to: '/playground', icon: Terminal, label: 'Playground', roles: ['student', 'phd'] },
-  { to: '/library', icon: FolderOpen, label: 'Library', roles: ['student', 'teacher', 'phd'] },
-  { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student', 'teacher', 'phd'] },
-  { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student', 'teacher', 'phd'] },
-  { to: '/shares', icon: Share2, label: 'Shares', roles: ['student', 'teacher', 'phd'] },
-  { to: '/notes', icon: StickyNote, label: 'My Notes', isStickyNotes: true, roles: ['student', 'teacher', 'phd'] },
-  { to: '/invites', icon: MailOpen, label: 'Room Invites', isInvites: true, roles: ['student', 'teacher', 'phd'] },
+  { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student'] },
+  { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student'] },
+  { to: '/invites', icon: MailOpen, label: 'Room Invites', isInvites: true, roles: ['student'] },
+
+  // Academic & Coding Tools (Role tailored)
+  { to: '/library', icon: FolderOpen, label: 'Resource Library', roles: ['student', 'teacher', 'phd'] },
+  { to: '/playground', icon: Terminal, label: 'Code Playground', roles: ['student', 'teacher', 'phd'] },
+  { to: '/ai-coach', icon: Sparkles, label: 'AI Teaching Coach', isAICoach: true, roles: ['teacher'] },
+  { to: '/ai-coach', icon: Sparkles, label: 'AI Placement Coach', isAICoach: true, roles: ['student'] },
+  { to: '/ai-coach', icon: Sparkles, label: 'AI Research Coach', isAICoach: true, roles: ['phd'] },
+  { to: '/shares', icon: Share2, label: 'Shared Inbox', roles: ['student', 'teacher', 'phd'] },
+  { to: '/notes', icon: StickyNote, label: 'Faculty Notes', isStickyNotes: true, roles: ['teacher'] },
+  { to: '/notes', icon: StickyNote, label: 'My Notes', isStickyNotes: true, roles: ['student'] },
+  { to: '/notes', icon: StickyNote, label: 'Research Notes', isStickyNotes: true, roles: ['phd'] },
 ]
 
 export default function Sidebar({ user, onSignOut }) {
   const { profile } = useAuth()
-  const roleRaw = (profile?.role || 'student').toLowerCase()
+  const [activeRoleOverride, setActiveRoleOverride] = useState(() => localStorage.getItem('placify_active_role'))
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setActiveRoleOverride(localStorage.getItem('placify_active_role'))
+    }
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('placify-role-change', handleStorage)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('placify-role-change', handleStorage)
+    }
+  }, [])
+
+  const roleRaw = (activeRoleOverride || profile?.role || 'student').toLowerCase()
   const isTeacher = roleRaw === 'teacher' || roleRaw === 'faculty'
   const isPhd = roleRaw === 'phd' || roleRaw === 'research'
   const isStudent = !isTeacher && !isPhd
