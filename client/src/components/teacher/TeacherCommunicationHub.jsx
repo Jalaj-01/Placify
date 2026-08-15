@@ -1,0 +1,402 @@
+import { useState, useEffect } from 'react'
+import {
+  Bell, Plus, Calendar, Clock, Pin, UserCheck, MessageSquare,
+  Sparkles, Trash2, Send, X, AlertCircle, CheckCircle2, ShieldCheck
+} from 'lucide-react'
+import {
+  subscribeCourseNotices, createCourseNotice, deleteCourseNotice,
+  subscribeOfficeHours, addOfficeHourSlot, deleteOfficeHourSlot
+} from '@/services/teacherService'
+import { cn } from '@/lib/utils'
+
+export default function TeacherCommunicationHub({ user, course }) {
+  const [notices, setNotices] = useState([])
+  const [officeHours, setOfficeHours] = useState([])
+  const [showNoticeModal, setShowNoticeModal] = useState(false)
+  const [showSlotModal, setShowSlotModal] = useState(false)
+
+  const [noticeForm, setNoticeForm] = useState({
+    title: '',
+    content: '',
+    priority: 'NORMAL',
+    isPinned: false
+  })
+
+  const [slotForm, setSlotForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    startTime: '14:00',
+    endTime: '14:15',
+    meetingType: 'GOOGLE_MEET',
+    meetingLocationOrLink: 'https://meet.google.com/xyz-abcd-efg'
+  })
+
+  useEffect(() => {
+    if (!course?.id) return
+    const unsub = subscribeCourseNotices(course.id, (data) => {
+      setNotices(data)
+    })
+    return unsub
+  }, [course?.id])
+
+  useEffect(() => {
+    if (!user?.uid) return
+    const unsub = subscribeOfficeHours(user.uid, (data) => {
+      setOfficeHours(data)
+    })
+    return unsub
+  }, [user?.uid])
+
+  const handleCreateNotice = async (e) => {
+    e.preventDefault()
+    if (!noticeForm.title.trim() || !noticeForm.content.trim()) return
+
+    try {
+      await createCourseNotice(course.id, {
+        ...noticeForm,
+        instructorUid: user.uid,
+        instructorName: user.displayName || 'Instructor'
+      })
+      setShowNoticeModal(false)
+      setNoticeForm({ title: '', content: '', priority: 'NORMAL', isPinned: false })
+    } catch (err) {
+      alert('Error broadcasting notice: ' + err.message)
+    }
+  }
+
+  const handleAddOfficeSlot = async (e) => {
+    e.preventDefault()
+    try {
+      await addOfficeHourSlot({
+        ...slotForm,
+        instructorUid: user.uid,
+        instructorName: user.displayName || 'Instructor'
+      })
+      setShowSlotModal(false)
+    } catch (err) {
+      alert('Error creating office hour slot: ' + err.message)
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      {/* Left Column: Course Broadcast Notice Board (7 cols) */}
+      <div className="lg:col-span-7 space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-card border border-border-subtle shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent/20 text-accent flex items-center justify-center font-bold">
+              <Bell className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-text-primary">Classroom Notice Board</h3>
+              <p className="text-xs text-text-muted">Broadcast announcements and deadlines to enrolled students.</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowNoticeModal(true)}
+            className="px-3 py-1.5 rounded-xl bg-accent hover:bg-accent-light text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-accent/20 transition-all"
+          >
+            <Plus className="h-4 w-4" /> Post Notice
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {notices.map((notice) => (
+            <div
+              key={notice.id}
+              className={cn(
+                "p-4 rounded-2xl border transition-all space-y-2 relative shadow-sm",
+                notice.isPinned ? "bg-accent/10 border-accent/30" : "bg-card border-border-subtle"
+              )}
+            >
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  {notice.isPinned && (
+                    <span className="px-2 py-0.5 rounded bg-accent text-white text-[10px] font-bold flex items-center gap-1">
+                      <Pin className="h-3 w-3" /> Pinned
+                    </span>
+                  )}
+                  <span className={cn(
+                    "px-2 py-0.5 rounded text-[10px] font-bold",
+                    notice.priority === 'URGENT' ? "bg-semantic-red/15 text-semantic-red" : "bg-surface text-text-muted"
+                  )}>
+                    {notice.priority}
+                  </span>
+                  <span className="font-bold text-text-primary text-xs">{notice.title}</span>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    if (confirm('Delete this notice?')) {
+                      await deleteCourseNotice(course.id, notice.id)
+                    }
+                  }}
+                  className="text-text-muted hover:text-semantic-red p-1"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
+                {notice.content}
+              </p>
+
+              <div className="text-[10px] text-text-muted font-mono pt-1">
+                Posted by {notice.instructorName} • {new Date(notice.createdAt?.toDate?.() || Date.now()).toLocaleDateString()}
+              </div>
+            </div>
+          ))}
+
+          {notices.length === 0 && (
+            <div className="p-8 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-2xl bg-card">
+              No notices published for this class yet.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Column: Office Hours 15-Minute Slot Booking (5 cols) */}
+      <div className="lg:col-span-5 space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-card border border-border-subtle shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-text-primary">Office Hours Doubt Slots</h3>
+              <p className="text-xs text-text-muted">15-minute 1-on-1 reservation slots.</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowSlotModal(true)}
+            className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
+          >
+            <Plus className="h-4 w-4" /> Add Slot
+          </button>
+        </div>
+
+        <div className="space-y-2.5">
+          {officeHours.map((slot) => (
+            <div
+              key={slot.id}
+              className={cn(
+                "p-3.5 rounded-2xl border transition-all space-y-1.5 shadow-sm",
+                slot.isBooked ? "bg-semantic-green/10 border-semantic-green/30" : "bg-card border-border-subtle"
+              )}
+            >
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-mono font-bold text-text-primary flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-accent" />
+                  {slot.date} • {slot.startTime} - {slot.endTime}
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    "px-2 py-0.5 rounded text-[10px] font-bold",
+                    slot.isBooked ? "bg-semantic-green/20 text-semantic-green" : "bg-surface text-text-muted"
+                  )}>
+                    {slot.isBooked ? 'Reserved' : 'Open'}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      if (confirm('Delete this office hour slot?')) {
+                        await deleteOfficeHourSlot(slot.id)
+                      }
+                    }}
+                    className="p-1 text-text-muted hover:text-semantic-red"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {slot.isBooked ? (
+                <div className="p-2 rounded-xl bg-surface border border-border-subtle text-xs space-y-1">
+                  <div className="font-bold text-text-primary flex items-center gap-1">
+                    <UserCheck className="h-3.5 w-3.5 text-semantic-green" />
+                    Booked by {slot.studentName || 'Student'}
+                  </div>
+                  {slot.doubtDescription && (
+                    <p className="text-[11px] text-text-secondary">"{slot.doubtDescription}"</p>
+                  )}
+                </div>
+              ) : (
+                <span className="text-[11px] text-text-muted block font-mono">
+                  {slot.meetingLocationOrLink}
+                </span>
+              )}
+            </div>
+          ))}
+
+          {officeHours.length === 0 && (
+            <div className="p-8 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-2xl bg-card">
+              No office hour slots created. Add slots for students to book doubt clearing.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Post Notice Modal */}
+      {showNoticeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-4 text-text-primary">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
+                <Bell className="h-5 w-5 text-accent" />
+                Post Classroom Announcement
+              </h3>
+              <button onClick={() => setShowNoticeModal(false)} className="text-text-muted hover:text-text-primary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNotice} className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="text-text-secondary font-bold block">Notice Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Mid-term Quiz Schedule & Syllabus"
+                  value={noticeForm.title}
+                  onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })}
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2 text-text-primary focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-text-secondary font-bold block">Announcement Message *</label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="Full instructions, room change details, or links..."
+                  value={noticeForm.content}
+                  onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })}
+                  className="w-full bg-base border border-border-subtle rounded-xl p-3 text-text-primary focus:outline-none focus:border-accent resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer font-bold">
+                  <input
+                    type="checkbox"
+                    checked={noticeForm.isPinned}
+                    onChange={(e) => setNoticeForm({ ...noticeForm, isPinned: e.target.checked })}
+                    className="rounded accent-accent"
+                  />
+                  <span>Pin to top of notice board</span>
+                </label>
+
+                <select
+                  value={noticeForm.priority}
+                  onChange={(e) => setNoticeForm({ ...noticeForm, priority: e.target.value })}
+                  className="bg-base border border-border-subtle rounded-lg px-2.5 py-1 text-text-primary font-bold text-xs"
+                >
+                  <option value="NORMAL">Normal Priority</option>
+                  <option value="IMPORTANT">Important</option>
+                  <option value="URGENT">Urgent Priority</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowNoticeModal(false)}
+                  className="px-4 py-2 rounded-xl text-text-secondary hover:text-text-primary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-accent hover:bg-accent-light text-white font-bold shadow-lg shadow-accent/25"
+                >
+                  Broadcast Notice
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Office Hour Slot Modal */}
+      {showSlotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-4 text-text-primary">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
+                <Clock className="h-5 w-5 text-purple-400" />
+                Add 15-Min Office Hour Slot
+              </h3>
+              <button onClick={() => setShowSlotModal(false)} className="text-text-muted hover:text-text-primary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddOfficeSlot} className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="text-text-secondary font-bold block">Date</label>
+                <input
+                  type="date"
+                  required
+                  value={slotForm.date}
+                  onChange={(e) => setSlotForm({ ...slotForm, date: e.target.value })}
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2 text-text-primary focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-text-secondary font-bold block">Start Time</label>
+                  <input
+                    type="time"
+                    required
+                    value={slotForm.startTime}
+                    onChange={(e) => setSlotForm({ ...slotForm, startTime: e.target.value })}
+                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-text-primary focus:outline-none focus:border-accent"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-text-secondary font-bold block">End Time</label>
+                  <input
+                    type="time"
+                    required
+                    value={slotForm.endTime}
+                    onChange={(e) => setSlotForm({ ...slotForm, endTime: e.target.value })}
+                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-text-primary focus:outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-text-secondary font-bold block">Meeting Link or Cabin Room</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Cabin 402 or https://meet.google.com/..."
+                  value={slotForm.meetingLocationOrLink}
+                  onChange={(e) => setSlotForm({ ...slotForm, meetingLocationOrLink: e.target.value })}
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2 text-text-primary focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSlotModal(false)}
+                  className="px-4 py-2 rounded-xl text-text-secondary hover:text-text-primary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg"
+                >
+                  Add Slot
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

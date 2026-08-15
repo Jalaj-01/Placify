@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity, Minimize2, Maximize2, Share2, Terminal, CheckCircle2, Download, Pencil, FileCode } from 'lucide-react'
+import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity, Minimize2, Maximize2, Share2, Terminal, CheckCircle2, Download, Pencil, FileCode, School } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCourses } from '@/hooks/useCourses'
 import { usePlayground } from '@/hooks/usePlayground'
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { apiCall } from '@/services/apiClient'
 import ShareDialog from '@/components/share/ShareDialog'
 import { Badge } from '@/components/ui/badge'
+import StudentCourseEnrollModal from '@/components/teacher/StudentCourseEnrollModal'
 
 const VERILOG_DEFAULT_CODE = `module test;
     reg [3:0] a, b;
@@ -51,6 +52,7 @@ export default function Courses() {
 
   // Add course states
   const [showAdd, setShowAdd] = useState(false)
+  const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [courseName, setCourseName] = useState('')
   const [courseUrl, setCourseUrl] = useState('')
   const [adding, setAdding] = useState(false)
@@ -625,9 +627,18 @@ export default function Courses() {
             <p className="text-secondary text-text-secondary text-[10px] sm:text-xs mt-0.5 truncate">Study YouTube lecture courses in an ad-free, distraction-free environment</p>
           </div>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="flex items-center gap-2 text-xs font-semibold px-4 py-2 hover:scale-[1.02] active:scale-[0.98] transition-all w-full sm:w-auto justify-center">
-          <Plus className="h-4 w-4" /> Add Course
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            onClick={() => setShowEnrollModal(true)}
+            variant="outline"
+            className="flex items-center gap-2 text-xs font-semibold px-4 py-2 border-accent/40 text-accent hover:bg-accent/15 transition-all flex-1 sm:flex-initial justify-center"
+          >
+            <School className="h-4 w-4" /> Join Class Code
+          </Button>
+          <Button onClick={() => setShowAdd(true)} className="flex items-center gap-2 text-xs font-semibold px-4 py-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex-1 sm:flex-initial justify-center">
+            <Plus className="h-4 w-4" /> Add Course
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -1177,6 +1188,13 @@ export default function Courses() {
           senderEmail={user?.email}
         />
       )}
+
+      {/* Student Academic Course Enrollment Modal */}
+      <StudentCourseEnrollModal
+        user={user}
+        isOpen={showEnrollModal}
+        onClose={() => setShowEnrollModal(false)}
+      />
     </div>
   )
 }

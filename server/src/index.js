@@ -9,6 +9,7 @@ import parseUrlRouter from './routes/parseUrl.js'
 import aiRouter from './routes/ai.js'
 import executeRouter from './routes/execute.js'
 import libraryRouter from './routes/library.js'
+import assessmentsRouter from './routes/assessments.js'
 
 const app = express()
 const httpServer = createServer(app)
@@ -44,6 +45,7 @@ app.use('/api/parse-url', verifyAuth, parseUrlRouter)
 app.use('/api/ai', verifyAuth, aiRouter)
 app.use('/api/execute', verifyAuth, executeRouter)
 app.use('/api/library', verifyAuth, libraryRouter)
+app.use('/api/assessments', verifyAuth, assessmentsRouter)
 
 app.use((err, _req, res, _next) => {
   console.error(err)
