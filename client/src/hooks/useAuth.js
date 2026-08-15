@@ -6,12 +6,20 @@ import { getOrCreateProfile, seedTopics } from '@/services/firestoreService'
 export function useAuth() {
   // Initialize state from localStorage cache for instant load persistence
   const [user, setUser] = useState(() => {
-    const cached = localStorage.getItem('placement_tracker_session')
-    return cached ? JSON.parse(cached) : null
+    try {
+      const cached = localStorage.getItem('placement_tracker_session')
+      return cached ? JSON.parse(cached) : null
+    } catch {
+      return null
+    }
   })
   const [profile, setProfile] = useState(() => {
-    const cached = localStorage.getItem('placement_tracker_profile')
-    return cached ? JSON.parse(cached) : null
+    try {
+      const cached = localStorage.getItem('placement_tracker_profile')
+      return cached ? JSON.parse(cached) : null
+    } catch {
+      return null
+    }
   })
   const [loading, setLoading] = useState(!user) // If user is cached, render interface immediately
 

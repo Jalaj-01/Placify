@@ -26,12 +26,13 @@ export default function Dashboard() {
 
   const loading = loadingProbs || loadingTopics || loadingApps
 
-  // Effective role priority: activeRole state -> profile.role -> null
-  const currentRole = activeRole || profile?.role || null
+  const rawRole = (activeRole || profile?.role || localStorage.getItem('placify_active_role') || '').toLowerCase().trim()
+  const effectiveRole = rawRole === 'faculty' ? 'teacher' : (rawRole === 'research' ? 'phd' : rawRole)
 
   const handleRoleSaved = (newRole) => {
-    setActiveRole(newRole)
-    localStorage.setItem('placify_active_role', newRole)
+    const norm = (newRole || '').toLowerCase().trim()
+    setActiveRole(norm)
+    localStorage.setItem('placify_active_role', norm)
     window.dispatchEvent(new Event('placify-role-change'))
     setShowRoleOnboarding(false)
   }
@@ -53,7 +54,7 @@ export default function Dashboard() {
   }
 
   // Show onboarding modal if user has not set a role yet or clicked to re-select
-  if (!currentRole || showRoleOnboarding) {
+  if (!effectiveRole || showRoleOnboarding) {
     return (
       <RoleOnboardingModal
         user={user}
@@ -64,12 +65,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 w-full max-w-full">
-      {/* Sleek Master Workspace Header Action Bar (Matching User Screenshot 1) */}
+      {/* Sleek Master Workspace Header Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 rounded-2xl bg-surface/60 border border-white/10 backdrop-blur-xl shadow-lg text-xs">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent/15 text-accent font-bold border border-accent/20">
             <UserCheck className="h-4 w-4" />
-            <span className="capitalize">{currentRole} Workspace</span>
+            <span className="capitalize">{effectiveRole} Workspace</span>
           </div>
           <button
             onClick={() => setShowRoleOnboarding(true)}
@@ -92,15 +93,15 @@ export default function Dashboard() {
       </div>
 
       {/* Render Specific Role Dashboard */}
-      {currentRole === 'teacher' && (
+      {effectiveRole === 'teacher' && (
         <TeacherDashboard user={user} profile={profile} />
       )}
 
-      {currentRole === 'phd' && (
+      {effectiveRole === 'phd' && (
         <PhdDashboard user={user} profile={profile} />
       )}
 
-      {currentRole === 'student' && (
+      {(effectiveRole === 'student' || (!['teacher', 'phd'].includes(effectiveRole))) && (
         <StudentDashboard
           user={user}
           profile={profile}
