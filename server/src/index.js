@@ -74,16 +74,30 @@ io.on('connection', (socket) => {
   })
 
   // Room Management
-  socket.on('join-room', (roomId) => {
+  socket.on('join-room', (payload) => {
+    let roomId = payload
+    let userInfo = { uid: socket.uid || socket.id, name: 'Peer' }
+    if (typeof payload === 'object' && payload !== null) {
+      roomId = payload.roomId
+      if (payload.user) userInfo = payload.user
+    }
     socket.join(roomId)
     console.log(`Socket ${socket.id} joined room ${roomId}`)
     // Notify others in room
-    socket.to(roomId).emit('user-joined', socket.uid)
+    socket.to(roomId).emit('user-joined', userInfo)
+  })
+
+  socket.on('user-announce', ({ roomId, user }) => {
+    socket.to(roomId).emit('user-announce-receive', user)
+  })
+
+  socket.on('contrib-sync', ({ roomId, user, points, action }) => {
+    socket.to(roomId).emit('contrib-receive', { user, points, action })
   })
 
   socket.on('leave-room', (roomId) => {
     socket.leave(roomId)
-    socket.to(roomId).emit('user-left', socket.uid)
+    socket.to(roomId).emit('user-left', socket.uid || socket.id)
   })
 
   // Code Sync
@@ -92,8 +106,11 @@ io.on('connection', (socket) => {
   })
 
   // Note Sync
-  socket.on('note-add', ({ roomId, note }) => {
+  socket.on('note-add', ({ roomId, note, user }) => {
     socket.to(roomId).emit('note-receive', note)
+    if (user) {
+      socket.to(roomId).emit('contrib-receive', { user, points: 10, action: 'note' })
+    }
   })
 
   // Video Sync

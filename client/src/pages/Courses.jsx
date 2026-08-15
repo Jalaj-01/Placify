@@ -13,6 +13,32 @@ import { apiCall } from '@/services/apiClient'
 import ShareDialog from '@/components/share/ShareDialog'
 import { Badge } from '@/components/ui/badge'
 
+const VERILOG_DEFAULT_CODE = `module test;
+    reg [3:0] a, b;
+    wire [4:0] sum;
+    
+    adder adder_inst(
+        .a(a),
+        .b(b),
+        .sum(sum)
+    );
+    
+    initial begin
+        $monitor("Time=%0d a=%b b=%b sum=%b", $time, a, b, sum);
+        a = 4'b0011; b = 4'b0101;
+        #10 a = 4'b1010; b = 4'b0110;
+        #10 $finish;
+    end
+endmodule
+
+module adder(
+    input [3:0] a,
+    input [3:0] b,
+    output [4:0] sum
+);
+    assign sum = a + b;
+endmodule`
+
 export default function Courses() {
   const { user } = useAuth()
   const { courses, loading, addCourse, deleteCourse, updateNotes, updateProgress } = useCourses(user?.uid)
@@ -130,6 +156,45 @@ export default function Courses() {
       } finally {
         setPgRunning(false)
       }
+    } else if (pgLanguage === 'verilog') {
+      setPgOutput('Compiling and running Verilog code...\n')
+      try {
+        const details = await apiCall('/api/execute/verilog', {
+          method: 'POST',
+          body: { code: pgCode },
+        })
+
+        if (details) {
+          let runOutput = ''
+          if (details.build_stderr) {
+            runOutput += `[Compilation Error]\n${details.build_stderr}\n`
+          }
+          if (details.build_stdout) {
+            runOutput += `[Compilation Output]\n${details.build_stdout}\n`
+          }
+          if (details.stderr) {
+            runOutput += `[Runtime Error]\n${details.stderr}\n`
+          }
+          if (details.stdout) {
+            runOutput += details.stdout
+          }
+
+          if (!runOutput) {
+            if (details.result === 'success') {
+              runOutput = 'Execution finished successfully (No output).'
+            } else {
+              runOutput = `Execution finished with result: ${details.result}`
+            }
+          }
+          setPgOutput(runOutput)
+        } else {
+          setPgOutput('Failed to retrieve execution details.')
+        }
+      } catch (err) {
+        setPgOutput('Error executing Verilog code: ' + err.message)
+      } finally {
+        setPgRunning(false)
+      }
     } else {
       setPgOutput('Compiling and running Java code...\n')
       try {
@@ -193,6 +258,9 @@ export default function Courses() {
       if (pgLanguage === 'python') {
         setPgFileName('solution.py')
         setPgCode("print('File deleted. Write some code...')")
+      } else if (pgLanguage === 'verilog') {
+        setPgFileName('module.v')
+        setPgCode(VERILOG_DEFAULT_CODE)
       } else {
         setPgFileName('Main.java')
         setPgCode("public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"File deleted. Write some code...\");\n    }\n}")
@@ -208,6 +276,9 @@ export default function Courses() {
       if (pgLanguage === 'python') {
         setPgFileName('new_script.py')
         setPgCode("# New script\nprint('Hello world!')")
+      } else if (pgLanguage === 'verilog') {
+        setPgFileName('module.v')
+        setPgCode(VERILOG_DEFAULT_CODE)
       } else {
         setPgFileName('Main.java')
         setPgCode("public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello world!\");\n    }\n}")
@@ -231,6 +302,8 @@ export default function Courses() {
     const filtered = files.filter((f) => {
       if (newLang === 'python') {
         return f.name.endsWith('.py') || !f.name.includes('.')
+      } else if (newLang === 'verilog') {
+        return f.name.endsWith('.v') || f.name.endsWith('.sv') || f.name.endsWith('.verilog')
       } else {
         return f.name.endsWith('.java')
       }
@@ -245,6 +318,9 @@ export default function Courses() {
       if (newLang === 'python') {
         setPgFileName('solution.py')
         setPgCode("print('Hello from scratchpad!')")
+      } else if (newLang === 'verilog') {
+        setPgFileName('module.v')
+        setPgCode(VERILOG_DEFAULT_CODE)
       } else {
         setPgFileName('Main.java')
         setPgCode("public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello from scratchpad!\");\n    }\n}")
@@ -258,6 +334,8 @@ export default function Courses() {
       const filtered = files.filter((f) => {
         if (pgLanguage === 'python') {
           return f.name.endsWith('.py') || !f.name.includes('.')
+        } else if (pgLanguage === 'verilog') {
+          return f.name.endsWith('.v') || f.name.endsWith('.sv') || f.name.endsWith('.verilog')
         } else {
           return f.name.endsWith('.java')
         }
@@ -809,6 +887,15 @@ export default function Courses() {
                             >
                               Java
                             </button>
+                            <button
+                              onClick={() => handlePgLanguageChange('verilog')}
+                              className={cn(
+                                "px-2 py-0.5 rounded text-[10px] font-semibold transition-all",
+                                pgLanguage === 'verilog' ? "bg-accent text-white" : "text-text-secondary"
+                              )}
+                            >
+                              Verilog
+                            </button>
                           </div>
 
                           <Badge
@@ -846,7 +933,11 @@ export default function Courses() {
                               <SelectItem value="new" className="text-accent-light font-medium flex items-center gap-1.5 text-[10px]">
                                 <Plus className="h-3 w-3 inline mr-1 text-[10px]" /> New Script
                               </SelectItem>
-                              {files.filter(f => pgLanguage === 'python' ? (f.name.endsWith('.py') || !f.name.includes('.')) : f.name.endsWith('.java')).map((f) => (
+                              {files.filter(f => {
+                                if (pgLanguage === 'python') return f.name.endsWith('.py') || !f.name.includes('.')
+                                if (pgLanguage === 'verilog') return f.name.endsWith('.v') || f.name.endsWith('.sv') || f.name.endsWith('.verilog')
+                                return f.name.endsWith('.java')
+                              }).map((f) => (
                                 <SelectItem key={f.id} value={f.id} className="text-[10px]">
                                   {f.name}
                                 </SelectItem>
@@ -863,7 +954,7 @@ export default function Courses() {
                               value={pgFileName}
                               onChange={(e) => setPgFileName(e.target.value)}
                               className="h-7 bg-card border border-border-subtle text-[10px] text-text-primary font-medium px-1.5 rounded transition-all pr-6 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0"
-                              placeholder={pgLanguage === 'python' ? 'filename.py' : 'Main.java'}
+                              placeholder={pgLanguage === 'python' ? 'filename.py' : pgLanguage === 'verilog' ? 'module.v' : 'Main.java'}
                             />
                             <Pencil className="h-3 w-3 text-text-muted absolute right-2 opacity-50 group-hover:opacity-100 pointer-events-none" />
                           </div>
@@ -923,7 +1014,7 @@ export default function Courses() {
                             const element = document.createElement('a')
                             const file = new Blob([pgCode], { type: 'text/plain' })
                             element.href = URL.createObjectURL(file)
-                            element.download = pgFileName || (pgLanguage === 'python' ? 'solution.py' : 'Main.java')
+                            element.download = pgFileName || (pgLanguage === 'python' ? 'solution.py' : pgLanguage === 'verilog' ? 'module.v' : 'Main.java')
                             document.body.appendChild(element)
                             element.click()
                             document.body.removeChild(element)

@@ -169,7 +169,7 @@ export default function AICoachDrawer() {
             ))}
 
             {loading && (
-              <div className="flex items-center gap-2.5 my-3 p-3 rounded-xl bg-surface border border-border-subtle text-accent-light text-xs font-mono animate-pulse w-fit">
+              <div className="flex items-center gap-2.5 my-3 p-3 rounded-xl bg-card border border-border-subtle text-accent dark:text-accent-light text-xs font-mono animate-pulse w-fit">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />
                 <span>AI Coach is analyzing...</span>
               </div>
@@ -184,7 +184,7 @@ export default function AICoachDrawer() {
               <form onSubmit={handleGenerateBriefSubmit} className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
-                    <Building className="h-3.5 w-3.5 text-accent-light" /> Company Interview Brief
+                    <Building className="h-3.5 w-3.5 text-accent" /> Company Interview Brief
                   </h4>
                   <button
                     type="button"
@@ -237,7 +237,7 @@ export default function AICoachDrawer() {
                 <button
                   key={idx}
                   onClick={() => sendMessage(chip.text)}
-                  className="px-2.5 py-1 rounded-lg bg-surface hover:bg-surface/80 border border-border-subtle text-text-muted hover:text-text-primary text-[11px] whitespace-nowrap transition-colors"
+                  className="px-2.5 py-1 rounded-lg bg-surface hover:bg-hover border border-border-subtle text-text-secondary hover:text-text-primary text-[11px] whitespace-nowrap transition-colors"
                 >
                   {chip.label}
                 </button>
@@ -252,7 +252,7 @@ export default function AICoachDrawer() {
               <button
                 onClick={handleAnalyzePrepClick}
                 disabled={loading}
-                className="px-2.5 py-1 rounded-full bg-accent/15 border border-accent/30 hover:bg-accent/25 text-accent-light font-medium whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                className="px-2.5 py-1 rounded-full bg-accent/15 border border-accent/30 hover:bg-accent/25 text-accent dark:text-accent-light font-medium whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
               >
                 <Gauge className="h-3 w-3" /> Analyze Prep
               </button>

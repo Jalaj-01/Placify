@@ -9,12 +9,12 @@ import { useAuth } from '@/hooks/useAuth'
 import { useStickyNotes } from '@/hooks/useStickyNotes'
 
 const COLOR_OPTIONS = [
-  { id: 'yellow', name: 'Yellow', bgHex: '#fef08a', borderClass: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-200', dotClass: 'bg-yellow-400' },
-  { id: 'pink', name: 'Pink', bgHex: '#fbcfe8', borderClass: 'border-rose-500/40 bg-rose-500/10 text-rose-200', dotClass: 'bg-rose-400' },
-  { id: 'blue', name: 'Sky Blue', bgHex: '#bae6fd', borderClass: 'border-sky-500/40 bg-sky-500/10 text-sky-200', dotClass: 'bg-sky-400' },
-  { id: 'green', name: 'Mint Green', bgHex: '#bbf7d0', borderClass: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200', dotClass: 'bg-emerald-400' },
-  { id: 'purple', name: 'Purple', bgHex: '#e9d5ff', borderClass: 'border-purple-500/40 bg-purple-500/10 text-purple-200', dotClass: 'bg-purple-400' },
-  { id: 'orange', name: 'Orange', bgHex: '#fed7aa', borderClass: 'border-orange-500/40 bg-orange-500/10 text-orange-200', dotClass: 'bg-orange-400' },
+  { id: 'yellow', name: 'Yellow', bgHex: '#fef08a', borderClass: 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 hover:border-amber-500/70', dotClass: 'bg-amber-400' },
+  { id: 'pink', name: 'Pink', bgHex: '#fbcfe8', borderClass: 'border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-200 hover:border-rose-500/70', dotClass: 'bg-rose-400' },
+  { id: 'blue', name: 'Sky Blue', bgHex: '#bae6fd', borderClass: 'border-sky-500/40 bg-sky-500/10 text-sky-900 dark:text-sky-200 hover:border-sky-500/70', dotClass: 'bg-sky-400' },
+  { id: 'green', name: 'Mint Green', bgHex: '#bbf7d0', borderClass: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 hover:border-emerald-500/70', dotClass: 'bg-emerald-400' },
+  { id: 'purple', name: 'Purple', bgHex: '#e9d5ff', borderClass: 'border-purple-500/40 bg-purple-500/10 text-purple-900 dark:text-purple-200 hover:border-purple-500/70', dotClass: 'bg-purple-400' },
+  { id: 'orange', name: 'Orange', bgHex: '#fed7aa', borderClass: 'border-orange-500/40 bg-orange-500/10 text-orange-900 dark:text-orange-200 hover:border-orange-500/70', dotClass: 'bg-orange-400' },
 ]
 
 export const formatDateDisplay = (dateVal) => {
@@ -135,7 +135,7 @@ export default function StickyNotesDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeStickyNotes}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
           />
 
           {/* Right Slide-Over Panel */}
@@ -144,16 +144,16 @@ export default function StickyNotesDrawer() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-            className="fixed inset-y-0 right-0 w-full sm:w-[440px] bg-surface/95 dark:bg-[#0f101a] border-l border-white/10 shadow-2xl z-50 flex flex-col backdrop-blur-2xl text-text-primary"
+            className="fixed inset-y-0 right-0 w-full sm:w-[440px] bg-surface/90 dark:bg-surface/90 border-l border-border-subtle shadow-2xl z-50 flex flex-col backdrop-blur-2xl text-text-primary"
           >
             {/* VIEW 1: FULL NOTE EDITOR (WYSIWYG) */}
             {editingNote ? (
-              <div className="flex-1 flex flex-col h-full bg-surface/90 dark:bg-[#0f101a]">
+              <div className="flex-1 flex flex-col h-full bg-surface/50">
                 {/* Editor Header Bar */}
-                <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
+                <div className="p-4 border-b border-border-subtle flex items-center justify-between shrink-0 bg-surface/40">
                   <button
                     onClick={() => setEditingNote(null)}
-                    className="flex items-center gap-1.5 text-xs font-black tracking-wider text-text-muted hover:text-text-primary uppercase transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-text-muted hover:text-text-primary uppercase transition-colors"
                   >
                     <ArrowLeft className="h-4 w-4" />
                     <span>BACK</span>
@@ -161,7 +161,7 @@ export default function StickyNotesDrawer() {
 
                   <button
                     onClick={handleSaveNote}
-                    className="px-4 py-1.5 rounded-xl bg-black text-white hover:bg-neutral-800 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md border border-white/20 transition-all"
+                    className="px-4 py-1.5 rounded-xl bg-accent text-white hover:bg-accent-light font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all"
                   >
                     <Save className="h-3.5 w-3.5 fill-current" />
                     <span>SAVE</span>
@@ -176,19 +176,19 @@ export default function StickyNotesDrawer() {
                     placeholder="Note title"
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
-                    className="w-full bg-[#131424] dark:bg-[#131424] border border-white/20 rounded-2xl px-4 py-3 text-sm font-extrabold text-white dark:text-white placeholder:text-neutral-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400/50 shadow-sm"
+                    className="w-full bg-card/80 border border-border-subtle rounded-2xl px-4 py-3 text-sm font-bold text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 shadow-sm"
                   />
 
                   {/* WYSIWYG Formatting Toolbar */}
-                  <div className="rounded-2xl border border-white/20 bg-[#131424] dark:bg-[#131424] overflow-hidden shadow-sm flex flex-col flex-1">
-                    <div className="p-2 border-b border-white/10 flex items-center gap-1 flex-wrap text-text-muted">
+                  <div className="rounded-2xl border border-border-subtle bg-card/80 overflow-hidden shadow-sm flex flex-col flex-1">
+                    <div className="p-2 border-b border-border-subtle flex items-center gap-1 flex-wrap text-text-muted bg-surface/40">
                       <button
                         type="button"
                         onMouseDown={(e) => {
                           e.preventDefault()
                           execCmd('bold')
                         }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                         title="Bold"
                       >
                         <Bold className="h-3.5 w-3.5" />
@@ -199,7 +199,7 @@ export default function StickyNotesDrawer() {
                           e.preventDefault()
                           execCmd('italic')
                         }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                         title="Italic"
                       >
                         <Italic className="h-3.5 w-3.5" />
@@ -210,19 +210,19 @@ export default function StickyNotesDrawer() {
                           e.preventDefault()
                           execCmd('underline')
                         }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                         title="Underline"
                       >
                         <Underline className="h-3.5 w-3.5" />
                       </button>
-                      <div className="h-4 w-px bg-white/10 mx-1" />
+                      <div className="h-4 w-px bg-border-subtle mx-1" />
                       <button
                         type="button"
                         onMouseDown={(e) => {
                           e.preventDefault()
                           execCmd('formatBlock', '<h2>')
                         }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors font-bold text-xs"
+                        className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors font-bold text-xs"
                         title="Heading 2"
                       >
                         H2
@@ -233,7 +233,7 @@ export default function StickyNotesDrawer() {
                           e.preventDefault()
                           execCmd('insertUnorderedList')
                         }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                         title="Bullet List"
                       >
                         <List className="h-3.5 w-3.5" />
@@ -244,12 +244,12 @@ export default function StickyNotesDrawer() {
                           e.preventDefault()
                           execCmd('insertOrderedList')
                         }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                         title="Numbered List"
                       >
                         <ListOrdered className="h-3.5 w-3.5" />
                       </button>
-                      <div className="h-4 w-px bg-white/10 mx-1" />
+                      <div className="h-4 w-px bg-border-subtle mx-1" />
                       <button
                         type="button"
                         onMouseDown={(e) => {
@@ -257,19 +257,19 @@ export default function StickyNotesDrawer() {
                           const url = prompt('Enter URL:', 'https://')
                           if (url) execCmd('createLink', url)
                         }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                         title="Insert Hyperlink"
                       >
                         <Link2 className="h-3.5 w-3.5" />
                       </button>
-                      <div className="h-4 w-px bg-white/10 mx-1" />
+                      <div className="h-4 w-px bg-border-subtle mx-1" />
                       <button
                         type="button"
                         onMouseDown={(e) => {
                           e.preventDefault()
                           execCmd('undo')
                         }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                         title="Undo"
                       >
                         <Undo className="h-3.5 w-3.5" />
@@ -280,7 +280,7 @@ export default function StickyNotesDrawer() {
                           e.preventDefault()
                           execCmd('redo')
                         }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                         title="Redo"
                       >
                         <Redo className="h-3.5 w-3.5" />
@@ -294,12 +294,12 @@ export default function StickyNotesDrawer() {
                       suppressContentEditableWarning
                       onInput={() => setNoteContent(editorRef.current?.innerHTML || '')}
                       placeholder="Write your note body content here..."
-                      className="w-full flex-1 p-4 bg-transparent text-xs font-medium text-white dark:text-white focus:outline-none overflow-y-auto leading-relaxed min-h-[220px] [&_h2]:text-sm [&_h2]:font-black [&_h2]:text-white [&_h2]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1 [&_a]:text-sky-400 [&_a]:underline"
+                      className="w-full flex-1 p-4 bg-transparent text-xs font-normal text-text-primary focus:outline-none overflow-y-auto leading-relaxed min-h-[220px] [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-text-primary [&_h2]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1 [&_a]:text-accent [&_a]:underline"
                     />
                   </div>
 
                   {/* Color Selector & Pin Row */}
-                  <div className="p-3.5 rounded-2xl border border-white/15 bg-base/80 flex items-center justify-between">
+                  <div className="p-3.5 rounded-2xl border border-border-subtle bg-card/70 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {COLOR_OPTIONS.map((c) => (
                         <button
@@ -307,10 +307,10 @@ export default function StickyNotesDrawer() {
                           type="button"
                           onClick={() => setNoteColor(c.id)}
                           className={`h-7 w-7 rounded-full ${c.dotClass} flex items-center justify-center transition-transform ${
-                            noteColor === c.id ? 'scale-125 ring-2 ring-white shadow-md' : 'opacity-70 hover:opacity-100'
+                            noteColor === c.id ? 'scale-125 ring-2 ring-accent shadow-md' : 'opacity-70 hover:opacity-100'
                           }`}
                         >
-                          {noteColor === c.id && <Check className="h-3.5 w-3.5 text-black font-extrabold" />}
+                          {noteColor === c.id && <Check className="h-3.5 w-3.5 text-slate-900 font-extrabold" />}
                         </button>
                       ))}
                     </div>
@@ -318,10 +318,10 @@ export default function StickyNotesDrawer() {
                     <button
                       type="button"
                       onClick={() => setIsPinned(!isPinned)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 ${
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold tracking-wider uppercase transition-all flex items-center gap-1.5 ${
                         isPinned
-                          ? 'bg-yellow-400 text-black border-yellow-400 shadow-sm'
-                          : 'bg-surface hover:bg-white/10 border-white/15 text-text-muted'
+                          ? 'bg-amber-400 text-slate-900 border-amber-400 font-bold shadow-sm'
+                          : 'bg-surface hover:bg-hover border-border-subtle text-text-muted'
                       }`}
                     >
                       <Pin className="h-3.5 w-3.5 fill-current" />
@@ -334,21 +334,21 @@ export default function StickyNotesDrawer() {
               /* VIEW 2: NOTES LIST & FILTER */
               <>
                 {/* Header */}
-                <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-base/40">
+                <div className="p-4 sm:p-5 border-b border-border-subtle flex items-center justify-between shrink-0 bg-surface/30">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-md">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/30 shadow-md">
                       <StickyNote className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">STICKY NOTES</p>
-                      <h2 className="text-base font-black tracking-tight text-text-primary">My Notes</h2>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">STICKY NOTES</p>
+                      <h2 className="text-base font-bold tracking-tight text-text-primary">My Notes</h2>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleOpenNewEditor}
-                      className="px-3.5 py-1.5 rounded-xl bg-black text-white hover:bg-neutral-800 font-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-1 shadow-md border border-white/20"
+                      className="px-3.5 py-1.5 rounded-xl bg-accent text-white hover:bg-accent-light font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-1 shadow-md"
                     >
                       <Plus className="h-4 w-4" />
                       <span>NEW</span>
@@ -356,7 +356,7 @@ export default function StickyNotesDrawer() {
 
                     <button
                       onClick={closeStickyNotes}
-                      className="p-1.5 rounded-xl text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors"
+                      className="p-1.5 rounded-xl text-text-muted hover:text-text-primary hover:bg-hover transition-colors"
                     >
                       <X className="h-5 w-5" />
                     </button>
@@ -364,7 +364,7 @@ export default function StickyNotesDrawer() {
                 </div>
 
                 {/* Search & Category Filter Pills Row */}
-                <div className="p-4 space-y-3 border-b border-white/10 shrink-0 bg-base/20">
+                <div className="p-4 space-y-3 border-b border-border-subtle shrink-0 bg-surface/20">
                   <div className="relative">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
                     <input
@@ -372,7 +372,7 @@ export default function StickyNotesDrawer() {
                       placeholder="Search notes..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-[#131424] dark:bg-[#131424] border border-white/15 rounded-2xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-neutral-400 focus:outline-none focus:border-white/30"
+                      className="w-full bg-card/80 border border-border-subtle rounded-2xl pl-9 pr-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
                     />
                   </div>
 
@@ -380,33 +380,33 @@ export default function StickyNotesDrawer() {
                   <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
                     <button
                       onClick={() => setFilterTab('ALL')}
-                      className={`px-3 py-1 rounded-full text-[11px] font-black tracking-wider uppercase transition-all ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase transition-all ${
                         filterTab === 'ALL'
-                          ? 'bg-black text-white border border-white/30 shadow-sm'
-                          : 'bg-surface/50 text-text-muted hover:text-text-primary border border-white/10'
+                          ? 'bg-accent text-white font-bold shadow-sm'
+                          : 'bg-card/60 text-text-muted hover:text-text-primary border border-border-subtle'
                       }`}
                     >
                       ALL
                     </button>
                     <button
                       onClick={() => setFilterTab('PINNED')}
-                      className={`px-3 py-1 rounded-full text-[11px] font-black tracking-wider uppercase transition-all flex items-center gap-1 ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase transition-all flex items-center gap-1 ${
                         filterTab === 'PINNED'
-                          ? 'bg-yellow-400 text-black font-bold shadow-sm'
-                          : 'bg-surface/50 text-text-muted hover:text-text-primary border border-white/10'
+                          ? 'bg-amber-400 text-slate-900 font-bold shadow-sm'
+                          : 'bg-card/60 text-text-muted hover:text-text-primary border border-border-subtle'
                       }`}
                     >
                       <Pin className="h-3 w-3" /> PINNED
                     </button>
 
-                    <div className="h-4 w-px bg-white/10 mx-1 shrink-0" />
+                    <div className="h-4 w-px bg-border-subtle mx-1 shrink-0" />
 
                     {COLOR_OPTIONS.map((c) => (
                       <button
                         key={c.id}
                         onClick={() => setFilterTab(filterTab === c.id ? 'ALL' : c.id)}
                         className={`h-5 w-5 rounded-full ${c.dotClass} shrink-0 transition-transform ${
-                          filterTab === c.id ? 'scale-125 ring-2 ring-white' : 'opacity-70 hover:opacity-100'
+                          filterTab === c.id ? 'scale-125 ring-2 ring-accent' : 'opacity-70 hover:opacity-100'
                         }`}
                       />
                     ))}
@@ -416,12 +416,12 @@ export default function StickyNotesDrawer() {
                 {/* Notes List Cards */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 scrollbar-thin">
                   {filteredNotes.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed border-white/10 rounded-3xl p-6 space-y-3 bg-base/20">
-                      <StickyNote className="h-10 w-10 text-yellow-400/60 mx-auto animate-bounce" />
+                    <div className="text-center py-12 border-2 border-dashed border-border-subtle rounded-3xl p-6 space-y-3 bg-card/40">
+                      <StickyNote className="h-10 w-10 text-amber-500 dark:text-amber-400 mx-auto animate-bounce" />
                       <p className="text-xs font-bold text-text-secondary">No notes found</p>
                       <button
                         onClick={handleOpenNewEditor}
-                        className="mt-2 px-4 py-2 rounded-xl bg-black text-white font-black text-xs hover:bg-neutral-800 border border-white/20 shadow-md"
+                        className="mt-2 px-4 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-light shadow-md"
                       >
                         + Create First Note
                       </button>
@@ -434,10 +434,10 @@ export default function StickyNotesDrawer() {
                         <div
                           key={note.id}
                           onClick={() => handleOpenExistingEditor(note)}
-                          className={`p-4 rounded-3xl border transition-all duration-200 relative group cursor-pointer shadow-md hover:scale-[1.01] ${colorTheme.borderClass}`}
+                          className={`p-4 rounded-2xl border transition-all duration-200 relative group cursor-pointer shadow-sm hover:shadow-md hover:scale-[1.01] ${colorTheme.borderClass} backdrop-blur-md`}
                         >
-                          <div className="flex items-start justify-between gap-2 pb-1.5">
-                            <h3 className="font-extrabold text-xs tracking-tight text-text-primary flex-1 truncate">
+                          <div className="flex items-start justify-between gap-2 pb-1">
+                            <h3 className="font-bold text-xs tracking-tight text-text-primary flex-1 truncate">
                               {note.title || 'Untitled Note'}
                             </h3>
 
@@ -445,7 +445,7 @@ export default function StickyNotesDrawer() {
                               <button
                                 onClick={() => updateNote(note.id, { isPinned: !note.isPinned })}
                                 className={`p-1 rounded-lg text-xs transition-colors ${
-                                  note.isPinned ? 'text-yellow-400 fill-current' : 'text-text-muted hover:text-text-primary'
+                                  note.isPinned ? 'text-amber-500 dark:text-amber-400 fill-current' : 'text-text-muted hover:text-text-primary'
                                 }`}
                                 title={note.isPinned ? 'Unpin Note' : 'Pin Note'}
                               >
@@ -463,15 +463,15 @@ export default function StickyNotesDrawer() {
 
                           {note.content && (
                             <div
-                              className="text-xs text-text-secondary line-clamp-3 leading-relaxed font-normal overflow-hidden"
+                              className="text-xs text-text-secondary line-clamp-3 leading-relaxed font-normal overflow-hidden mt-1"
                               dangerouslySetInnerHTML={{ __html: note.content }}
                             />
                           )}
 
-                          <div className="flex items-center justify-between pt-3 mt-2 border-t border-white/10 text-[10px] text-text-muted">
+                          <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-border-subtle/40 text-[10px] text-text-muted">
                             <span>{formatDateDisplay(note.createdAt)}</span>
                             {note.isPinned && (
-                              <span className="font-bold text-yellow-400 flex items-center gap-1">
+                              <span className="font-bold text-amber-500 dark:text-amber-400 flex items-center gap-1">
                                 <Pin className="h-3 w-3 fill-current" /> Pinned
                               </span>
                             )}
@@ -483,7 +483,7 @@ export default function StickyNotesDrawer() {
                 </div>
 
                 {/* Footer Counter */}
-                <div className="p-4 border-t border-white/10 bg-base/60 text-xs text-text-muted flex items-center justify-between font-semibold">
+                <div className="p-4 border-t border-border-subtle bg-surface/40 text-xs text-text-muted flex items-center justify-between font-medium">
                   <span>{notes.length} total notes</span>
                   <span>{notes.filter((n) => n.isPinned).length} pinned</span>
                 </div>

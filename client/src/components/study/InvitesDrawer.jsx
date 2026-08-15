@@ -27,23 +27,23 @@ export default function InvitesDrawer() {
       
       {/* Drawer Panel */}
       <div className={cn(
-        "fixed top-0 right-0 h-full w-full sm:w-[400px] bg-surface/95 backdrop-blur-2xl border-l border-white/10 z-50 shadow-2xl transition-transform duration-300 flex flex-col",
+        "fixed top-0 right-0 h-full w-full sm:w-[400px] bg-surface/95 backdrop-blur-2xl border-l border-border-subtle z-50 shadow-2xl transition-transform duration-300 flex flex-col",
         invitesDrawerOpen ? "translate-x-0" : "translate-x-full"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
+        <div className="flex items-center justify-between p-6 border-b border-border-subtle">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-accent/20 flex items-center justify-center text-accent">
               <MailOpen className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-text-primary">Study Invites</h2>
+              <h2 className="text-lg font-bold text-text-primary">Study Invites</h2>
               <p className="text-xs text-text-muted">{pendingInvites.length} Pending</p>
             </div>
           </div>
           <button 
             onClick={closeInvitesDrawer}
-            className="p-2 rounded-xl hover:bg-white/5 text-text-secondary transition-colors"
+            className="p-2 rounded-xl hover:bg-hover text-text-secondary transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -59,7 +59,7 @@ export default function InvitesDrawer() {
             </div>
           ) : (
             pendingInvites.map((invite, idx) => (
-              <div key={idx} className="bg-black/20 border border-white/10 rounded-2xl p-5 relative overflow-hidden">
+              <div key={idx} className="bg-card border border-border-subtle rounded-2xl p-5 relative overflow-hidden shadow-sm">
                 <div className="absolute top-0 left-0 w-1 h-full bg-accent" />
                 <div className="flex items-start gap-4 mb-4">
                   <div className="h-12 w-12 bg-accent/20 rounded-full flex items-center justify-center shrink-0">
@@ -80,7 +80,7 @@ export default function InvitesDrawer() {
                   </button>
                   <button 
                     onClick={() => handleDeny(invite)}
-                    className="flex-1 bg-surface hover:bg-white/10 text-text-primary border border-white/10 text-sm font-bold py-2.5 rounded-xl transition-colors"
+                    className="flex-1 bg-surface hover:bg-hover text-text-primary border border-border-subtle text-sm font-bold py-2.5 rounded-xl transition-colors"
                   >
                     Decline
                   </button>

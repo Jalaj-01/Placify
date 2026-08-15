@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Users, Video, FileText, Code2, Trophy, Play, Plus,
   Send, X, Clock, UserPlus, LogOut, Check, Save,
-  Bold, Italic, Underline, List, ListOrdered, Link2, Undo, Redo
+  Bold, Italic, Underline, List, ListOrdered, Link2, Undo, Redo,
+  Sparkles, Award, Info
 } from 'lucide-react'
 import { useSocket } from '@/hooks/useSocket'
 import { useAppStore } from '@/store/useAppStore'
 import { findUserByEmail, savePlaygroundFile } from '@/services/firestoreService'
 import { useStickyNotes } from '@/hooks/useStickyNotes'
+import { cn } from '@/lib/utils'
 
 export default function GroupStudyModal({ user }) {
   const socket = useSocket(user?.uid)
@@ -20,6 +22,19 @@ export default function GroupStudyModal({ user }) {
   // Room State
   const [roomId, setRoomId] = useState(activeStudyRoomId || 'global-study-room')
   const [onlineCount, setOnlineCount] = useState(1)
+
+  // Live Members & Contribution Tracking State
+  const [members, setMembers] = useState([
+    {
+      uid: user?.uid || 'self',
+      name: user?.displayName || 'You',
+      points: 25,
+      notesCount: 0,
+      codeRuns: 0,
+      isSelf: true
+    }
+  ])
+  const [showContribDetails, setShowContribDetails] = useState(false)
 
   // Video State
   const [videoUrlInput, setVideoUrlInput] = useState('https://www.youtube.com/watch?v=rfscVS0vtbw')
@@ -54,11 +69,39 @@ export default function GroupStudyModal({ user }) {
     return saved ? JSON.parse(saved) : []
   })
 
+  // Helper to record and broadcast live contribution points
+  const recordContribution = (actionType, pts = 10) => {
+    setMembers(prev => prev.map(m => {
+      if (m.isSelf) {
+        return {
+          ...m,
+          points: (m.points || 0) + pts,
+          notesCount: actionType === 'note' ? (m.notesCount || 0) + 1 : (m.notesCount || 0),
+          codeRuns: actionType === 'code' ? (m.codeRuns || 0) + 1 : (m.codeRuns || 0),
+        }
+      }
+      return m
+    }))
+    if (socket) {
+      socket.emit('contrib-sync', {
+        roomId,
+        user: { uid: user?.uid || 'self', name: user?.displayName || 'You' },
+        points: pts,
+        action: actionType
+      })
+    }
+  }
+
   // Socket setup
   useEffect(() => {
     if (!isOpen || !socket) return
 
-    socket.emit('join-room', roomId)
+    const myUserInfo = {
+      uid: user?.uid || 'self',
+      name: user?.displayName || 'You'
+    }
+
+    socket.emit('join-room', { roomId, user: myUserInfo })
 
     const handleCodeUpdate = (newCode) => {
       setCode(newCode)
@@ -69,26 +112,87 @@ export default function GroupStudyModal({ user }) {
       setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
     }
 
-    const handleUserJoined = () => {
+    const handleUserJoined = (joinedUser) => {
+      const uInfo = typeof joinedUser === 'object' ? joinedUser : { uid: joinedUser, name: 'Study Peer' }
       setOnlineCount(prev => prev + 1)
+      setMembers(prev => {
+        if (prev.some(m => m.uid === uInfo.uid)) return prev
+        return [...prev, {
+          uid: uInfo.uid || `peer-${Date.now()}`,
+          name: uInfo.name || 'Study Peer',
+          points: 15,
+          notesCount: 0,
+          codeRuns: 0,
+          isSelf: false
+        }]
+      })
+      // Announce self so peer gets our stats
+      socket.emit('user-announce', { roomId, user: myUserInfo })
     }
-    const handleUserLeft = () => {
+
+    const handleUserAnnounceReceive = (peerUser) => {
+      setMembers(prev => {
+        if (prev.some(m => m.uid === peerUser.uid)) return prev
+        return [...prev, {
+          uid: peerUser.uid,
+          name: peerUser.name || 'Study Peer',
+          points: 15,
+          notesCount: 0,
+          codeRuns: 0,
+          isSelf: false
+        }]
+      })
+    }
+
+    const handleContribReceive = ({ user: contribUser, points, action }) => {
+      setMembers(prev => {
+        const exists = prev.some(m => m.uid === contribUser.uid)
+        if (exists) {
+          return prev.map(m => {
+            if (m.uid === contribUser.uid) {
+              return {
+                ...m,
+                points: (m.points || 0) + points,
+                notesCount: action === 'note' ? (m.notesCount || 0) + 1 : (m.notesCount || 0),
+                codeRuns: action === 'code' ? (m.codeRuns || 0) + 1 : (m.codeRuns || 0),
+              }
+            }
+            return m
+          })
+        }
+        return [...prev, {
+          uid: contribUser.uid,
+          name: contribUser.name || 'Study Peer',
+          points: 15 + points,
+          notesCount: action === 'note' ? 1 : 0,
+          codeRuns: action === 'code' ? 1 : 0,
+          isSelf: false
+        }]
+      })
+    }
+
+    const handleUserLeft = (leftUid) => {
       setOnlineCount(prev => Math.max(1, prev - 1))
+      setMembers(prev => prev.filter(m => m.uid !== leftUid || m.isSelf))
     }
 
     socket.on('code-update', handleCodeUpdate)
     socket.on('note-receive', handleNoteReceive)
     socket.on('user-joined', handleUserJoined)
+    socket.on('user-announce-receive', handleUserAnnounceReceive)
+    socket.on('contrib-receive', handleContribReceive)
     socket.on('user-left', handleUserLeft)
 
     return () => {
       socket.off('code-update', handleCodeUpdate)
       socket.off('note-receive', handleNoteReceive)
       socket.off('user-joined', handleUserJoined)
+      socket.off('user-announce-receive', handleUserAnnounceReceive)
+      socket.off('contrib-receive', handleContribReceive)
       socket.off('user-left', handleUserLeft)
       socket.emit('leave-room', roomId)
     }
-  }, [isOpen, socket, roomId])
+  }, [isOpen, socket, roomId, user])
 
   if (!isOpen) return null
 
@@ -106,6 +210,7 @@ export default function GroupStudyModal({ user }) {
       if (id) embed = `https://www.youtube.com/embed/${id}`
     }
     setVideoEmbedUrl(embed)
+    recordContribution('video', 10)
   }
 
   const execCmd = (command, value = null) => {
@@ -128,7 +233,8 @@ export default function GroupStudyModal({ user }) {
     setNotes((prev) => [...prev, noteObj])
     if (editorRef.current) editorRef.current.innerHTML = ''
     setNoteContent('')
-    socket.emit('note-add', { roomId, note: noteObj })
+    socket.emit('note-add', { roomId, note: noteObj, user: { uid: user?.uid || 'self', name: user?.displayName || 'You' } })
+    recordContribution('note', 10)
     setTimeout(() => notesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
@@ -141,6 +247,7 @@ export default function GroupStudyModal({ user }) {
   const handleRunCode = () => {
     setIsExecuting(true)
     setOutput('Executing code in shared sandbox...')
+    recordContribution('code', 15)
     setTimeout(() => {
       try {
         setOutput('Output:\nHello World\n\n✅ Execution finished.')
@@ -164,6 +271,7 @@ export default function GroupStudyModal({ user }) {
         setIsSavingCode(true)
         try {
           await savePlaygroundFile(user.uid, null, fileName, code)
+          recordContribution('save', 10)
           setOutput(`✅ Code saved successfully as "${fileName}" to your Playground!`)
         } catch (err) {
           setOutput('Error saving code: ' + err.message)
@@ -193,6 +301,7 @@ export default function GroupStudyModal({ user }) {
             color: 'blue',
             isPinned: false
           })
+          recordContribution('save', 10)
         } catch (err) {
           console.error(err)
         } finally {
@@ -241,51 +350,127 @@ export default function GroupStudyModal({ user }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0b0c13] animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex flex-col bg-base text-text-primary animate-in fade-in duration-200">
       {/* Massive Header */}
-      <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-surface/80 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/20 text-accent">
-            <Users className="h-6 w-6 text-accent-light" />
+      <div className="px-6 py-3.5 border-b border-border-subtle flex items-center justify-between bg-surface/90 shrink-0 flex-wrap gap-3">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/20 text-accent shrink-0">
+            <Users className="h-5 w-5 text-accent" />
           </div>
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-black text-text-primary">Group Study Hub</h2>
-              <span className="px-3 py-1 rounded-full bg-semantic-green/15 text-semantic-green text-xs font-bold flex items-center gap-1.5 border border-semantic-green/30">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h2 className="text-lg font-bold text-text-primary">Group Study Hub</h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-semantic-green/15 text-semantic-green text-xs font-bold flex items-center gap-1.5 border border-semantic-green/30">
                 <span className="h-2 w-2 rounded-full bg-semantic-green animate-pulse" /> Live Room ({onlineCount} Online)
               </span>
             </div>
-            <p className="text-sm text-text-muted mt-0.5">
+            <p className="text-xs text-text-muted mt-0.5">
               Co-watch, Pair Code, and Chat Simultaneously.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Live Members & Contribution Score Bar */}
+        <div className="flex items-center gap-2 bg-card/80 border border-border-subtle rounded-2xl p-1.5 px-3 shadow-sm relative">
+          <button
+            onClick={() => setShowContribDetails(!showContribDetails)}
+            className="flex items-center gap-1 text-xs font-bold text-accent hover:underline pr-2 border-r border-border-subtle"
+            title="How is contribution calculated?"
+          >
+            <Trophy className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+            <span className="hidden sm:inline">Contributors</span>
+            <Info className="h-3 w-3 text-text-muted hover:text-accent" />
+          </button>
+          
+          <div className="flex items-center gap-2 flex-wrap">
+            {members.map((m) => {
+              const totalPoints = members.reduce((sum, item) => sum + (item.points || 0), 0) || 1
+              const percentage = Math.round(((m.points || 0) / totalPoints) * 100)
+              return (
+                <div
+                  key={m.uid}
+                  title={`${m.name}: ${m.points || 0} pts (${m.notesCount || 0} notes, ${m.codeRuns || 0} code runs)`}
+                  className={cn(
+                    "flex items-center gap-2 px-2.5 py-1 rounded-xl text-xs font-medium transition-all border shadow-xs",
+                    m.isSelf
+                      ? "bg-accent/15 border-accent/30 text-accent font-bold"
+                      : "bg-surface border-border-subtle text-text-secondary"
+                  )}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-semantic-green shrink-0 animate-pulse" />
+                  <span className="truncate max-w-[85px]">{m.name}</span>
+                  <span className="px-1.5 py-0.2 rounded-md bg-accent/20 text-accent dark:text-accent-light text-[10px] font-mono font-bold">
+                    {m.points || 0} pts
+                  </span>
+                  <span className="text-[9px] text-text-muted font-mono font-bold">
+                    ({percentage}%)
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Contribution Calculation Details Tooltip/Popover */}
+          {showContribDetails && (
+            <div className="absolute top-12 left-0 w-72 bg-card border border-border-subtle rounded-2xl p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 text-xs text-text-primary space-y-2.5">
+              <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                <span className="font-bold flex items-center gap-1.5 text-accent">
+                  <Award className="h-4 w-4 text-amber-500" /> Contribution Formula
+                </span>
+                <button onClick={() => setShowContribDetails(false)} className="text-text-muted hover:text-text-primary">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <p className="text-[11px] text-text-secondary">
+                Contribution updates in real-time as you and your study peers collaborate:
+              </p>
+              <div className="space-y-1.5 text-[11px]">
+                <div className="flex justify-between items-center p-1.5 rounded-lg bg-surface border border-border-subtle">
+                  <span>📝 Shared Notes</span>
+                  <span className="font-mono font-bold text-accent">+10 pts / note</span>
+                </div>
+                <div className="flex justify-between items-center p-1.5 rounded-lg bg-surface border border-border-subtle">
+                  <span>💻 Pair Code Execution</span>
+                  <span className="font-mono font-bold text-semantic-purple">+15 pts / run</span>
+                </div>
+                <div className="flex justify-between items-center p-1.5 rounded-lg bg-surface border border-border-subtle">
+                  <span>🎥 Video / Resource Curation</span>
+                  <span className="font-mono font-bold text-semantic-green">+10 pts / load</span>
+                </div>
+                <div className="flex justify-between items-center p-1.5 rounded-lg bg-surface border border-border-subtle">
+                  <span>💾 Saving Notes/Code</span>
+                  <span className="font-mono font-bold text-text-primary">+10 pts / save</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => setShowInvite(!showInvite)}
-            className="px-4 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 font-bold text-sm flex items-center gap-2 transition-colors"
+            className="px-3.5 py-1.5 rounded-xl bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25 font-bold text-xs flex items-center gap-1.5 transition-colors"
           >
-            <UserPlus className="h-4 w-4" /> Invite Friend
+            <UserPlus className="h-3.5 w-3.5" /> Invite Friend
           </button>
           
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 text-text-muted hover:text-white hover:bg-semantic-red/20 hover:border-semantic-red/30 font-bold text-sm transition-colors"
+            className="px-3.5 py-1.5 rounded-xl border border-border-subtle flex items-center gap-1.5 text-text-muted hover:text-text-primary hover:bg-semantic-red/10 hover:border-semantic-red/30 font-bold text-xs transition-colors"
           >
-            <LogOut className="h-4 w-4" /> Leave Room
+            <LogOut className="h-3.5 w-3.5" /> Leave Room
           </button>
         </div>
       </div>
 
       {/* Invite Dropdown / Panel */}
       {showInvite && (
-        <div className="absolute top-20 right-6 w-80 bg-surface border border-white/15 rounded-2xl p-4 shadow-2xl z-50 animate-in slide-in-from-top-4">
+        <div className="absolute top-20 right-6 w-80 bg-card border border-border-subtle rounded-2xl p-4 shadow-2xl z-50 animate-in slide-in-from-top-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-sm">Invite Friend to Room</h3>
+            <h3 className="font-bold text-sm text-text-primary">Invite Friend to Room</h3>
             <button 
               onClick={() => { setShowInvite(false); setInviteStatus(''); }} 
-              className="text-text-muted hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+              className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-hover"
               title="Close invite popover"
             >
               <X className="h-4 w-4" />
@@ -298,7 +483,7 @@ export default function GroupStudyModal({ user }) {
               placeholder="Friend's email..." 
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-accent text-white placeholder:text-text-muted"
+              className="flex-1 bg-base border border-border-subtle rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary placeholder:text-text-muted"
               required
             />
             <button type="submit" className="bg-accent hover:bg-accent-light text-white px-3 rounded-lg text-xs font-bold transition-colors">Send</button>
@@ -313,7 +498,7 @@ export default function GroupStudyModal({ user }) {
                   <button 
                     key={email}
                     onClick={() => handleSendInvite(null, email)}
-                    className="px-2 py-1 bg-white/5 border border-white/10 rounded text-[11px] hover:bg-white/10"
+                    className="px-2 py-1 bg-surface border border-border-subtle rounded text-[11px] text-text-secondary hover:bg-hover transition-colors"
                   >
                     {email}
                   </button>
@@ -341,12 +526,12 @@ export default function GroupStudyModal({ user }) {
                   value={videoUrlInput}
                   onChange={(e) => setVideoUrlInput(e.target.value)}
                   placeholder="Paste YouTube Video URL..."
-                  className="flex-1 bg-surface border border-white/10 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-accent"
+                  className="flex-1 bg-card border border-border-subtle text-text-primary rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-accent placeholder:text-text-muted"
                 />
-                <button type="submit" className="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-xs font-semibold hover:bg-white/5">Load</button>
+                <button type="submit" className="px-3 py-1.5 rounded-lg bg-surface border border-border-subtle text-text-primary text-xs font-semibold hover:bg-hover transition-colors">Load</button>
               </form>
             </div>
-            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 relative shadow-lg">
+            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black border border-border-subtle relative shadow-lg">
               <iframe
                 src={videoEmbedUrl}
                 title="Course Video"
@@ -367,14 +552,14 @@ export default function GroupStudyModal({ user }) {
                 <button
                   onClick={handleSaveCode}
                   disabled={isSavingCode}
-                  className="px-4 py-1.5 rounded-lg bg-surface text-text-secondary border border-white/10 text-xs font-bold hover:text-white transition-all flex items-center gap-1.5"
+                  className="px-4 py-1.5 rounded-lg bg-card text-text-secondary border border-border-subtle text-xs font-bold hover:text-text-primary hover:bg-hover transition-all flex items-center gap-1.5 shadow-sm"
                 >
                   <Save className="h-3 w-3" /> {isSavingCode ? 'Saving...' : 'Save to Playground'}
                 </button>
                 <button
                   onClick={handleRunCode}
                   disabled={isExecuting}
-                  className="px-4 py-1.5 rounded-lg bg-semantic-purple/20 text-semantic-purple border border-semantic-purple/30 text-xs font-bold hover:bg-semantic-purple/30 transition-all flex items-center gap-1.5"
+                  className="px-4 py-1.5 rounded-lg bg-semantic-purple/15 text-semantic-purple border border-semantic-purple/30 text-xs font-bold hover:bg-semantic-purple/25 transition-all flex items-center gap-1.5 shadow-sm"
                 >
                   <Play className="h-3 w-3 fill-current" /> {isExecuting ? 'Running...' : 'Run Shared Code'}
                 </button>
@@ -386,9 +571,9 @@ export default function GroupStudyModal({ user }) {
                 value={code}
                 onChange={handleCodeChange}
                 placeholder="Type code here... everyone in the room will see it instantly!"
-                className="flex-1 h-full bg-[#080911] border border-semantic-purple/20 rounded-2xl p-4 font-mono text-xs md:text-sm text-cyan-300 focus:outline-none focus:border-semantic-purple resize-none shadow-inner"
+                className="flex-1 h-full bg-card dark:bg-[#080911] border border-border-subtle focus:border-accent text-text-primary rounded-2xl p-4 font-mono text-xs md:text-sm resize-none shadow-inner outline-none leading-relaxed transition-all"
               />
-              <div className="w-1/3 h-full bg-[#050508] border border-border-subtle rounded-2xl p-4 font-mono text-xs text-semantic-green overflow-y-auto shadow-inner flex flex-col">
+              <div className="w-1/3 h-full bg-surface dark:bg-[#050508] border border-border-subtle rounded-2xl p-4 font-mono text-xs text-semantic-green overflow-y-auto shadow-inner flex flex-col">
                 <div className="text-text-muted text-[10px] pb-2 border-b border-border-subtle font-bold uppercase mb-2 shrink-0">
                   Console Output
                 </div>
@@ -399,8 +584,8 @@ export default function GroupStudyModal({ user }) {
         </div>
 
         {/* Right Side: Shared Notes */}
-        <div className="lg:col-span-4 flex flex-col h-full bg-surface/30 border border-white/10 rounded-3xl overflow-hidden shadow-lg">
-          <div className="p-4 border-b border-white/10 bg-surface/50 flex items-center justify-between">
+        <div className="lg:col-span-4 flex flex-col h-full bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-lg">
+          <div className="p-4 border-b border-border-subtle bg-surface/60 flex items-center justify-between">
             <span className="text-sm font-bold text-text-primary flex items-center gap-2">
               <FileText className="h-4 w-4 text-accent" /> Shared Notes
             </span>
@@ -415,13 +600,13 @@ export default function GroupStudyModal({ user }) {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {notes.map((n) => (
-              <div key={n.id} className="p-3 rounded-xl bg-surface/80 border border-white/5 space-y-1">
+              <div key={n.id} className="p-3 rounded-xl bg-surface border border-border-subtle space-y-1 shadow-sm">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="font-bold text-accent">{n.author}</span>
                   <span className="text-text-muted text-[10px]">{n.time}</span>
                 </div>
                 <div 
-                  className="text-sm text-text-secondary leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_a]:text-blue-400"
+                  className="text-sm text-text-secondary leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_a]:text-accent"
                   dangerouslySetInnerHTML={{ __html: n.text }}
                 />
               </div>
@@ -429,15 +614,15 @@ export default function GroupStudyModal({ user }) {
             <div ref={notesEndRef} />
           </div>
 
-          <form onSubmit={handleAddNote} className="flex flex-col bg-surface/50 border-t border-white/10">
+          <form onSubmit={handleAddNote} className="flex flex-col bg-surface/40 border-t border-border-subtle">
             {/* WYSIWYG Toolbar */}
-            <div className="p-2 border-b border-white/10 flex items-center gap-1 flex-wrap text-text-muted bg-surface/80">
-              <button type="button" onClick={() => execCmd('bold')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Bold"><Bold className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={() => execCmd('italic')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Italic"><Italic className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={() => execCmd('underline')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Underline"><Underline className="h-3.5 w-3.5" /></button>
-              <div className="h-4 w-px bg-white/10 mx-1" />
-              <button type="button" onClick={() => execCmd('insertUnorderedList')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Bullet List"><List className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={() => execCmd('insertOrderedList')} className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors" title="Numbered List"><ListOrdered className="h-3.5 w-3.5" /></button>
+            <div className="p-2 border-b border-border-subtle flex items-center gap-1 flex-wrap text-text-muted bg-surface/80">
+              <button type="button" onClick={() => execCmd('bold')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Bold"><Bold className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => execCmd('italic')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Italic"><Italic className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => execCmd('underline')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Underline"><Underline className="h-3.5 w-3.5" /></button>
+              <div className="h-4 w-px bg-border-subtle mx-1" />
+              <button type="button" onClick={() => execCmd('insertUnorderedList')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Bullet List"><List className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => execCmd('insertOrderedList')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Numbered List"><ListOrdered className="h-3.5 w-3.5" /></button>
             </div>
             
             <div className="p-2 flex items-end gap-2">
@@ -447,7 +632,7 @@ export default function GroupStudyModal({ user }) {
                 suppressContentEditableWarning
                 onInput={() => setNoteContent(editorRef.current?.innerHTML || '')}
                 placeholder="Type a rich-text note..."
-                className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent min-h-[44px] max-h-[150px] overflow-y-auto [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 empty:before:content-[attr(placeholder)] empty:before:text-text-muted"
+                className="flex-1 bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent min-h-[44px] max-h-[150px] overflow-y-auto [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 empty:before:content-[attr(placeholder)] empty:before:text-text-muted"
               />
               <button
                 type="submit"
@@ -463,13 +648,13 @@ export default function GroupStudyModal({ user }) {
       {/* Custom Prompt Modal */}
       {promptConfig.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#11131f] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-accent/20 animate-in zoom-in-95">
-            <h3 className="text-lg font-black text-white mb-4">{promptConfig.title}</h3>
+          <div className="bg-card border border-border-subtle rounded-2xl p-6 w-full max-w-md shadow-2xl text-text-primary animate-in zoom-in-95">
+            <h3 className="text-lg font-bold text-text-primary mb-4">{promptConfig.title}</h3>
             <input 
               type="text" 
               value={promptValue}
               onChange={(e) => setPromptValue(e.target.value)}
-              className="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-accent mb-6"
+              className="w-full bg-base border border-border-subtle rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:border-accent mb-6"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') promptConfig.onConfirm(promptValue)
@@ -479,7 +664,7 @@ export default function GroupStudyModal({ user }) {
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setPromptConfig({ isOpen: false })}
-                className="px-5 py-2.5 rounded-xl border border-white/10 text-white font-bold text-sm hover:bg-white/5 transition-colors"
+                className="px-5 py-2.5 rounded-xl border border-border-subtle text-text-secondary hover:bg-hover hover:text-text-primary font-bold text-sm transition-colors"
               >
                 Cancel
               </button>

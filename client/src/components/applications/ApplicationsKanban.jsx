@@ -5,6 +5,8 @@ import {
   Bell, Mail, ShieldAlert
 } from 'lucide-react'
 import { triggerTestNotification, generateCalendarEmailUrl } from '@/utils/notifications'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 export default function ApplicationsKanban({ applications = [], onUpdateApplication, userEmail }) {
   const [apps, setApps] = useState(() => {
@@ -74,12 +76,12 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
   })
 
   const columns = [
-    { key: 'Wishlist', title: 'Wishlist', badgeBg: 'bg-white/10 text-text-muted border-white/10' },
-    { key: 'Applied', title: 'Applied', badgeBg: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
-    { key: 'OA Scheduled', title: 'OA Scheduled', badgeBg: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30' },
-    { key: 'Interview', title: 'Interview', badgeBg: 'bg-purple-500/15 text-purple-300 border-purple-500/30' },
-    { key: 'Offer', title: 'Offer Received', badgeBg: 'bg-green-500/15 text-green-400 border-green-500/30' },
-    { key: 'Rejected', title: 'Rejected', badgeBg: 'bg-red-500/15 text-red-400 border-red-500/30' }
+    { key: 'Wishlist', title: 'Wishlist', dotColor: 'bg-slate-400', badgeBg: 'bg-slate-500/15 text-slate-500 dark:text-slate-400 border-slate-500/30' },
+    { key: 'Applied', title: 'Applied', dotColor: 'bg-blue-500', badgeBg: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30' },
+    { key: 'OA Scheduled', title: 'OA Scheduled', dotColor: 'bg-amber-500', badgeBg: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' },
+    { key: 'Interview', title: 'Interview', dotColor: 'bg-purple-500', badgeBg: 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30' },
+    { key: 'Offer', title: 'Offer Received', dotColor: 'bg-emerald-500', badgeBg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
+    { key: 'Rejected', title: 'Rejected', dotColor: 'bg-rose-500', badgeBg: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30' }
   ]
 
   const [selectedApp, setSelectedApp] = useState(null)
@@ -128,7 +130,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
   return (
     <div className="space-y-6">
       {/* Header Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-surface/40 border border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-surface/40 border border-border-subtle">
         <div>
           <h2 className="text-section font-semibold text-text-primary flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-accent" />
@@ -167,7 +169,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => triggerTestNotification()}
-            className="px-3.5 py-1.5 rounded-xl bg-surface hover:bg-white/10 border border-accent/40 text-accent-light text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-3.5 py-1.5 rounded-xl bg-surface hover:bg-hover border border-accent/40 text-accent dark:text-accent-light text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm"
           >
             <Bell className="h-3.5 w-3.5" />
             <span>Test Push Alert</span>
@@ -175,7 +177,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
           {selectedApp && (
             <a
               href={generateCalendarEmailUrl(selectedApp, userEmail)}
-              className="px-3.5 py-1.5 rounded-xl bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent-light text-xs font-semibold transition-all flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-xl bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent dark:text-accent-light text-xs font-semibold transition-all flex items-center gap-1.5"
             >
               <Mail className="h-3.5 w-3.5" />
               <span>Send Mail Reminder</span>
@@ -184,24 +186,24 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
         </div>
       </div>
 
-      {/* Kanban Board Horizontal Scroll Container */}
-      <div className="flex gap-5 overflow-x-auto pb-6 pt-2 scrollbar-thin">
+      {/* Kanban Board Responsive 6-Column Container */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 w-full pb-4 pt-2">
         {columns.map((col) => {
           const colApps = apps.filter((a) => a.status === col.key)
           return (
-            <div key={col.key} className="w-[270px] shrink-0 flex flex-col rounded-3xl bg-surface/90 border border-border-subtle p-4 shadow-xl backdrop-blur-xl">
-              <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-border-subtle">
-                <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold border ${col.badgeBg}`}>
+            <div key={col.key} className="w-full flex flex-col rounded-2xl bg-surface/90 border border-border-subtle p-3 shadow-lg backdrop-blur-xl min-w-0">
+              <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-border-subtle gap-1">
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold border truncate ${col.badgeBg}`}>
                   {col.title}
                 </span>
-                <span className="text-xs font-mono text-text-muted bg-base px-2.5 py-0.5 rounded-full border border-border-subtle font-bold">
+                <span className="text-[10px] font-mono text-text-muted bg-base px-2 py-0.5 rounded-full border border-border-subtle font-bold shrink-0">
                   {colApps.length}
                 </span>
               </div>
 
-              <div className="space-y-3 flex-1 overflow-y-auto max-h-[540px] pr-1">
+              <div className="space-y-2.5 flex-1 overflow-y-auto max-h-[580px] pr-0.5">
                 {colApps.length === 0 ? (
-                  <div className="p-6 text-center text-text-muted text-xs border border-dashed border-border-subtle rounded-2xl bg-base/50">
+                  <div className="p-4 text-center text-text-muted text-[11px] border border-dashed border-border-subtle rounded-xl bg-base/50">
                     No applications
                   </div>
                 ) : (
@@ -209,43 +211,53 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
                     <div
                       key={app.id}
                       onClick={() => setSelectedApp(app)}
-                      className="p-4 rounded-2xl bg-base/80 border border-border-subtle hover:border-accent/50 transition-all cursor-pointer space-y-3 group shadow-md backdrop-blur-md"
+                      className="p-3 rounded-xl bg-base/80 border border-border-subtle hover:border-accent/50 transition-all cursor-pointer space-y-2 group shadow-sm backdrop-blur-md"
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start justify-between gap-1.5">
                         <div className="space-y-0.5 flex-1 min-w-0">
-                          <h4 className="font-extrabold text-text-primary text-sm group-hover:text-accent transition-colors truncate">
+                          <h4 className="font-bold text-text-primary text-xs group-hover:text-accent transition-colors truncate">
                             {app.company}
                           </h4>
-                          <p className="text-xs text-text-secondary truncate font-medium">{app.role}</p>
+                          <p className="text-[11px] text-text-secondary truncate font-medium">{app.role}</p>
                         </div>
-                        <span className="text-xs font-mono text-semantic-green font-extrabold bg-semantic-green/10 px-2 py-0.5 rounded-md border border-semantic-green/20 shrink-0">
+                        <span className="text-[10px] font-mono text-semantic-green font-bold bg-semantic-green/10 px-1.5 py-0.5 rounded border border-semantic-green/20 shrink-0">
                           {app.ctc}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between text-xs text-text-muted pt-2 border-t border-border-subtle font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 text-accent" /> {app.oaDate}
+                      <div className="flex items-center justify-between text-[10px] text-text-muted pt-1.5 border-t border-border-subtle font-medium">
+                        <span className="flex items-center gap-1 truncate">
+                          <Calendar className="h-3 w-3 text-accent shrink-0" /> {app.oaDate}
                         </span>
-                        <span className="text-accent hover:underline flex items-center gap-0.5 font-bold">
-                          Notes <ChevronRight className="h-3.5 w-3.5" />
+                        <span className="text-accent hover:underline flex items-center gap-0.5 font-bold shrink-0">
+                          Notes <ChevronRight className="h-3 w-3" />
                         </span>
                       </div>
 
-                      {/* Quick Move Status Select Dropdown */}
-                      <div className="pt-2 border-t border-border-subtle">
-                        <select
-                          value={app.status}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => handleMoveStatus(app.id, e.target.value)}
-                          className="w-full bg-surface border border-border-subtle rounded-xl px-2.5 py-1.5 text-xs text-text-primary font-bold focus:outline-none focus:border-accent shadow-sm"
-                        >
-                          {columns.map((c) => (
-                            <option key={c.key} value={c.key}>
-                              Move to {c.title}
-                            </option>
-                          ))}
-                        </select>
+                      {/* Quick Move Status Custom Select Dropdown */}
+                      <div className="pt-1.5 border-t border-border-subtle" onClick={(e) => e.stopPropagation()}>
+                        <Select value={app.status} onValueChange={(val) => handleMoveStatus(app.id, val)}>
+                          <SelectTrigger className="w-full h-7 bg-surface/90 hover:bg-hover border border-border-subtle text-[10px] font-semibold rounded-lg px-2 text-text-primary focus:ring-1 focus:ring-accent focus:ring-offset-0 transition-all shadow-xs [&>span]:line-clamp-1">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", columns.find(c => c.key === app.status)?.dotColor || 'bg-accent')} />
+                              <span className="truncate">Move to {columns.find(c => c.key === app.status)?.title || app.status}</span>
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent className="bg-card/95 backdrop-blur-xl border border-border-subtle shadow-2xl rounded-xl p-1 z-50 min-w-[160px]">
+                            {columns.map((c) => (
+                              <SelectItem
+                                key={c.key}
+                                value={c.key}
+                                className="text-[11px] py-1.5 pl-7 pr-2 font-medium cursor-pointer rounded-lg hover:bg-hover focus:bg-accent/15 focus:text-accent transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={cn("h-2 w-2 rounded-full shrink-0", c.dotColor)} />
+                                  <span className="font-semibold text-text-primary">{c.title}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   ))
@@ -258,9 +270,9 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
 
       {/* Application Prep Details Modal */}
       {selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0c0d14] border border-white/10 p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl bg-card border border-border-subtle p-6 shadow-2xl space-y-5 text-text-primary">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 text-accent font-bold text-base">
                   {selectedApp.company[0]}
@@ -270,13 +282,13 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
                   <p className="text-xs text-text-muted">{selectedApp.role} • {selectedApp.ctc}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedApp(null)} className="text-text-muted hover:text-white">
+              <button onClick={() => setSelectedApp(null)} className="text-text-muted hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-surface/50 border border-white/5">
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-surface border border-border-subtle">
                 <div>
                   <span className="text-text-muted block text-[11px]">OA Date</span>
                   <span className="font-semibold text-text-primary">{selectedApp.oaDate}</span>
@@ -289,7 +301,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
 
               <div className="space-y-1.5">
                 <span className="font-semibold text-text-primary block">Company Prep Notes</span>
-                <p className="p-3 rounded-xl bg-base border border-white/10 text-text-secondary leading-relaxed">
+                <p className="p-3 rounded-xl bg-surface/50 border border-border-subtle text-text-secondary leading-relaxed">
                   {selectedApp.prepNotes || 'No specific prep notes added.'}
                 </p>
               </div>
@@ -298,7 +310,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
                 <span className="font-semibold text-text-primary block">Past Interview Questions</span>
                 <div className="space-y-1.5">
                   {selectedApp.pastQuestions?.map((q, idx) => (
-                    <div key={idx} className="p-2.5 rounded-lg bg-surface/60 border border-white/5 text-text-secondary flex items-center justify-between">
+                    <div key={idx} className="p-2.5 rounded-lg bg-surface/60 border border-border-subtle text-text-secondary flex items-center justify-between">
                       <span>• {q}</span>
                       <span className="text-[10px] text-accent font-mono font-semibold">Solved</span>
                     </div>
@@ -312,11 +324,11 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
 
       {/* Add Application Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0c0d14] border border-white/10 p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl bg-card border border-border-subtle p-6 shadow-2xl space-y-5 text-text-primary">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <h3 className="font-bold text-text-primary text-base">Add Placement Application</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-white">
+              <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -330,7 +342,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
                   placeholder="e.g. Google, Microsoft, Atlassian"
                   value={newApp.company}
                   onChange={(e) => setNewApp({ ...newApp, company: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full bg-base border border-border-subtle rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
                 />
               </div>
 
@@ -341,7 +353,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
                     type="text"
                     value={newApp.role}
                     onChange={(e) => setNewApp({ ...newApp, role: e.target.value })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent"
+                    className="w-full bg-base border border-border-subtle rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
                   />
                 </div>
 
@@ -351,7 +363,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
                     type="text"
                     value={newApp.ctc}
                     onChange={(e) => setNewApp({ ...newApp, ctc: e.target.value })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent"
+                    className="w-full bg-base border border-border-subtle rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
                   />
                 </div>
               </div>
@@ -359,17 +371,27 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs text-text-secondary block">Status</label>
-                  <select
+                  <Select
                     value={newApp.status}
-                    onChange={(e) => setNewApp({ ...newApp, status: e.target.value })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent"
+                    onValueChange={(val) => setNewApp({ ...newApp, status: val })}
                   >
-                    {columns.map((c) => (
-                      <option key={c.key} value={c.key}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full bg-base border border-border-subtle text-xs text-text-primary rounded-lg h-9 px-3">
+                      <div className="flex items-center gap-2">
+                        <span className={cn("h-2 w-2 rounded-full shrink-0", columns.find(c => c.key === newApp.status)?.dotColor || 'bg-accent')} />
+                        <span>{columns.find(c => c.key === newApp.status)?.title || newApp.status}</span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border border-border-subtle shadow-xl rounded-xl p-1 z-50">
+                      {columns.map((c) => (
+                        <SelectItem key={c.key} value={c.key} className="text-xs py-1.5 font-medium cursor-pointer rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <span className={cn("h-2 w-2 rounded-full shrink-0", c.dotColor)} />
+                            <span className="font-medium text-text-primary">{c.title}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1">
@@ -379,7 +401,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
                     placeholder="e.g. Aug 10, 2026"
                     value={newApp.oaDate}
                     onChange={(e) => setNewApp({ ...newApp, oaDate: e.target.value })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent"
+                    className="w-full bg-base border border-border-subtle rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
                   />
                 </div>
               </div>
@@ -391,7 +413,7 @@ export default function ApplicationsKanban({ applications = [], onUpdateApplicat
                   placeholder="Key topics to focus on, company values, past interview rounds..."
                   value={newApp.prepNotes}
                   onChange={(e) => setNewApp({ ...newApp, prepNotes: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg p-3 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none"
+                  className="w-full bg-base border border-border-subtle rounded-lg p-3 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none"
                 />
               </div>
 

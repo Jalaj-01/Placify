@@ -50,12 +50,12 @@ export default function ChatMessage({ message }) {
     return parts.map((part, index) => {
       if (part.type === 'code') {
         return (
-          <div key={index} className="my-3 rounded-xl border border-cyan-500/20 bg-[#07080e] overflow-hidden text-xs shadow-lg">
-            <div className="flex items-center justify-between px-3 py-1.5 bg-[#0e101b] border-b border-white/5 text-text-muted font-mono text-[11px]">
+          <div key={index} className="my-3 rounded-xl border border-border-subtle bg-slate-950 text-slate-100 overflow-hidden text-xs shadow-lg">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-white/10 text-slate-400 font-mono text-[11px]">
               <span className="text-cyan-400 font-semibold">{part.language}</span>
               <button
                 onClick={() => handleCopyCode(part.content, part.id)}
-                className="flex items-center gap-1 hover:text-text-primary transition-colors text-[11px]"
+                className="flex items-center gap-1 hover:text-white transition-colors text-[11px]"
               >
                 {copiedCode === part.id ? (
                   <>
@@ -63,12 +63,12 @@ export default function ChatMessage({ message }) {
                   </>
                 ) : (
                   <>
-                    <Copy className="h-3 w-3 text-text-muted" /> Copy
+                    <Copy className="h-3 w-3 text-slate-400" /> Copy
                   </>
                 )}
               </button>
             </div>
-            <pre className="p-3.5 overflow-x-auto font-mono leading-relaxed text-text-primary text-[12px]">
+            <pre className="p-3.5 overflow-x-auto font-mono leading-relaxed text-slate-200 text-[12px]">
               <code>{part.content}</code>
             </pre>
           </div>
@@ -98,7 +98,7 @@ export default function ChatMessage({ message }) {
               const clean = line.trim().substring(2)
               return (
                 <div key={lIdx} className="flex gap-2 items-start pl-1">
-                  <span className="text-cyan-400 shrink-0 mt-1">•</span>
+                  <span className="text-accent dark:text-cyan-400 shrink-0 mt-1">•</span>
                   <span>{parseInline(clean)}</span>
                 </div>
               )
@@ -120,7 +120,7 @@ export default function ChatMessage({ message }) {
       }
       if (chunk.startsWith('`') && chunk.endsWith('`')) {
         return (
-          <code key={i} className="px-1.5 py-0.5 rounded bg-card border border-white/10 font-mono text-[11px] text-cyan-300">
+          <code key={i} className="px-1.5 py-0.5 rounded bg-muted/60 dark:bg-card border border-border-subtle font-mono text-[11px] text-accent dark:text-cyan-300 font-semibold">
             {chunk.slice(1, -1)}
           </code>
         )
@@ -145,34 +145,34 @@ export default function ChatMessage({ message }) {
       {/* Message Content Container */}
       <div className="max-w-[88%] sm:max-w-[82%] space-y-2">
         <div
-          className={`p-4 rounded-2xl text-xs sm:text-sm shadow-md ${
+          className={`p-4 rounded-2xl text-xs sm:text-sm shadow-sm ${
             isUser
-              ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-tr-xs'
-              : 'bg-[#10111a]/95 border border-white/10 text-text-primary rounded-tl-xs backdrop-blur-md'
+              ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-tr-xs shadow-md'
+              : 'bg-card border border-border-subtle text-text-primary rounded-tl-xs backdrop-blur-md'
           }`}
         >
           {renderFormattedText(message.content)}
 
           {/* Embedded Preparation Analysis Card */}
           {message.type === 'analysis' && message.data && (
-            <div className="mt-4 p-4 rounded-2xl bg-[#090a10] border border-white/10 space-y-4 text-text-primary text-xs shadow-inner">
-              <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+            <div className="mt-4 p-4 rounded-2xl bg-surface/80 border border-border-subtle space-y-4 text-text-primary text-xs shadow-inner">
+              <div className="flex items-center justify-between gap-2 border-b border-border-subtle pb-3">
                 <div className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-cyan-400 shrink-0" />
+                  <Award className="h-5 w-5 text-accent dark:text-cyan-400 shrink-0" />
                   <span className="font-semibold text-sm text-text-primary">Diagnostic Summary</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-lg font-bold text-cyan-400">{message.data.overallReadiness}%</span>
+                  <span className="text-lg font-bold text-accent dark:text-cyan-400">{message.data.overallReadiness}%</span>
                   <span className="text-text-muted text-[10px] block">Readiness</span>
                 </div>
               </div>
 
-              <Progress value={message.data.overallReadiness || 0} className="h-2 bg-surface" />
+              <Progress value={message.data.overallReadiness || 0} className="h-2 bg-base" />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Weak Areas */}
                 {message.data.weakAreas?.length > 0 && (
-                  <div className="space-y-1.5 bg-surface/70 p-3 rounded-xl border border-white/5">
+                  <div className="space-y-1.5 bg-card/60 p-3 rounded-xl border border-border-subtle">
                     <div className="flex items-center gap-1.5 font-medium text-semantic-red text-[11px]">
                       <AlertCircle className="h-3.5 w-3.5" /> Weak Areas to Focus
                     </div>
@@ -188,7 +188,7 @@ export default function ChatMessage({ message }) {
 
                 {/* Strengths */}
                 {message.data.strengths?.length > 0 && (
-                  <div className="space-y-1.5 bg-surface/70 p-3 rounded-xl border border-white/5">
+                  <div className="space-y-1.5 bg-card/60 p-3 rounded-xl border border-border-subtle">
                     <div className="flex items-center gap-1.5 font-medium text-semantic-green text-[11px]">
                       <CheckCircle className="h-3.5 w-3.5" /> Core Strengths
                     </div>
@@ -205,14 +205,14 @@ export default function ChatMessage({ message }) {
 
               {/* Priority Actions */}
               {message.data.priorityActions?.length > 0 && (
-                <div className="space-y-1.5 bg-surface/70 p-3 rounded-xl border border-white/5">
-                  <div className="flex items-center gap-1.5 font-medium text-cyan-400 text-[11px]">
+                <div className="space-y-1.5 bg-card/60 p-3 rounded-xl border border-border-subtle">
+                  <div className="flex items-center gap-1.5 font-medium text-accent dark:text-cyan-400 text-[11px]">
                     <Target className="h-3.5 w-3.5" /> Priority Action Items
                   </div>
                   <ul className="space-y-1 text-[11px] text-text-secondary">
                     {message.data.priorityActions.map((act, i) => (
                       <li key={i} className="flex gap-1.5 items-start">
-                        <span className="text-cyan-400">•</span>
+                        <span className="text-accent dark:text-cyan-400">•</span>
                         <span>{act}</span>
                       </li>
                     ))}
@@ -224,10 +224,10 @@ export default function ChatMessage({ message }) {
 
           {/* Embedded Interview Brief Card */}
           {message.type === 'brief' && message.data && (
-            <div className="mt-4 p-4 rounded-2xl bg-[#090a10] border border-white/10 space-y-3 text-xs text-text-primary shadow-inner">
+            <div className="mt-4 p-4 rounded-2xl bg-surface/80 border border-border-subtle space-y-3 text-xs text-text-primary shadow-inner">
               {message.data.typicalInterviewProcess && (
                 <div>
-                  <h5 className="font-semibold text-cyan-400 mb-1">Typical Process</h5>
+                  <h5 className="font-semibold text-accent dark:text-cyan-400 mb-1">Typical Process</h5>
                   <p className="text-text-secondary leading-relaxed">{message.data.typicalInterviewProcess}</p>
                 </div>
               )}
