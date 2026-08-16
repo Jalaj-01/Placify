@@ -21,8 +21,12 @@ const allNavItems = [
   { to: '/applications', icon: Briefcase, label: 'Applications', roles: ['student'] },
   { to: '/timer', icon: Timer, label: 'Mock Timer', isTimer: true, roles: ['student'] },
   { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student'] },
-  { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student'] },
   { to: '/invites', icon: MailOpen, label: 'Room Invites', isInvites: true, roles: ['student'] },
+
+  // Role-Tailored Academic Bookmarks
+  { to: '/bookmarks', icon: Bookmark, label: 'Faculty Bookmarks', roles: ['teacher'] },
+  { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student'] },
+  { to: '/bookmarks', icon: Bookmark, label: 'Research Bookmarks', roles: ['phd'] },
 
   // Academic & Coding Tools (Role tailored)
   { to: '/library', icon: FolderOpen, label: 'Resource Library', roles: ['student', 'teacher', 'phd'] },
