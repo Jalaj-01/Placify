@@ -25,7 +25,7 @@ import Shares from '@/pages/Shares'
 import Landing from '@/pages/Landing'
 import { Loader2 } from 'lucide-react'
 
-import { useAuth } from '@/hooks/useAuth'
+import { AuthProvider, useAuth } from '@/hooks/useAuth'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -213,7 +213,9 @@ export default function App() {
   return (
     <TooltipProvider>
       <BrowserRouter>
-        <AppContent />
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   )
