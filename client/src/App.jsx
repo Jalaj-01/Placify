@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import AuthGuard from '@/components/auth/AuthGuard'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
@@ -211,12 +212,14 @@ function AppContent() {
 
 export default function App() {
   return (
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ErrorBoundary>
+      <TooltipProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ErrorBoundary>
   )
 }
