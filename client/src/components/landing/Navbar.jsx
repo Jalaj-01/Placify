@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { Button } from '@/components/ui/button'
 
 export default function Navbar() {
-  const { user, signInWithGoogle, loading } = useAuth()
+  const { user, signInWithGoogle, loginAsDemo, loading } = useAuth()
   const navigate = useNavigate()
   const { theme, toggleTheme } = useAppStore()
 
@@ -89,7 +89,7 @@ export default function Navbar() {
         </div>
 
         {/* Action Button Group */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {/* Light / Dark Mode Toggle Button */}
           <button
             onClick={toggleTheme}
@@ -103,11 +103,37 @@ export default function Navbar() {
             )}
           </button>
 
+          {/* Quick Demo Test Buttons (Bypass Email) */}
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                loginAsDemo('teacher')
+                navigate('/dashboard')
+              }}
+              className="text-xs px-3 py-2 rounded-xl border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/25 font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <span>⚡ Test as Teacher</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                loginAsDemo('student')
+                navigate('/dashboard')
+              }}
+              className="hidden sm:inline-flex text-xs px-3 py-2 rounded-xl border-accent/40 bg-accent/10 text-accent hover:bg-accent/25 font-bold transition-all shadow-sm"
+            >
+              <span>⚡ Test as Student</span>
+            </Button>
+          </div>
+
           {/* Sign In Button */}
           <button
             onClick={handleStart}
             disabled={loading}
-            className="hidden sm:inline-flex text-xs px-4 py-2.5 rounded-xl text-text-secondary hover:text-text-primary hover:bg-hover font-bold transition-all"
+            className="hidden lg:inline-flex text-xs px-4 py-2.5 rounded-xl text-text-secondary hover:text-text-primary hover:bg-hover font-bold transition-all"
           >
             {user ? 'Console' : 'Sign In'}
           </button>
@@ -119,7 +145,7 @@ export default function Navbar() {
             disabled={loading}
             className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-accent via-indigo-600 to-cyan-500 hover:opacity-95 text-white font-black transition-all shadow-xl shadow-accent/25 border border-white/20 flex items-center gap-2 group"
           >
-            <span>{user ? 'Enter Console' : 'Get Started Free'}</span>
+            <span>{user ? 'Enter Console' : 'Get Started'}</span>
             <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
           </Button>
         </div>

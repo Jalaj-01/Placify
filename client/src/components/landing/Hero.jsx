@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 
 export default function Hero() {
-  const { user, signInWithGoogle, loading } = useAuth()
+  const { user, signInWithGoogle, loginAsDemo, loading } = useAuth()
   const navigate = useNavigate()
   const [heroTab, setHeroTab] = useState('student') // 'student' | 'teacher' | 'phd'
   const [showVideoModal, setShowVideoModal] = useState(false)
@@ -63,29 +63,68 @@ export default function Hero() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2"
+          className="space-y-4 pt-2"
         >
-          <Button
-            size="lg"
-            onClick={handleStart}
-            disabled={loading}
-            className="flex items-center gap-3 text-base px-9 py-6 rounded-2xl font-black bg-gradient-to-r from-accent via-indigo-600 to-cyan-500 text-white hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-accent/40 border border-white/20"
-          >
-            <span>{user ? 'Launch CampusGrid Console' : 'Launch CampusGrid Free'}</span>
-            <ArrowRight className="h-5 w-5" />
-          </Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button
+              size="lg"
+              onClick={handleStart}
+              disabled={loading}
+              className="flex items-center gap-3 text-base px-9 py-6 rounded-2xl font-black bg-gradient-to-r from-accent via-indigo-600 to-cyan-500 text-white hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-accent/40 border border-white/20"
+            >
+              <span>{user ? 'Launch CampusGrid Console' : 'Launch CampusGrid Free'}</span>
+              <ArrowRight className="h-5 w-5" />
+            </Button>
 
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => setShowVideoModal(true)}
-            className="flex items-center gap-3 text-base px-8 py-6 rounded-2xl font-bold bg-surface/80 border border-border-subtle hover:border-accent/50 text-text-primary transition-all shadow-lg"
-          >
-            <div className="h-7 w-7 rounded-full bg-accent/20 flex items-center justify-center text-accent">
-              <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
-            </div>
-            <span>Watch 2-Min Tour</span>
-          </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => setShowVideoModal(true)}
+              className="flex items-center gap-3 text-base px-8 py-6 rounded-2xl font-bold bg-surface/80 border border-border-subtle hover:border-accent/50 text-text-primary transition-all shadow-lg"
+            >
+              <div className="h-7 w-7 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+                <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
+              </div>
+              <span>Watch 2-Min Tour</span>
+            </Button>
+          </div>
+
+          {/* Instant 1-Click Role Testing Badges */}
+          <div className="flex items-center justify-center gap-2 flex-wrap text-xs pt-1">
+            <span className="text-text-muted font-bold text-[11px]">⚡ Instant Test Bypass:</span>
+            <button
+              onClick={() => {
+                loginAsDemo('teacher')
+                navigate('/dashboard')
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/40 text-purple-300 font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <School className="h-3.5 w-3.5 text-purple-400" />
+              <span>Login as Teacher</span>
+            </button>
+
+            <button
+              onClick={() => {
+                loginAsDemo('student')
+                navigate('/dashboard')
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-accent/15 hover:bg-accent/25 border border-accent/40 text-accent font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <GraduationCap className="h-3.5 w-3.5 text-accent" />
+              <span>Login as Student</span>
+            </button>
+
+            <button
+              onClick={() => {
+                loginAsDemo('phd')
+                navigate('/dashboard')
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-emerald-400" />
+              <span>Login as PhD</span>
+            </button>
+          </div>
         </motion.div>
       </div>
 

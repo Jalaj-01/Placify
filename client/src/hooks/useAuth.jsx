@@ -107,6 +107,64 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const loginAsDemo = (role = 'teacher') => {
+    let sessionObj = {
+      uid: 'demo_teacher_arvind',
+      email: 'arvind.sharma@placify.edu',
+      displayName: 'Dr. Arvind Sharma (Faculty)',
+      photoURL: '',
+    }
+    let profileObj = {
+      displayName: 'Dr. Arvind Sharma',
+      email: 'arvind.sharma@placify.edu',
+      role: 'teacher',
+      department: 'Computer Science & Engineering',
+      teacherId: 'TEACHER2026',
+      verifiedTeacher: true,
+      onboardingComplete: true
+    }
+
+    if (role === 'student') {
+      sessionObj = {
+        uid: 'demo_student_rahul',
+        email: 'rahul.verma@student.placify.edu',
+        displayName: 'Rahul Verma (Student)',
+        photoURL: '',
+      }
+      profileObj = {
+        displayName: 'Rahul Verma',
+        email: 'rahul.verma@student.placify.edu',
+        role: 'student',
+        rollNumber: '22CS104',
+        onboardingComplete: true
+      }
+    } else if (role === 'phd') {
+      sessionObj = {
+        uid: 'demo_phd_maya',
+        email: 'maya.sen@phd.placify.edu',
+        displayName: 'Dr. Maya Sen (PhD Scholar)',
+        photoURL: '',
+      }
+      profileObj = {
+        displayName: 'Dr. Maya Sen',
+        email: 'maya.sen@phd.placify.edu',
+        role: 'phd',
+        department: 'AI & Neural Systems Lab',
+        onboardingComplete: true
+      }
+    }
+
+    setUser(sessionObj)
+    setProfile(profileObj)
+    setLoading(false)
+    try {
+      localStorage.setItem('placement_tracker_session', JSON.stringify(sessionObj))
+      localStorage.setItem('placement_tracker_profile', JSON.stringify(profileObj))
+      localStorage.setItem('placify_active_role', role)
+    } catch {}
+    window.dispatchEvent(new Event('placify-role-change'))
+  }
+
   const signOut = async () => {
     try {
       await firebaseSignOut(auth)
@@ -119,7 +177,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signInWithGoogle, loginAsDemo, signOut }}>
       {children}
     </AuthContext.Provider>
   )
