@@ -66,15 +66,23 @@ export async function createCourse(teacherUser, courseData) {
 
 export function subscribeTeacherCourses(teacherUid, callback) {
   if (!teacherUid) return () => {}
+  // Query without orderBy to avoid needing a composite index while index builds
+  // Client-side sort instead
   const q = query(
     collection(db, 'courses'),
-    where('instructorUid', '==', teacherUid),
-    orderBy('createdAt', 'desc')
+    where('instructorUid', '==', teacherUid)
   )
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    const data = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0
+        const bTime = b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0
+        return bTime - aTime
+      })
+    callback(data)
   }, (err) => {
-    console.warn('subscribeTeacherCourses error:', err)
+    console.error('subscribeTeacherCourses error:', err)
     callback([])
   })
 }
@@ -267,11 +275,17 @@ export function subscribeCourseAssignments(courseId, callback) {
   if (!courseId) return () => {}
   const q = query(
     collection(db, 'assignments'),
-    where('courseId', '==', courseId),
-    orderBy('createdAt', 'desc')
+    where('courseId', '==', courseId)
   )
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    const data = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0
+        const bTime = b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0
+        return bTime - aTime
+      })
+    callback(data)
   }, (err) => {
     console.warn('subscribeCourseAssignments error:', err)
     callback([])
@@ -410,11 +424,13 @@ export function subscribeOfficeHours(instructorUid, callback) {
   if (!instructorUid) return () => {}
   const q = query(
     collection(db, 'officeHours'),
-    where('instructorUid', '==', instructorUid),
-    orderBy('date', 'asc')
+    where('instructorUid', '==', instructorUid)
   )
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    const data = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+    callback(data)
   }, (err) => {
     console.warn('subscribeOfficeHours error:', err)
     callback([])

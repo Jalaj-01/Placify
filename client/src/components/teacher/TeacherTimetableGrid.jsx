@@ -4,6 +4,8 @@ import {
   UserX, ArrowRight, Check, X, RefreshCw, MapPin, Building,
   AlertTriangle, CheckCircle2, ChevronRight, UserPlus
 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/toast'
 import {
   subscribeTeacherTimetable, addTimetableSlot,
   updateTimetableSlot, deleteTimetableSlot
@@ -13,6 +15,7 @@ import { cn } from '@/lib/utils'
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 export default function TeacherTimetableGrid({ user, courses = [] }) {
+  const { success, error: toastError, confirm } = useToast()
   const [slots, setSlots] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
   const [showProxyModal, setShowProxyModal] = useState(null)
@@ -86,7 +89,7 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
       })
       setShowAddModal(false)
     } catch (err) {
-      alert('Error saving timetable slot: ' + err.message)
+      toastError('Error saving slot', err.message)
     }
   }
 
@@ -100,7 +103,7 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
       })
       setShowProxyModal(null)
     } catch (err) {
-      alert('Error assigning proxy: ' + err.message)
+      toastError('Error assigning proxy', err.message)
     }
   }
 
@@ -110,7 +113,7 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
         proxyAssignment: { isProxyActive: false }
       })
     } catch (err) {
-      alert('Error removing proxy: ' + err.message)
+      toastError('Error removing proxy', err.message)
     }
   }
 
@@ -119,7 +122,7 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
     try {
       await updateTimetableSlot(slot.id, { status: newStatus })
     } catch (err) {
-      alert('Error updating slot status: ' + err.message)
+      toastError('Error updating class status', err.message)
     }
   }
 
@@ -236,7 +239,12 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
                             </button>
                             <button
                               onClick={async () => {
-                                if (confirm('Delete this timetable slot?')) {
+                                const ok = await confirm('Remove this class slot from the timetable?', {
+                                  title: 'Delete Slot?',
+                                  confirmLabel: 'Delete',
+                                  destructive: true
+                                })
+                                if (ok) {
                                   await deleteTimetableSlot(slot.id)
                                 }
                               }}
@@ -257,18 +265,14 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
       </div>
 
       {/* Add Slot Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-4 text-text-primary">
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-accent" />
-                Schedule Class Routine Slot
-              </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-text-primary">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
+          <DialogHeader className="pb-3 border-b border-border-subtle">
+            <DialogTitle className="font-bold text-base text-text-primary flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-accent" />
+              Schedule Class Routine Slot
+            </DialogTitle>
+          </DialogHeader>
 
             {clashError && (
               <div className="p-3 rounded-xl bg-semantic-red/15 border border-semantic-red/30 text-semantic-red text-xs flex items-start gap-2">
@@ -381,27 +385,22 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Proxy / Substitute Assignment Modal */}
-      {showProxyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-4 text-text-primary">
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-accent" />
-                Assign Proxy / Substitute Teacher
-              </h3>
-              <button onClick={() => setShowProxyModal(null)} className="text-text-muted hover:text-text-primary">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <Dialog open={!!showProxyModal} onOpenChange={(open) => !open && setShowProxyModal(null)}>
+        <DialogContent className="max-w-md bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
+          <DialogHeader className="pb-3 border-b border-border-subtle">
+            <DialogTitle className="font-bold text-base text-text-primary flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-accent" />
+              Assign Proxy / Substitute Teacher
+            </DialogTitle>
+          </DialogHeader>
 
             <div className="p-3 rounded-xl bg-surface border border-border-subtle text-xs text-text-muted space-y-1">
-              <div><strong className="text-text-primary">Slot:</strong> {showProxyModal.dayOfWeek} {showProxyModal.startTime}-{showProxyModal.endTime}</div>
-              <div><strong className="text-text-primary">Class:</strong> {showProxyModal.courseTitle} ({showProxyModal.roomNumber})</div>
+              <div><strong className="text-text-primary">Slot:</strong> {showProxyModal?.dayOfWeek} {showProxyModal?.startTime}-{showProxyModal?.endTime}</div>
+              <div><strong className="text-text-primary">Class:</strong> {showProxyModal?.courseTitle} ({showProxyModal?.roomNumber})</div>
             </div>
 
             <div className="space-y-3 text-xs">
@@ -440,7 +439,7 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
               </div>
 
               <div className="flex items-center justify-between gap-3 pt-3">
-                {showProxyModal.proxyAssignment?.isProxyActive && (
+                {showProxyModal?.proxyAssignment?.isProxyActive && (
                   <button
                     type="button"
                     onClick={() => handleRemoveProxy(showProxyModal.id)}
@@ -459,7 +458,7 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleAssignProxy(showProxyModal.id)}
+                    onClick={() => showProxyModal?.id && handleAssignProxy(showProxyModal.id)}
                     className="px-6 py-2 rounded-xl bg-accent hover:bg-accent-light text-white font-bold shadow-lg shadow-accent/25"
                   >
                     Confirm Proxy
@@ -467,9 +466,8 @@ export default function TeacherTimetableGrid({ user, courses = [] }) {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

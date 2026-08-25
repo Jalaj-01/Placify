@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity, Minimize2, Maximize2, Share2, Terminal, CheckCircle2, Download, Pencil, FileCode, School } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity, Minimize2, Maximize2, Share2, Terminal, CheckCircle2, Download, Pencil, FileCode, School, Bold, Italic, Underline, Heading, List, ListOrdered, Code, Link2, Eye, Edit3, Sparkles } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCourses } from '@/hooks/useCourses'
 import { usePlayground } from '@/hooks/usePlayground'
@@ -13,6 +13,7 @@ import { apiCall } from '@/services/apiClient'
 import ShareDialog from '@/components/share/ShareDialog'
 import { Badge } from '@/components/ui/badge'
 import StudentCourseEnrollModal from '@/components/teacher/StudentCourseEnrollModal'
+import NotesMarkdownViewer from '@/components/notes/NotesMarkdownViewer'
 
 const VERILOG_DEFAULT_CODE = `module test;
     reg [3:0] a, b;
@@ -58,12 +59,15 @@ export default function Courses() {
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
 
-  // Notes states
+  // Notes states & refs
   const [localNotes, setLocalNotes] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
   const [isNotesDirty, setIsNotesDirty] = useState(false)
+  const [notesTab, setNotesTab] = useState('write') // 'write' | 'preview'
+  const notesTextareaRef = useRef(null)
 
-  // Progress states
+  // Progress states & YouTube Player ref
+  const playerRef = useRef(null)
   const [progressPercent, setProgressPercent] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -353,28 +357,136 @@ export default function Courses() {
   // Sync active course on load
   useEffect(() => {
     if (courses.length > 0 && !activeCourse) {
-      setActiveCourse(courses[0])
-      setLocalNotes(courses[0].notes || '')
+      const initialCourse = courses[0]
+      setActiveCourse(initialCourse)
+      setLocalNotes(initialCourse.notes || '')
       setOverrideVideoId('')
+      
+      const resumeTime = getSavedResumeTime(initialCourse, initialCourse.progress?.lastVideoId || initialCourse.embedId)
+      const savedPercent = initialCourse.progress?.percent || (initialCourse.progress?.duration ? Math.round((resumeTime / initialCourse.progress.duration) * 100) : 0)
+      setProgressPercent(savedPercent)
+      setCurrentTime(resumeTime)
+      setDuration(initialCourse.progress?.duration || 0)
+      setActiveVideoTitle(initialCourse.progress?.lastVideoTitle || initialCourse.name || '')
+      setActiveVideoId(initialCourse.progress?.lastVideoId || initialCourse.embedId || '')
     }
   }, [courses, activeCourse])
+
+  // Get saved resume time from localStorage or Firestore progress
+  const getSavedResumeTime = (course, videoId) => {
+    if (!course) return 0
+
+    // 1. Ultra-fast local storage cache
+    try {
+      const localKey = `placify_course_resume_${user?.uid || 'guest'}_${course.id}`
+      const localData = JSON.parse(localStorage.getItem(localKey) || 'null')
+      if (localData) {
+        if (videoId && localData.progressMap?.[videoId]?.currentTime) {
+          return Math.floor(localData.progressMap[videoId].currentTime)
+        }
+        if (localData.lastVideoId === videoId && localData.currentTime) {
+          return Math.floor(localData.currentTime)
+        }
+        if (!videoId && localData.currentTime) {
+          return Math.floor(localData.currentTime)
+        }
+      }
+    } catch (e) {}
+
+    // 2. Firestore course object
+    if (course.progress) {
+      if (videoId && course.progress.progressMap?.[videoId]?.currentTime) {
+        return Math.floor(course.progress.progressMap[videoId].currentTime)
+      }
+      if (course.progress.lastVideoId === videoId && course.progress.currentTime) {
+        return Math.floor(course.progress.currentTime)
+      }
+      if (!videoId && course.progress.currentTime) {
+        return Math.floor(course.progress.currentTime)
+      }
+    }
+
+    return 0
+  }
+
+  // Save current playback progress to both localStorage & Firestore
+  const saveCurrentProgress = (ytPlayer, targetCourse = activeCourse) => {
+    if (!targetCourse || !ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return
+
+    try {
+      const time = ytPlayer.getCurrentTime()
+      const dur = ytPlayer.getDuration()
+      
+      let videoId = targetCourse.embedId
+      let videoTitle = targetCourse.name
+      
+      if (typeof ytPlayer.getVideoData === 'function') {
+        const data = ytPlayer.getVideoData()
+        if (data && data.video_id) {
+          videoId = data.video_id
+          videoTitle = data.title || targetCourse.name
+        }
+      }
+
+      if (dur > 0 && !isNaN(time)) {
+        const percent = Math.min(100, Math.round((time / dur) * 100))
+        const currentTimeSec = Math.round(time)
+        const durationSec = Math.round(dur)
+        const progressMap = targetCourse.progress?.progressMap || {}
+        
+        progressMap[videoId] = {
+          percent,
+          currentTime: currentTimeSec,
+          duration: durationSec,
+          title: videoTitle,
+          updatedAt: Date.now()
+        }
+
+        const progressPayload = {
+          percent,
+          currentTime: currentTimeSec,
+          duration: durationSec,
+          lastVideoId: videoId,
+          lastVideoTitle: videoTitle,
+          progressMap
+        }
+
+        // 1. Instant local storage cache
+        try {
+          const localKey = `placify_course_resume_${user?.uid || 'guest'}_${targetCourse.id}`
+          localStorage.setItem(localKey, JSON.stringify(progressPayload))
+        } catch (e) {}
+
+        // 2. Persist to Firestore
+        updateProgress(targetCourse.id, progressPayload)
+      }
+    } catch (err) {
+      console.warn("Could not save playback progress:", err)
+    }
+  }
 
   // Sync state values when switching active course
   const handleSelectCourse = (course) => {
     if (isNotesDirty && activeCourse) {
       updateNotes(activeCourse.id, localNotes)
     }
+    if (playerRef.current && activeCourse) {
+      saveCurrentProgress(playerRef.current, activeCourse)
+    }
     setActiveCourse(course)
     setLocalNotes(course.notes || '')
     setOverrideVideoId('')
     setIsNotesDirty(false)
+    setNotesTab('write')
     
-    // Clear playback states
-    setProgressPercent(course.progress?.percent || 0)
-    setCurrentTime(course.progress?.currentTime || 0)
+    // Set playback states from course.progress or localStorage
+    const resumeTime = getSavedResumeTime(course, course.progress?.lastVideoId || course.embedId)
+    const savedPercent = course.progress?.percent || (course.progress?.duration ? Math.round((resumeTime / course.progress.duration) * 100) : 0)
+    setProgressPercent(savedPercent)
+    setCurrentTime(resumeTime)
     setDuration(course.progress?.duration || 0)
-    setActiveVideoTitle(course.progress?.lastVideoTitle || '')
-    setActiveVideoId(course.progress?.lastVideoId || '')
+    setActiveVideoTitle(course.progress?.lastVideoTitle || course.name || '')
+    setActiveVideoId(course.progress?.lastVideoId || course.embedId || '')
   }
 
   // Handle manual tracking override via slider
@@ -397,65 +509,31 @@ export default function Courses() {
         updatedAt: Date.now()
       }
 
-      await updateProgress(activeCourse.id, {
+      const payload = {
         percent: newPercent,
         currentTime: newTime,
         duration: duration || 300,
         lastVideoId: targetId,
         lastVideoTitle: targetTitle,
         progressMap
-      })
+      }
+
+      try {
+        const localKey = `placify_course_resume_${user?.uid || 'guest'}_${activeCourse.id}`
+        localStorage.setItem(localKey, JSON.stringify(payload))
+      } catch (err) {}
+
+      await updateProgress(activeCourse.id, payload)
     }
   }
 
-  // Bind YouTube Player API
+  // Bind YouTube Player API with automatic resume & lifecycle save
   useEffect(() => {
-    let player
     let intervalId
-
     if (!activeCourse) return
 
-    const saveCurrentProgress = (ytPlayer) => {
-      if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
-        const time = ytPlayer.getCurrentTime()
-        const dur = ytPlayer.getDuration()
-        
-        let videoId = activeCourse.embedId
-        let videoTitle = activeCourse.name
-        
-        if (typeof ytPlayer.getVideoData === 'function') {
-          const data = ytPlayer.getVideoData()
-          if (data && data.video_id) {
-            videoId = data.video_id
-            videoTitle = data.title || activeCourse.name
-          }
-        }
-
-        if (dur > 0) {
-          const percent = Math.round((time / dur) * 100)
-          const progressMap = activeCourse.progress?.progressMap || {}
-          
-          progressMap[videoId] = {
-            percent,
-            currentTime: Math.round(time),
-            duration: Math.round(dur),
-            title: videoTitle,
-            updatedAt: Date.now()
-          }
-
-          updateProgress(activeCourse.id, {
-            percent,
-            currentTime: Math.round(time),
-            duration: Math.round(dur),
-            lastVideoId: videoId,
-            lastVideoTitle: videoTitle,
-            progressMap
-          })
-        }
-      }
-    }
-
     const startTracking = (ytPlayer) => {
+      if (intervalId) clearInterval(intervalId)
       intervalId = setInterval(() => {
         if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
           const time = ytPlayer.getCurrentTime()
@@ -475,54 +553,107 @@ export default function Courses() {
           setActiveVideoId(videoId)
           setActiveVideoTitle(videoTitle)
 
-          if (dur > 0) {
-            const percent = Math.round((time / dur) * 100)
+          if (dur > 0 && !isNaN(time)) {
+            const percent = Math.min(100, Math.round((time / dur) * 100))
             setProgressPercent(percent)
             setCurrentTime(Math.round(time))
             setDuration(Math.round(dur))
+
+            // Save to localStorage continuously
+            try {
+              const localKey = `placify_course_resume_${user?.uid || 'guest'}_${activeCourse.id}`
+              const prev = JSON.parse(localStorage.getItem(localKey) || '{}')
+              const progressMap = prev.progressMap || activeCourse.progress?.progressMap || {}
+              progressMap[videoId] = {
+                percent,
+                currentTime: Math.round(time),
+                duration: Math.round(dur),
+                title: videoTitle,
+                updatedAt: Date.now()
+              }
+              localStorage.setItem(localKey, JSON.stringify({
+                percent,
+                currentTime: Math.round(time),
+                duration: Math.round(dur),
+                lastVideoId: videoId,
+                lastVideoTitle: videoTitle,
+                progressMap
+              }))
+            } catch (e) {}
           }
         }
-      }, 3000)
+      }, 2500)
     }
 
     const initPlayer = () => {
       try {
-        player = new window.YT.Player('yt-iframe-player', {
+        if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+          try { playerRef.current.destroy() } catch (e) {}
+        }
+
+        const player = new window.YT.Player('yt-iframe-player', {
           events: {
+            onReady: (event) => {
+              playerRef.current = event.target
+              const currentVidId = overrideVideoId || activeCourse.progress?.lastVideoId || activeCourse.embedId
+              const resumeTime = getSavedResumeTime(activeCourse, currentVidId)
+              if (resumeTime > 2) {
+                try {
+                  event.target.seekTo(resumeTime, true)
+                } catch (e) {
+                  console.warn("Could not seek to resumeTime:", e)
+                }
+              }
+            },
             onStateChange: (event) => {
               if (event.data === 1) { // PLAYING
-                startTracking(player)
-              } else { // PAUSED or ENDED
-                clearInterval(intervalId)
-                saveCurrentProgress(player)
+                startTracking(event.target)
+              } else if (event.data === 2 || event.data === 0) { // PAUSED or ENDED
+                if (intervalId) clearInterval(intervalId)
+                saveCurrentProgress(event.target, activeCourse)
               }
             }
           }
         })
+        playerRef.current = player
       } catch (e) {
         console.warn("Could not bind YouTube Player API:", e)
       }
     }
 
-    // Try initializing player once iframe is loaded
+    const handleUnloadOrHide = () => {
+      if (playerRef.current) {
+        saveCurrentProgress(playerRef.current, activeCourse)
+      }
+    }
+
+    window.addEventListener('beforeunload', handleUnloadOrHide)
+    document.addEventListener('visibilitychange', handleUnloadOrHide)
+
     const timer = setTimeout(() => {
       if (window.YT && window.YT.Player) {
         initPlayer()
       } else {
         window.onYouTubeIframeAPIReady = initPlayer
       }
-    }, 1200)
+    }, 1000)
 
     return () => {
       clearTimeout(timer)
-      clearInterval(intervalId)
-      if (player && typeof player.destroy === 'function') {
-        try {
-          player.destroy()
-        } catch (e) {}
+      if (intervalId) clearInterval(intervalId)
+      window.removeEventListener('beforeunload', handleUnloadOrHide)
+      document.removeEventListener('visibilitychange', handleUnloadOrHide)
+      if (playerRef.current) {
+        saveCurrentProgress(playerRef.current, activeCourse)
+        if (typeof playerRef.current.destroy === 'function') {
+          try {
+            playerRef.current.destroy()
+          } catch (e) {}
+        }
+        playerRef.current = null
       }
     }
-  }, [activeCourse, overrideVideoId])
+  }, [activeCourse?.id, overrideVideoId])
 
   const parseYoutubeUrl = (url) => {
     let embedId = ''
@@ -590,14 +721,218 @@ export default function Courses() {
     }
   }
 
+  // Notes Markdown Formatting helper (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+H, etc.)
+  const applyNotesFormatting = (formatType) => {
+    const textarea = notesTextareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = localNotes.substring(start, end)
+    const fullText = localNotes
+
+    let newText = ''
+    let newCursorPos = start
+
+    switch (formatType) {
+      case 'bold': { // Ctrl + B
+        if (selectedText) {
+          newText = fullText.substring(0, start) + `**${selectedText}**` + fullText.substring(end)
+          newCursorPos = end + 4
+        } else {
+          newText = fullText.substring(0, start) + '****' + fullText.substring(end)
+          newCursorPos = start + 2
+        }
+        break
+      }
+      case 'italic': { // Ctrl + I
+        if (selectedText) {
+          newText = fullText.substring(0, start) + `*${selectedText}*` + fullText.substring(end)
+          newCursorPos = end + 2
+        } else {
+          newText = fullText.substring(0, start) + '**' + fullText.substring(end)
+          newCursorPos = start + 1
+        }
+        break
+      }
+      case 'underline': { // Ctrl + U
+        if (selectedText) {
+          newText = fullText.substring(0, start) + `<u>${selectedText}</u>` + fullText.substring(end)
+          newCursorPos = end + 7
+        } else {
+          newText = fullText.substring(0, start) + '<u></u>' + fullText.substring(end)
+          newCursorPos = start + 3
+        }
+        break
+      }
+      case 'heading': { // Ctrl + H
+        const lineStart = fullText.lastIndexOf('\n', start - 1) + 1
+        const lineEnd = fullText.indexOf('\n', end)
+        const actualLineEnd = lineEnd === -1 ? fullText.length : lineEnd
+        const currentLine = fullText.substring(lineStart, actualLineEnd)
+
+        let updatedLine = ''
+        if (currentLine.startsWith('### ')) {
+          updatedLine = currentLine.substring(4)
+        } else if (currentLine.startsWith('## ')) {
+          updatedLine = '### ' + currentLine.substring(3)
+        } else if (currentLine.startsWith('# ')) {
+          updatedLine = '## ' + currentLine.substring(2)
+        } else {
+          updatedLine = '# ' + currentLine
+        }
+
+        newText = fullText.substring(0, lineStart) + updatedLine + fullText.substring(actualLineEnd)
+        newCursorPos = Math.min(newText.length, start + (updatedLine.length - currentLine.length))
+        break
+      }
+      case 'bullet': {
+        const lineStart = fullText.lastIndexOf('\n', start - 1) + 1
+        const lineEnd = fullText.indexOf('\n', end)
+        const actualLineEnd = lineEnd === -1 ? fullText.length : lineEnd
+        const currentLine = fullText.substring(lineStart, actualLineEnd)
+        
+        let updatedLine = ''
+        if (currentLine.startsWith('- ')) {
+          updatedLine = currentLine.substring(2)
+        } else {
+          updatedLine = '- ' + currentLine
+        }
+        newText = fullText.substring(0, lineStart) + updatedLine + fullText.substring(actualLineEnd)
+        newCursorPos = Math.min(newText.length, start + (updatedLine.length - currentLine.length))
+        break
+      }
+      case 'number': {
+        const lineStart = fullText.lastIndexOf('\n', start - 1) + 1
+        const lineEnd = fullText.indexOf('\n', end)
+        const actualLineEnd = lineEnd === -1 ? fullText.length : lineEnd
+        const currentLine = fullText.substring(lineStart, actualLineEnd)
+        
+        let updatedLine = ''
+        if (/^\d+\.\s/.test(currentLine)) {
+          updatedLine = currentLine.replace(/^\d+\.\s/, '')
+        } else {
+          updatedLine = '1. ' + currentLine
+        }
+        newText = fullText.substring(0, lineStart) + updatedLine + fullText.substring(actualLineEnd)
+        newCursorPos = Math.min(newText.length, start + (updatedLine.length - currentLine.length))
+        break
+      }
+      case 'code': {
+        if (selectedText) {
+          if (selectedText.includes('\n')) {
+            newText = fullText.substring(0, start) + '```\n' + selectedText + '\n```' + fullText.substring(end)
+            newCursorPos = end + 8
+          } else {
+            newText = fullText.substring(0, start) + '`' + selectedText + '`' + fullText.substring(end)
+            newCursorPos = end + 2
+          }
+        } else {
+          newText = fullText.substring(0, start) + '``' + fullText.substring(end)
+          newCursorPos = start + 1
+        }
+        break
+      }
+      case 'link': {
+        if (selectedText) {
+          newText = fullText.substring(0, start) + `[${selectedText}](https://)` + fullText.substring(end)
+          newCursorPos = start + selectedText.length + 11
+        } else {
+          newText = fullText.substring(0, start) + '[link](https://)' + fullText.substring(end)
+          newCursorPos = start + 7
+        }
+        break
+      }
+      default:
+        return
+    }
+
+    setLocalNotes(newText)
+    setIsNotesDirty(true)
+
+    setTimeout(() => {
+      if (notesTextareaRef.current) {
+        notesTextareaRef.current.focus()
+        notesTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 0)
+  }
+
+  // Keyboard shortcut listener on notes textarea
+  const handleNotesKeyDown = (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase()
+      if (key === 'b') {
+        e.preventDefault()
+        applyNotesFormatting('bold')
+      } else if (key === 'i') {
+        e.preventDefault()
+        applyNotesFormatting('italic')
+      } else if (key === 'u') {
+        e.preventDefault()
+        applyNotesFormatting('underline')
+      } else if (key === 'h') {
+        e.preventDefault()
+        applyNotesFormatting('heading')
+      } else if (key === 's') {
+        e.preventDefault()
+        handleSaveNotes()
+      } else if (key === 'k') {
+        e.preventDefault()
+        applyNotesFormatting('link')
+      } else if (key === 'e') {
+        e.preventDefault()
+        applyNotesFormatting('code')
+      }
+    } else if (e.key === 'Tab') {
+      e.preventDefault()
+      const textarea = notesTextareaRef.current
+      if (!textarea) return
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const val = textarea.value
+      if (e.shiftKey) {
+        // Unindent 2 spaces
+        const lineStart = val.lastIndexOf('\n', start - 1) + 1
+        if (val.substring(lineStart, lineStart + 2) === '  ') {
+          const updated = val.substring(0, lineStart) + val.substring(lineStart + 2)
+          setLocalNotes(updated)
+          setIsNotesDirty(true)
+          setTimeout(() => {
+            textarea.setSelectionRange(Math.max(lineStart, start - 2), Math.max(lineStart, end - 2))
+          }, 0)
+        }
+      } else {
+        // Indent 2 spaces
+        const updated = val.substring(0, start) + '  ' + val.substring(end)
+        setLocalNotes(updated)
+        setIsNotesDirty(true)
+        setTimeout(() => {
+          textarea.setSelectionRange(start + 2, start + 2)
+        }, 0)
+      }
+    }
+  }
+
   const getEmbedUrl = (course) => {
     if (!course) return ''
     if (overrideVideoId) {
-      return `https://www.youtube.com/embed/${overrideVideoId}?enablejsapi=1`
+      const resumeSec = getSavedResumeTime(course, overrideVideoId)
+      const startParam = resumeSec > 0 ? `&start=${resumeSec}` : ''
+      return `https://www.youtube.com/embed/${overrideVideoId}?enablejsapi=1${startParam}`
     }
-    return course.isPlaylist
-      ? `https://www.youtube.com/embed/videoseries?list=${course.embedId}&enablejsapi=1`
-      : `https://www.youtube.com/embed/${course.embedId}?enablejsapi=1`
+    if (course.isPlaylist) {
+      const targetVid = course.progress?.lastVideoId
+      if (targetVid) {
+        const resumeSec = getSavedResumeTime(course, targetVid)
+        const startParam = resumeSec > 0 ? `&start=${resumeSec}` : ''
+        return `https://www.youtube.com/embed/${targetVid}?list=${course.embedId}&enablejsapi=1${startParam}`
+      }
+      return `https://www.youtube.com/embed/videoseries?list=${course.embedId}&enablejsapi=1`
+    }
+    const resumeSec = getSavedResumeTime(course, course.embedId)
+    const startParam = resumeSec > 0 ? `&start=${resumeSec}` : ''
+    return `https://www.youtube.com/embed/${course.embedId}?enablejsapi=1${startParam}`
   }
 
   const formatTime = (secs) => {
@@ -806,6 +1141,7 @@ export default function Courses() {
                   <div className="w-full aspect-video rounded-xl sm:rounded-2xl border border-border-subtle bg-black overflow-hidden shadow-lg sm:shadow-2xl relative">
                     <iframe
                       id="yt-iframe-player"
+                      key={`${activeCourse.id}-${overrideVideoId || activeCourse.progress?.lastVideoId || activeCourse.embedId}`}
                       src={getEmbedUrl(activeCourse)}
                       title={activeCourse.name}
                       className="w-full h-full absolute inset-0"
@@ -837,14 +1173,24 @@ export default function Courses() {
                             key={vid.id}
                             className={cn(
                               "flex items-center justify-between p-2 sm:p-2.5 rounded-xl border border-border-subtle/50 text-xs transition-colors hover:bg-hover/20 gap-2",
-                              activeVideoId === vid.id ? "bg-accent/5 border-accent/25" : "bg-card"
+                              (overrideVideoId || activeVideoId) === vid.id ? "bg-accent/5 border-accent/25" : "bg-card"
                             )}
                           >
                             <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                onClick={() => setOverrideVideoId(vid.id)}
+                                onClick={() => {
+                                  if (playerRef.current && activeCourse) {
+                                    saveCurrentProgress(playerRef.current, activeCourse)
+                                  }
+                                  setOverrideVideoId(vid.id)
+                                  setCurrentTime(vid.currentTime || 0)
+                                  setProgressPercent(vid.percent || 0)
+                                  setDuration(vid.duration || 0)
+                                  setActiveVideoId(vid.id)
+                                  setActiveVideoTitle(vid.title || '')
+                                }}
                                 className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-accent/15 text-accent-light hover:bg-accent hover:text-white shrink-0"
                               >
                                 <Play className="h-3 w-3 fill-current ml-0.5" />
@@ -1051,41 +1397,161 @@ export default function Courses() {
                   /* Notepad block */
                   <div className="xl:col-span-1">
                     <Card className="border border-border-subtle bg-card h-full flex flex-col overflow-hidden shadow-md">
-                      <CardHeader className="pb-3 border-b border-border-subtle/60 flex flex-row items-center justify-between shrink-0">
+                      {/* Card Header with Write/Preview toggle & Save button */}
+                      <CardHeader className="p-2.5 sm:p-3 border-b border-border-subtle/60 flex flex-row items-center justify-between shrink-0 bg-surface/30">
                         <div className="flex items-center gap-2">
                           <BookOpen className="h-4 w-4 text-accent-light" />
                           <CardTitle className="text-xs font-bold text-text-primary uppercase tracking-widest">
                             Lecture Notes
                           </CardTitle>
                         </div>
-                        <Button
-                          size="sm"
-                          onClick={handleSaveNotes}
-                          disabled={notesSaving || !isNotesDirty}
-                          className={cn(
-                            "h-7 text-xs flex items-center gap-1 px-2.5 transition-all",
-                            isNotesDirty ? "bg-accent hover:bg-accent-light text-white animate-pulse" : "bg-elevated border border-border"
-                          )}
-                        >
-                          {notesSaving ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Save className="h-3.5 w-3.5" />
-                          )}
-                          {isNotesDirty ? 'Save Notes *' : 'Saved'}
-                        </Button>
+
+                        <div className="flex items-center gap-1.5">
+                          {/* Write / Preview Tab Switcher */}
+                          <div className="flex bg-surface p-0.5 rounded-lg border border-border-subtle shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setNotesTab('write')}
+                              className={cn(
+                                "px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1",
+                                notesTab === 'write' ? "bg-accent text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
+                              )}
+                            >
+                              <Edit3 className="h-3 w-3" />
+                              <span>Write</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setNotesTab('preview')}
+                              className={cn(
+                                "px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1",
+                                notesTab === 'preview' ? "bg-accent text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
+                              )}
+                            >
+                              <Eye className="h-3 w-3" />
+                              <span>Preview</span>
+                            </button>
+                          </div>
+
+                          {/* Save Button */}
+                          <Button
+                            size="sm"
+                            onClick={handleSaveNotes}
+                            disabled={notesSaving || !isNotesDirty}
+                            className={cn(
+                              "h-6 text-[10px] flex items-center gap-1 px-2.5 transition-all rounded-md font-semibold",
+                              isNotesDirty ? "bg-accent hover:bg-accent-light text-white animate-pulse" : "bg-elevated border border-border text-text-secondary"
+                            )}
+                          >
+                            {notesSaving ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Save className="h-3 w-3" />
+                            )}
+                            {isNotesDirty ? 'Save *' : 'Saved'}
+                          </Button>
+                        </div>
                       </CardHeader>
-                      <CardContent className="p-3 flex-1 flex flex-col min-h-[300px]">
-                        <textarea
-                          value={localNotes}
-                          onChange={(e) => {
-                            setLocalNotes(e.target.value)
-                            setIsNotesDirty(true)
-                          }}
-                          onBlur={handleSaveNotes}
-                          className="w-full flex-1 bg-base text-text-primary text-xs font-sans p-3.5 outline-none resize-none rounded-xl border border-border-subtle focus:border-accent/40 leading-relaxed transition-all shadow-inner"
-                          placeholder="📝 Type study notes, algorithms, SQL queries, or interview questions here. Auto-saves when clicking away."
-                        />
+
+                      {/* Formatting Toolbar (Visible in Write Mode) */}
+                      {notesTab === 'write' && (
+                        <div className="px-2.5 py-1.5 border-b border-border-subtle bg-surface/50 flex items-center gap-1 flex-wrap text-text-muted shrink-0 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => applyNotesFormatting('bold')}
+                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors font-bold text-xs"
+                            title="Bold (Ctrl+B)"
+                          >
+                            <Bold className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyNotesFormatting('italic')}
+                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors text-xs"
+                            title="Italic (Ctrl+I)"
+                          >
+                            <Italic className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyNotesFormatting('underline')}
+                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors text-xs"
+                            title="Underline (Ctrl+U)"
+                          >
+                            <Underline className="h-3.5 w-3.5" />
+                          </button>
+                          <div className="h-3.5 w-px bg-border-subtle mx-0.5" />
+                          <button
+                            type="button"
+                            onClick={() => applyNotesFormatting('heading')}
+                            className="px-1.5 py-0.5 rounded-md hover:bg-hover hover:text-text-primary transition-colors font-bold text-[11px] text-accent"
+                            title="Heading (Ctrl+H)"
+                          >
+                            H
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyNotesFormatting('bullet')}
+                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors"
+                            title="Bullet List"
+                          >
+                            <List className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyNotesFormatting('number')}
+                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors"
+                            title="Numbered List"
+                          >
+                            <ListOrdered className="h-3.5 w-3.5" />
+                          </button>
+                          <div className="h-3.5 w-px bg-border-subtle mx-0.5" />
+                          <button
+                            type="button"
+                            onClick={() => applyNotesFormatting('code')}
+                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors font-mono text-[10px]"
+                            title="Code Block"
+                          >
+                            <Code className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyNotesFormatting('link')}
+                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors"
+                            title="Insert Link"
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Notes Body Area */}
+                      <CardContent className="p-2.5 sm:p-3 flex-1 flex flex-col min-h-[300px] overflow-hidden">
+                        {notesTab === 'write' ? (
+                          <div className="flex-1 flex flex-col min-h-0">
+                            <textarea
+                              ref={notesTextareaRef}
+                              value={localNotes}
+                              onChange={(e) => {
+                                setLocalNotes(e.target.value)
+                                setIsNotesDirty(true)
+                              }}
+                              onKeyDown={handleNotesKeyDown}
+                              onBlur={handleSaveNotes}
+                              className="w-full flex-1 bg-base text-text-primary text-xs font-sans p-3.5 outline-none resize-none rounded-xl border border-border-subtle focus:border-accent/40 leading-relaxed transition-all shadow-inner font-normal"
+                              placeholder="📝 Type lecture notes, algorithms, complexity (# Heading, **bold**, <u>underline</u>, *italic*).&#10;&#10;Shortcuts: Ctrl+B (Bold), Ctrl+U (Underline), Ctrl+I (Italic), Ctrl+H (Heading), Ctrl+S (Save)."
+                            />
+                            <div className="pt-2 flex items-center justify-between text-[10px] text-text-muted/80 select-none">
+                              <span className="hidden sm:inline">Shortcuts: <kbd className="font-mono text-[9px] bg-surface px-1 py-0.5 rounded border border-border-subtle">Ctrl+B</kbd> Bold • <kbd className="font-mono text-[9px] bg-surface px-1 py-0.5 rounded border border-border-subtle">Ctrl+U</kbd> Underline • <kbd className="font-mono text-[9px] bg-surface px-1 py-0.5 rounded border border-border-subtle">Ctrl+H</kbd> Heading</span>
+                              <span className="sm:hidden">Ctrl+B/U/I/H/S</span>
+                              <span>{localNotes.length} chars</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-full flex-1 bg-base rounded-xl border border-border-subtle p-3.5 overflow-y-auto leading-relaxed max-h-[420px]">
+                            <NotesMarkdownViewer content={localNotes} />
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </div>

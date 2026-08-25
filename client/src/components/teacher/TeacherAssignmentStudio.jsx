@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import {
   Code2, Plus, Calendar, ShieldCheck, Clock, CheckCircle2,
   Trash2, Eye, EyeOff, Save, Sparkles, Terminal, FileCode,
-  AlertTriangle, Copy, X, Lock, CheckSquare, Settings
+  AlertTriangle, Copy, X, Lock, CheckSquare, Settings, Upload
 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/toast'
 import {
   subscribeCourseAssignments, createAssignment,
   updateAssignment, deleteAssignment
@@ -19,6 +21,7 @@ const SUPPORTED_LANGUAGES = [
 ]
 
 export default function TeacherAssignmentStudio({ user, course, onViewSubmissions }) {
+  const { error: toastError, confirm } = useToast()
   const [assignments, setAssignments] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedLangTab, setSelectedLangTab] = useState('python')
@@ -109,6 +112,103 @@ export default function TeacherAssignmentStudio({ user, course, onViewSubmission
     setForm({ ...form, testCases: form.testCases.filter(t => t.id !== tcId) })
   }
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      const text = evt.target.result
+      try {
+        const lines = text.split('\n')
+        let parsedForm = { ...form }
+        let currentSection = ''
+        let testCases = []
+        let currentTc = null
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim()
+          if (!line && currentSection !== 'tc_input' && currentSection !== 'tc_output' && currentSection !== 'description') continue
+
+          if (line.startsWith('Title:')) {
+            parsedForm.title = line.substring(6).trim()
+            currentSection = ''
+          } else if (line.startsWith('Difficulty:')) {
+            parsedForm.difficulty = line.substring(11).trim().toUpperCase()
+            currentSection = ''
+          } else if (line.startsWith('Description:')) {
+            currentSection = 'description'
+            parsedForm.problemStatement = ''
+          } else if (line === 'TEST_CASES_START') {
+            currentSection = 'test_cases'
+          } else if (line === 'TEST_CASES_END') {
+            currentSection = ''
+            if (currentTc) testCases.push(currentTc)
+            currentTc = null
+          } else if (currentSection === 'description') {
+             if (line === 'TEST_CASES_START') {
+               i--
+               currentSection = ''
+             } else {
+               parsedForm.problemStatement += (parsedForm.problemStatement ? '\n' : '') + line
+             }
+          } else if (currentSection === 'test_cases') {
+            if (line.startsWith('[Test Case')) {
+              if (currentTc) testCases.push(currentTc)
+              currentTc = {
+                id: `tc_${Date.now()}_${testCases.length}`,
+                title: line.replace(/[\[\]]/g, ''),
+                input: '',
+                expectedOutput: '',
+                explanation: '',
+                isHidden: false,
+                weightagePoints: 20
+              }
+            } else if (currentTc) {
+               if (line.startsWith('Hidden:')) {
+                 currentTc.isHidden = line.substring(7).trim().toLowerCase() === 'true'
+               } else if (line.startsWith('Points:')) {
+                 currentTc.weightagePoints = parseInt(line.substring(7).trim()) || 20
+               } else if (line.startsWith('Input:')) {
+                 currentSection = 'tc_input'
+               } else if (line.startsWith('Output:')) {
+                 currentSection = 'tc_output'
+               }
+            }
+          } else if (currentSection === 'tc_input') {
+             if (line.startsWith('Output:')) {
+                currentSection = 'tc_output'
+             } else if (line.startsWith('[Test Case') || line === 'TEST_CASES_END') {
+                i-- 
+                currentSection = 'test_cases'
+             } else if (currentTc) {
+                currentTc.input += (currentTc.input ? '\n' : '') + line
+             }
+          } else if (currentSection === 'tc_output') {
+             if (line.startsWith('[Test Case') || line === 'TEST_CASES_END') {
+                i--
+                currentSection = 'test_cases'
+             } else if (currentTc) {
+                currentTc.expectedOutput += (currentTc.expectedOutput ? '\n' : '') + line
+             }
+          }
+        }
+        
+        if (testCases.length > 0) {
+           parsedForm.testCases = testCases
+        }
+        
+        setForm(parsedForm)
+        e.target.value = null
+      } catch (err) {
+        console.error('Error parsing file:', err)
+        alert('Failed to parse text file. Please ensure it follows the format.')
+      }
+    }
+    reader.readAsText(file)
+  }
+
+
   const handleCreate = async (e) => {
     e.preventDefault()
     if (!form.title.trim() || !form.problemStatement.trim()) return
@@ -172,7 +272,12 @@ export default function TeacherAssignmentStudio({ user, course, onViewSubmission
 
                 <button
                   onClick={async () => {
-                    if (confirm('Delete this coding assignment?')) {
+                    const ok = await confirm('This assignment and all student submissions will be permanently deleted.', {
+                      title: 'Delete Assignment?',
+                      confirmLabel: 'Yes, Delete',
+                      destructive: true
+                    })
+                    if (ok) {
                       await deleteAssignment(assign.id)
                     }
                   }}
@@ -224,18 +329,35 @@ export default function TeacherAssignmentStudio({ user, course, onViewSubmission
       </div>
 
       {/* Create Assignment Modal Wizard */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in">
-          <div className="w-full max-w-3xl bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-5 text-text-primary max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle shrink-0">
-              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-6 bg-card border-border-subtle rounded-3xl">
+          <DialogHeader className="pb-3 border-b border-border-subtle shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="font-bold text-base text-text-primary flex items-center gap-2 text-left">
                 <Code2 className="h-5 w-5 text-accent" />
                 Create Automated Coding Assignment
-              </h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-text-muted hover:text-text-primary">
-                <X className="h-4 w-4" />
-              </button>
+              </DialogTitle>
+              
+              {/* txt Upload Button */}
+              <div>
+                <input
+                  type="file"
+                  accept=".txt"
+                  id="txt-upload"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <label
+                  htmlFor="txt-upload"
+                  className="cursor-pointer px-3 py-1.5 rounded-lg bg-surface hover:bg-hover border border-border-subtle text-xs font-bold text-text-primary flex items-center gap-1.5 transition-colors shadow-sm"
+                  title="Upload .txt format assignment"
+                >
+                  <Upload className="h-3.5 w-3.5 text-accent" />
+                  <span>Import .txt</span>
+                </label>
+              </div>
             </div>
+          </DialogHeader>
 
             <form onSubmit={handleCreate} className="space-y-4 text-xs overflow-y-auto flex-1 pr-1">
               {/* Problem Title & Difficulty */}
@@ -495,9 +617,8 @@ export default function TeacherAssignmentStudio({ user, course, onViewSubmission
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

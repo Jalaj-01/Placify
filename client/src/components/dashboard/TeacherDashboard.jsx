@@ -3,7 +3,7 @@ import {
   School, BookOpen, Clock, Users, AlertTriangle, CheckCircle2,
   Calendar, Send, Plus, BellRing, Sparkles, FileSpreadsheet, ShieldCheck,
   Edit3, Trash2, X, Check, Eye, Code2, GraduationCap, MessageSquare,
-  Layers, Trophy, Award, Flame, TrendingUp
+  Layers, Trophy, Award, Flame, TrendingUp, ArrowRight
 } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
 import StickyNotesCard from '@/components/notes/StickyNotesCard'
@@ -203,8 +203,13 @@ export default function TeacherDashboard({ user, profile }) {
           selectedCourse ? (
             <TeacherSyllabusTracker course={selectedCourse} />
           ) : (
-            <div className="p-8 text-center bg-card rounded-2xl border border-dashed border-border-subtle text-text-muted text-xs">
-              Please create or select a course from the Courses tab to manage syllabus.
+            <div className="p-10 text-center bg-card rounded-2xl border border-dashed border-border-subtle space-y-3">
+              <Layers className="h-10 w-10 text-text-muted mx-auto" />
+              <h3 className="font-bold text-sm text-text-primary">No Course Selected</h3>
+              <p className="text-xs text-text-muted">Create or select a course first to manage its syllabus topics and pacing.</p>
+              <button onClick={() => setActiveTab('courses')} className="mt-2 px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold shadow-md shadow-accent/20 flex items-center gap-1.5 mx-auto">
+                <Plus className="h-3.5 w-3.5" /> Go to Courses & Rosters
+              </button>
             </div>
           )
         )}
@@ -226,8 +231,13 @@ export default function TeacherDashboard({ user, profile }) {
               onViewSubmissions={(assign) => setSelectedAssignmentForGradebook(assign)}
             />
           ) : (
-            <div className="p-8 text-center bg-card rounded-2xl border border-dashed border-border-subtle text-text-muted text-xs">
-              Please select a course to view and create coding assignments.
+            <div className="p-10 text-center bg-card rounded-2xl border border-dashed border-border-subtle space-y-3">
+              <Code2 className="h-10 w-10 text-text-muted mx-auto" />
+              <h3 className="font-bold text-sm text-text-primary">No Course Selected</h3>
+              <p className="text-xs text-text-muted">Create a course first to start publishing coding assessments and assignments for students.</p>
+              <button onClick={() => setActiveTab('courses')} className="mt-2 px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold shadow-md shadow-accent/20 flex items-center gap-1.5 mx-auto">
+                <Plus className="h-3.5 w-3.5" /> Go to Courses & Rosters
+              </button>
             </div>
           )
         )}
@@ -236,8 +246,13 @@ export default function TeacherDashboard({ user, profile }) {
           selectedCourse ? (
             <TeacherResearchManager user={user} course={selectedCourse} />
           ) : (
-            <div className="p-8 text-center bg-card rounded-2xl border border-dashed border-border-subtle text-text-muted text-xs">
-              Please select a course to manage research project groups.
+            <div className="p-10 text-center bg-card rounded-2xl border border-dashed border-border-subtle space-y-3">
+              <GraduationCap className="h-10 w-10 text-text-muted mx-auto" />
+              <h3 className="font-bold text-sm text-text-primary">No Course Selected</h3>
+              <p className="text-xs text-text-muted">Create a course first to register and track research project groups for that class.</p>
+              <button onClick={() => setActiveTab('courses')} className="mt-2 px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold shadow-md shadow-accent/20 flex items-center gap-1.5 mx-auto">
+                <Plus className="h-3.5 w-3.5" /> Go to Courses & Rosters
+              </button>
             </div>
           )
         )}
@@ -246,8 +261,13 @@ export default function TeacherDashboard({ user, profile }) {
           selectedCourse ? (
             <TeacherCommunicationHub user={user} course={selectedCourse} />
           ) : (
-            <div className="p-8 text-center bg-card rounded-2xl border border-dashed border-border-subtle text-text-muted text-xs">
-              Please select a course to post notices or create office hour slots.
+            <div className="p-10 text-center bg-card rounded-2xl border border-dashed border-border-subtle space-y-3">
+              <MessageSquare className="h-10 w-10 text-text-muted mx-auto" />
+              <h3 className="font-bold text-sm text-text-primary">No Course Selected</h3>
+              <p className="text-xs text-text-muted">Create a course first to post notices and set up office hour slots for your students.</p>
+              <button onClick={() => setActiveTab('courses')} className="mt-2 px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold shadow-md shadow-accent/20 flex items-center gap-1.5 mx-auto">
+                <Plus className="h-3.5 w-3.5" /> Go to Courses & Rosters
+              </button>
             </div>
           )
         )}

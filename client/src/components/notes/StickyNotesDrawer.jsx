@@ -189,7 +189,7 @@ export default function StickyNotesDrawer() {
                           execCmd('bold')
                         }}
                         className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
-                        title="Bold"
+                        title="Bold (Ctrl+B)"
                       >
                         <Bold className="h-3.5 w-3.5" />
                       </button>
@@ -200,7 +200,7 @@ export default function StickyNotesDrawer() {
                           execCmd('italic')
                         }}
                         className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
-                        title="Italic"
+                        title="Italic (Ctrl+I)"
                       >
                         <Italic className="h-3.5 w-3.5" />
                       </button>
@@ -211,7 +211,7 @@ export default function StickyNotesDrawer() {
                           execCmd('underline')
                         }}
                         className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
-                        title="Underline"
+                        title="Underline (Ctrl+U)"
                       >
                         <Underline className="h-3.5 w-3.5" />
                       </button>
@@ -223,7 +223,7 @@ export default function StickyNotesDrawer() {
                           execCmd('formatBlock', '<h2>')
                         }}
                         className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors font-bold text-xs"
-                        title="Heading 2"
+                        title="Heading 2 (Ctrl+H)"
                       >
                         H2
                       </button>
@@ -270,7 +270,7 @@ export default function StickyNotesDrawer() {
                           execCmd('undo')
                         }}
                         className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
-                        title="Undo"
+                        title="Undo (Ctrl+Z)"
                       >
                         <Undo className="h-3.5 w-3.5" />
                       </button>
@@ -281,7 +281,7 @@ export default function StickyNotesDrawer() {
                           execCmd('redo')
                         }}
                         className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
-                        title="Redo"
+                        title="Redo (Ctrl+Y)"
                       >
                         <Redo className="h-3.5 w-3.5" />
                       </button>
@@ -293,6 +293,27 @@ export default function StickyNotesDrawer() {
                       contentEditable
                       suppressContentEditableWarning
                       onInput={() => setNoteContent(editorRef.current?.innerHTML || '')}
+                      onKeyDown={(e) => {
+                        if (e.ctrlKey || e.metaKey) {
+                          const k = e.key.toLowerCase()
+                          if (k === 'b') {
+                            e.preventDefault()
+                            execCmd('bold')
+                          } else if (k === 'i') {
+                            e.preventDefault()
+                            execCmd('italic')
+                          } else if (k === 'u') {
+                            e.preventDefault()
+                            execCmd('underline')
+                          } else if (k === 'h') {
+                            e.preventDefault()
+                            execCmd('formatBlock', '<h2>')
+                          } else if (k === 's') {
+                            e.preventDefault()
+                            handleSaveNote(e)
+                          }
+                        }
+                      }}
                       placeholder="Write your note body content here..."
                       className="w-full flex-1 p-4 bg-transparent text-xs font-normal text-text-primary focus:outline-none overflow-y-auto leading-relaxed min-h-[220px] [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-text-primary [&_h2]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1 [&_a]:text-accent [&_a]:underline"
                     />

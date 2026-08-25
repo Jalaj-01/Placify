@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useProblems } from '@/hooks/useProblems'
 import { useTopics } from '@/hooks/useTopics'
@@ -21,12 +21,24 @@ export default function Dashboard() {
 
   const { toggleStickyNotes } = useAppStore()
 
-  const [activeRole, setActiveRole] = useState(null)
+  const [activeRole, setActiveRole] = useState(() => localStorage.getItem('placify_active_role'))
   const [showRoleOnboarding, setShowRoleOnboarding] = useState(false)
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setActiveRole(localStorage.getItem('placify_active_role'))
+    }
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('placify-role-change', handleStorage)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('placify-role-change', handleStorage)
+    }
+  }, [])
 
   const loading = loadingProbs || loadingTopics || loadingApps
 
-  const rawRole = (activeRole || profile?.role || localStorage.getItem('placify_active_role') || '').toLowerCase().trim()
+  const rawRole = (activeRole || localStorage.getItem('placify_active_role') || profile?.role || '').toLowerCase().trim()
   const effectiveRole = rawRole === 'faculty' ? 'teacher' : (rawRole === 'research' ? 'phd' : rawRole)
 
   const handleRoleSaved = (newRole) => {

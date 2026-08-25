@@ -17,6 +17,10 @@ export default function AICoachDrawer() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
+  // Read active role from localStorage (source of truth for role)
+  const rawRole = (localStorage.getItem('placify_active_role') || '').toLowerCase().trim()
+  const activeRole = rawRole === 'faculty' ? 'teacher' : (rawRole === 'research' ? 'phd' : rawRole) || profile?.role || 'student'
+
   const { problems } = useProblems(user?.uid)
   const { topics } = useTopics(user?.uid)
   const { applications } = useApplications(user?.uid)
@@ -111,7 +115,11 @@ export default function AICoachDrawer() {
                     <span className="h-1.5 w-1.5 rounded-full bg-semantic-green animate-pulse" /> Active
                   </span>
                 </div>
-                <p className="text-micro text-text-muted">Ask doubts, debug code, or analyze prep</p>
+                <p className="text-micro text-text-muted">
+                  {activeRole === 'teacher' ? 'Teaching & Pedagogy Coach' :
+                   activeRole === 'phd' ? 'Research & Academic Coach' :
+                   'Placement & Coding Coach'}
+                </p>
               </div>
             </div>
 
@@ -221,14 +229,16 @@ export default function AICoachDrawer() {
           {/* Quick Actions & Prompt Chips */}
           <div className="p-3 bg-card border-t border-border-subtle space-y-2">
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {(profile?.role === 'teacher' ? [
+              {(activeRole === 'teacher' ? [
                 { label: 'Generate Quiz Questions', text: 'Generate a 5-question MCQ quiz on Graph Algorithms with answer keys.' },
                 { label: 'Draft Lesson Plan', text: 'Draft a 1-hour lecture outline for Database Concurrency Control.' },
-                { label: 'Lecture Pacing', text: 'Suggest pacing strategy for completing OS syllabus in 4 weeks.' }
-              ] : profile?.role === 'phd' ? [
+                { label: 'Lecture Pacing', text: 'Suggest pacing strategy for completing OS syllabus in 4 weeks.' },
+                { label: 'Rubric Template', text: 'Create a grading rubric for a 30-mark coding assignment.' },
+              ] : activeRole === 'phd' ? [
                 { label: 'Summarize IEEE Abstract', text: 'Summarize the core methodology and contributions of this IEEE paper.' },
                 { label: 'LaTeX Citation', text: 'Format a BibTeX LaTeX citation for an ACM SIGCOMM paper.' },
-                { label: 'Supervisor Update', text: 'Help me draft a concise email update for my PhD advisor meeting.' }
+                { label: 'Supervisor Update', text: 'Help me draft a concise email update for my PhD advisor meeting.' },
+                { label: 'Research Gap Analysis', text: 'How do I identify a research gap in the field of federated learning?' },
               ] : [
                 { label: 'Code Debug Hints', text: 'I have a bug in my Graph BFS code. How can I trace infinite loops?' },
                 { label: 'Mock Interview Prep', text: 'Give me 3 top technical interview questions asked at Google for SDE-1.' },
@@ -249,31 +259,79 @@ export default function AICoachDrawer() {
           <div className="p-3 bg-surface border-t border-border-subtle space-y-2 shrink-0">
             {/* Action Chips */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[11px] scrollbar-none">
-              <button
-                onClick={handleAnalyzePrepClick}
-                disabled={loading}
-                className="px-2.5 py-1 rounded-full bg-accent/15 border border-accent/30 hover:bg-accent/25 text-accent dark:text-accent-light font-medium whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
-              >
-                <Gauge className="h-3 w-3" /> Analyze Prep
-              </button>
-              <button
-                onClick={() => setInput('Explain Dijkstra algorithm with a step-by-step code example in Python')}
-                className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
-              >
-                <Code className="h-3 w-3 text-text-muted" /> Explain Algorithm
-              </button>
-              <button
-                onClick={() => setShowBriefInput(true)}
-                className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
-              >
-                <Building className="h-3 w-3 text-semantic-green" /> Interview Brief
-              </button>
-              <button
-                onClick={() => setInput('What are the top OS concepts asked in tech interviews?')}
-                className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
-              >
-                <BookOpen className="h-3 w-3 text-semantic-yellow" /> Core CS Topics
-              </button>
+              {activeRole === 'teacher' ? (
+                <>
+                  <button
+                    onClick={() => sendMessage('Generate a 5-question MCQ quiz on Data Structures with answer keys')}
+                    disabled={loading}
+                    className="px-2.5 py-1 rounded-full bg-accent/15 border border-accent/30 hover:bg-accent/25 text-accent dark:text-accent-light font-medium whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <Gauge className="h-3 w-3" /> Generate Quiz
+                  </button>
+                  <button
+                    onClick={() => setInput('Draft a 1-hour lecture plan for Operating Systems - Process Scheduling')}
+                    className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <BookOpen className="h-3 w-3 text-semantic-yellow" /> Lesson Plan
+                  </button>
+                  <button
+                    onClick={() => setInput('Give me active learning techniques to improve student engagement in large classrooms')}
+                    className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <Code className="h-3 w-3 text-text-muted" /> Teaching Tips
+                  </button>
+                </>
+              ) : activeRole === 'phd' ? (
+                <>
+                  <button
+                    onClick={() => sendMessage('Help me identify research gaps in federated learning for edge computing')}
+                    disabled={loading}
+                    className="px-2.5 py-1 rounded-full bg-accent/15 border border-accent/30 hover:bg-accent/25 text-accent dark:text-accent-light font-medium whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <Gauge className="h-3 w-3" /> Research Gap
+                  </button>
+                  <button
+                    onClick={() => setInput('Format this as a proper BibTeX citation for IEEE format')}
+                    className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <Code className="h-3 w-3 text-text-muted" /> BibTeX Format
+                  </button>
+                  <button
+                    onClick={() => setShowBriefInput(true)}
+                    className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <Building className="h-3 w-3 text-semantic-green" /> Advisor Email
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleAnalyzePrepClick}
+                    disabled={loading}
+                    className="px-2.5 py-1 rounded-full bg-accent/15 border border-accent/30 hover:bg-accent/25 text-accent dark:text-accent-light font-medium whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <Gauge className="h-3 w-3" /> Analyze Prep
+                  </button>
+                  <button
+                    onClick={() => setInput('Explain Dijkstra algorithm with a step-by-step code example in Python')}
+                    className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <Code className="h-3 w-3 text-text-muted" /> Explain Algorithm
+                  </button>
+                  <button
+                    onClick={() => setShowBriefInput(true)}
+                    className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <Building className="h-3 w-3 text-semantic-green" /> Interview Brief
+                  </button>
+                  <button
+                    onClick={() => setInput('What are the top OS concepts asked in tech interviews?')}
+                    className="px-2.5 py-1 rounded-full bg-card border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <BookOpen className="h-3 w-3 text-semantic-yellow" /> Core CS Topics
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Form Input */}

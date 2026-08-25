@@ -4,6 +4,8 @@ import {
   Mail, Sparkles, School, GraduationCap, X, Edit3, Trash2,
   ExternalLink, Search, CheckCircle2, AlertCircle, RefreshCw
 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/toast'
 import {
   createCourse, updateCourse, deleteCourse,
   subscribeTeacherCourses, subscribeCourseRoster,
@@ -12,6 +14,7 @@ import {
 import { cn } from '@/lib/utils'
 
 export default function TeacherCourseManager({ user, onSelectCourse, selectedCourseId }) {
+  const { success, error: toastError, confirm } = useToast()
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -73,17 +76,22 @@ export default function TeacherCourseManager({ user, onSelectCourse, selectedCou
       })
       if (onSelectCourse) onSelectCourse(created)
     } catch (err) {
-      alert('Error creating course: ' + err.message)
+      toastError('Failed to create course', err.message)
     }
   }
 
   const handleDelete = async (courseId, e) => {
     e.stopPropagation()
-    if (!confirm('Are you sure you want to archive and delete this course?')) return
+    const ok = await confirm('This will permanently remove the course and all its data. This action cannot be undone.', {
+      title: 'Delete Course?',
+      confirmLabel: 'Yes, Delete',
+      destructive: true
+    })
+    if (!ok) return
     try {
       await deleteCourse(courseId)
     } catch (err) {
-      alert('Error deleting course: ' + err.message)
+      toastError('Failed to delete course', err.message)
     }
   }
 
@@ -206,31 +214,26 @@ export default function TeacherCourseManager({ user, onSelectCourse, selectedCou
       </div>
 
       {/* Roster Management Drawer / Modal */}
-      {activeRosterCourse && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-2xl bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-5 text-text-primary max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-4 border-b border-border-subtle shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-accent/20 text-accent flex items-center justify-center font-bold">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-text-primary">{activeRosterCourse.title} — Class Roster</h3>
-                  <p className="text-xs text-text-muted">
-                    Course Code: <span className="font-mono font-bold text-accent">{activeRosterCourse.courseCode}</span> • {roster.length} Enrolled Students
-                  </p>
-                </div>
+      <Dialog open={!!activeRosterCourse} onOpenChange={(open) => !open && setActiveRosterCourse(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6 border-border-subtle bg-card rounded-3xl">
+          <DialogHeader className="pb-4 border-b border-border-subtle shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-accent/20 text-accent flex items-center justify-center font-bold">
+                <Users className="h-5 w-5" />
               </div>
-              <button onClick={() => setActiveRosterCourse(null)} className="p-1 rounded-lg text-text-muted hover:text-text-primary">
-                <X className="h-5 w-5" />
-              </button>
+              <div>
+                <DialogTitle className="font-bold text-base text-text-primary text-left">{activeRosterCourse?.title} — Class Roster</DialogTitle>
+                <DialogDescription className="text-xs text-text-muted text-left">
+                  Course Code: <span className="font-mono font-bold text-accent">{activeRosterCourse?.courseCode}</span> • {roster.length} Enrolled Students
+                </DialogDescription>
+              </div>
             </div>
+          </DialogHeader>
 
-            {/* Student Table */}
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
               {roster.length === 0 ? (
                 <div className="p-8 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-2xl">
-                  No students have enrolled in this course yet. Share code <span className="font-mono font-bold text-accent">{activeRosterCourse.courseCode}</span> with your class.
+                  No students have enrolled in this course yet. Share code <span className="font-mono font-bold text-accent">{activeRosterCourse?.courseCode}</span> with your class.
                 </div>
               ) : (
                 roster.map((st) => (
@@ -261,8 +264,13 @@ export default function TeacherCourseManager({ user, onSelectCourse, selectedCou
                       </span>
                       <button
                         onClick={async () => {
-                          if (confirm(`Remove student ${st.name} from the roster?`)) {
-                            await removeStudentFromRoster(activeRosterCourse.id, st.studentUid)
+                          const ok = await confirm(`Remove ${st.name} from the course roster?`, {
+                            title: 'Remove Student?',
+                            confirmLabel: 'Remove',
+                            destructive: true
+                          })
+                          if (ok) {
+                            await removeStudentFromRoster(activeRosterCourse?.id, st.studentUid)
                           }
                         }}
                         className="p-1.5 rounded-lg text-text-muted hover:text-semantic-red hover:bg-hover transition-colors"
@@ -285,23 +293,18 @@ export default function TeacherCourseManager({ user, onSelectCourse, selectedCou
                 Close Roster
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Create Course Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-lg bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-5 text-text-primary">
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
-                <School className="h-5 w-5 text-accent" />
-                Create New Academic Course
-              </h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-text-muted hover:text-text-primary">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-lg bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
+          <DialogHeader className="pb-3 border-b border-border-subtle">
+            <DialogTitle className="font-bold text-base text-text-primary flex items-center gap-2">
+              <School className="h-5 w-5 text-accent" />
+              Create New Academic Course
+            </DialogTitle>
+          </DialogHeader>
 
             <form onSubmit={handleCreateCourse} className="space-y-4 text-xs">
               <div className="space-y-1">
@@ -396,9 +399,8 @@ export default function TeacherCourseManager({ user, onSelectCourse, selectedCou
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

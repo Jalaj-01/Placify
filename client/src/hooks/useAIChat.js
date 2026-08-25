@@ -3,26 +3,53 @@ import { chatWithAI, analyzePreparation, generateInterviewBrief, explainTopic } 
 
 const STORAGE_KEY = 'ally_chat_messages_v1'
 
-const INITIAL_MESSAGES = [
-  {
+function getWelcomeMessage() {
+  const rawRole = (localStorage.getItem('placify_active_role') || '').toLowerCase().trim()
+  const role = rawRole === 'faculty' ? 'teacher' : (rawRole === 'research' ? 'phd' : rawRole)
+
+  if (role === 'teacher') {
+    return {
+      id: 'welcome',
+      role: 'assistant',
+      content: "Hi! I'm **Kai**, your AI Teaching & Pedagogy Coach. 🎓\n\nI can assist you with:\n- 📋 **Lesson Planning**: Draft structured lecture outlines and pacing plans.\n- ❓ **Quiz & Assessment Generation**: Auto-generate MCQs, coding problems, and rubrics.\n- 📊 **Student Performance Analysis**: Interpret assessment data and identify weak areas.\n- 🧑‍🏫 **Teaching Strategies**: Get pedagogy tips, active learning methods, and engagement techniques.\n\nWhat can I help you plan today?",
+      timestamp: new Date().toISOString(),
+    }
+  }
+
+  if (role === 'phd') {
+    return {
+      id: 'welcome',
+      role: 'assistant',
+      content: "Hi! I'm **Kai**, your AI Research Coach. 🔬\n\nI can assist you with:\n- 📄 **Paper Summarization**: Get concise abstracts and methodology breakdowns.\n- 📝 **LaTeX & Citation Help**: Format BibTeX, IEEE, and APA citations correctly.\n- ✉️ **Advisor Communication**: Draft milestone update emails and research proposals.\n- 🧠 **Research Gap Analysis**: Identify gaps in literature and suggest directions.\n\nWhat research challenge can I help you solve today?",
+      timestamp: new Date().toISOString(),
+    }
+  }
+
+  // default: student
+  return {
     id: 'welcome',
     role: 'assistant',
     content: "Hi! I'm **Kai**, your AI Placement & Coding Coach. ⚡\n\nI can assist you with:\n- 🎯 **Preparation Diagnostics**: Click **Analyze Prep** to diagnose your readiness level.\n- 💡 **Coding Doubts & DSA**: Ask me any question, code snippet, or debugging task.\n- 🏢 **Company Interview Guides**: Get custom company interview briefs.\n- 📚 **Topic Cheat Sheets**: Quick concept refreshers and definitions.\n\nWhat would you like to solve today?",
     timestamp: new Date().toISOString(),
-  },
-]
+  }
+}
 
 function getInitialMessages() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      // Validate: if the welcome message ID doesn't match the current role, reset
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const currentWelcome = getWelcomeMessage()
+        // Only use cached if welcome content matches current role
+        if (parsed[0]?.content === currentWelcome.content) return parsed
+      }
     }
   } catch (e) {
     console.error('Failed to load chat history', e)
   }
-  return INITIAL_MESSAGES
+  return [getWelcomeMessage()]
 }
 
 export function useAIChat() {
@@ -39,7 +66,8 @@ export function useAIChat() {
   }, [messages])
 
   const clearChat = useCallback(() => {
-    setMessages(INITIAL_MESSAGES)
+    const welcome = getWelcomeMessage()
+    setMessages([welcome])
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 

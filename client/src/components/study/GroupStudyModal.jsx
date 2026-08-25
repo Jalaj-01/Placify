@@ -617,9 +617,9 @@ export default function GroupStudyModal({ user }) {
           <form onSubmit={handleAddNote} className="flex flex-col bg-surface/40 border-t border-border-subtle">
             {/* WYSIWYG Toolbar */}
             <div className="p-2 border-b border-border-subtle flex items-center gap-1 flex-wrap text-text-muted bg-surface/80">
-              <button type="button" onClick={() => execCmd('bold')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Bold"><Bold className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={() => execCmd('italic')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Italic"><Italic className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={() => execCmd('underline')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Underline"><Underline className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => execCmd('bold')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Bold (Ctrl+B)"><Bold className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => execCmd('italic')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Italic (Ctrl+I)"><Italic className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => execCmd('underline')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Underline (Ctrl+U)"><Underline className="h-3.5 w-3.5" /></button>
               <div className="h-4 w-px bg-border-subtle mx-1" />
               <button type="button" onClick={() => execCmd('insertUnorderedList')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Bullet List"><List className="h-3.5 w-3.5" /></button>
               <button type="button" onClick={() => execCmd('insertOrderedList')} className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors" title="Numbered List"><ListOrdered className="h-3.5 w-3.5" /></button>
@@ -631,6 +631,24 @@ export default function GroupStudyModal({ user }) {
                 contentEditable
                 suppressContentEditableWarning
                 onInput={() => setNoteContent(editorRef.current?.innerHTML || '')}
+                onKeyDown={(e) => {
+                  if (e.ctrlKey || e.metaKey) {
+                    const k = e.key.toLowerCase()
+                    if (k === 'b') {
+                      e.preventDefault()
+                      execCmd('bold')
+                    } else if (k === 'i') {
+                      e.preventDefault()
+                      execCmd('italic')
+                    } else if (k === 'u') {
+                      e.preventDefault()
+                      execCmd('underline')
+                    } else if (k === 'h') {
+                      e.preventDefault()
+                      execCmd('formatBlock', '<h2>')
+                    }
+                  }
+                }}
                 placeholder="Type a rich-text note..."
                 className="flex-1 bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent min-h-[44px] max-h-[150px] overflow-y-auto [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 empty:before:content-[attr(placeholder)] empty:before:text-text-muted"
               />

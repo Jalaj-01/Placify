@@ -2,29 +2,85 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. Rule for Collection Group Queries on 'profile' subcollections
-    // This allows findUserByEmail to look up profiles by email across all users
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    // 1. Profile collection group lookups
     match /{path=**}/profile/{profileId} {
-      allow read: if request.auth != null;
+      allow read: if isAuth();
     }
 
-    // 2. Default rule for a user's entire private data tree
+    // 2. Users' private data tree
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null
-                          && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
     }
 
-    // 3. Rule for writing to your own profile explicitly (overriding the group block for updates)
+    // 3. Profile explicit write
     match /users/{userId}/profile/{profileId} {
-      allow write: if request.auth != null
-                   && request.auth.uid == userId;
+      allow write: if isOwner(userId);
     }
 
-    // 4. Sharing logic rules
+    // 4. Sharing
     match /users/{userId}/shares/{shareId} {
-      allow read, delete: if request.auth != null
-                          && request.auth.uid == userId;
-      allow create: if request.auth != null;
+      allow read, delete: if isOwner(userId);
+      allow create: if isAuth();
+    }
+
+    // ── TEACHER COLLECTIONS ──────────────────────────────────────
+
+    // 5. Courses + all subcollections (syllabus, roster, notices, research, assignments)
+    match /courses/{courseId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.instructorUid == request.auth.uid;
+
+      match /{subcollection}/{docId} {
+        allow read: if isAuth();
+        allow write: if isAuth();
+
+        match /{nested=**} {
+          allow read: if isAuth();
+          allow write: if isAuth();
+        }
+      }
+    }
+
+    // 6. Timetables (note: plural — matches teacherService collection name)
+    match /timetables/{slotId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.instructorUid == request.auth.uid;
+    }
+
+    // 7. Assignments (top-level collection used by TeacherAssignmentStudio)
+    match /assignments/{assignmentId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.instructorUid == request.auth.uid;
+
+      // Submissions subcollection — students write, teachers read
+      match /submissions/{submissionId} {
+        allow read: if isAuth();
+        allow write: if isAuth();
+      }
+    }
+
+    // 8. Office Hours (top-level, teachers create, students can book)
+    match /officeHours/{slotId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth();
+      allow delete: if isAuth() && resource.data.instructorUid == request.auth.uid;
+    }
+
+    // 9. Bookmarks
+    match /bookmarks/{bookmarkId} {
+      allow read, write: if isAuth();
     }
   }
 }

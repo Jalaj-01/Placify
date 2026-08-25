@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { ToastProvider } from '@/components/ui/toast'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import AuthGuard from '@/components/auth/AuthGuard'
 import Sidebar from '@/components/layout/Sidebar'
@@ -214,11 +215,13 @@ export default function App() {
   return (
     <ErrorBoundary>
       <TooltipProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </BrowserRouter>
+        </ToastProvider>
       </TooltipProvider>
     </ErrorBoundary>
   )

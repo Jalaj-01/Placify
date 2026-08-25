@@ -4,6 +4,8 @@ import {
   Check, X, Sparkles, ChevronRight, MessageSquare, ExternalLink,
   Kanban, Award, ShieldCheck
 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/toast'
 import {
   subscribeCourseResearchProjects, createResearchProject, updateResearchProject
 } from '@/services/teacherService'
@@ -28,6 +30,7 @@ const MILESTONE_LABELS = {
 }
 
 export default function TeacherResearchManager({ user, course }) {
+  const { success, error: toastError } = useToast()
   const [projects, setProjects] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedProject, setSelectedProject] = useState(null)
@@ -82,7 +85,7 @@ export default function TeacherResearchManager({ user, course }) {
         memberNames: ''
       })
     } catch (err) {
-      alert('Error creating research project: ' + err.message)
+      toastError('Error creating project', err.message)
     }
   }
 
@@ -100,7 +103,7 @@ export default function TeacherResearchManager({ user, course }) {
         milestones: updatedMilestones
       })
     } catch (err) {
-      alert('Error advancing milestone: ' + err.message)
+      toastError('Error advancing milestone', err.message)
     }
   }
 
@@ -190,18 +193,14 @@ export default function TeacherResearchManager({ user, course }) {
       </div>
 
       {/* Create Research Group Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-lg bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-4 text-text-primary">
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
-                <GraduationCap className="h-5 w-5 text-accent" />
-                Register Research Project Group
-              </h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-text-muted hover:text-text-primary">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-lg bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
+          <DialogHeader className="pb-3 border-b border-border-subtle">
+            <DialogTitle className="font-bold text-base text-text-primary flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-accent" />
+              Register Research Project Group
+            </DialogTitle>
+          </DialogHeader>
 
             <form onSubmit={handleCreate} className="space-y-3 text-xs">
               <div className="space-y-1">
@@ -287,9 +286,8 @@ export default function TeacherResearchManager({ user, course }) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

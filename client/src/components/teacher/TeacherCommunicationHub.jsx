@@ -3,6 +3,8 @@ import {
   Bell, Plus, Calendar, Clock, Pin, UserCheck, MessageSquare,
   Sparkles, Trash2, Send, X, AlertCircle, CheckCircle2, ShieldCheck
 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/toast'
 import {
   subscribeCourseNotices, createCourseNotice, deleteCourseNotice,
   subscribeOfficeHours, addOfficeHourSlot, deleteOfficeHourSlot
@@ -10,6 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 
 export default function TeacherCommunicationHub({ user, course }) {
+  const { success, error: toastError, confirm } = useToast()
   const [notices, setNotices] = useState([])
   const [officeHours, setOfficeHours] = useState([])
   const [showNoticeModal, setShowNoticeModal] = useState(false)
@@ -59,7 +62,7 @@ export default function TeacherCommunicationHub({ user, course }) {
       setShowNoticeModal(false)
       setNoticeForm({ title: '', content: '', priority: 'NORMAL', isPinned: false })
     } catch (err) {
-      alert('Error broadcasting notice: ' + err.message)
+      toastError('Failed to post notice', err.message)
     }
   }
 
@@ -73,7 +76,7 @@ export default function TeacherCommunicationHub({ user, course }) {
       })
       setShowSlotModal(false)
     } catch (err) {
-      alert('Error creating office hour slot: ' + err.message)
+      toastError('Failed to add office slot', err.message)
     }
   }
 
@@ -127,7 +130,12 @@ export default function TeacherCommunicationHub({ user, course }) {
 
                 <button
                   onClick={async () => {
-                    if (confirm('Delete this notice?')) {
+                    const ok = await confirm('This notice will be permanently removed.', {
+                      title: 'Delete Notice?',
+                      confirmLabel: 'Delete',
+                      destructive: true
+                    })
+                    if (ok) {
                       await deleteCourseNotice(course.id, notice.id)
                     }
                   }}
@@ -200,7 +208,12 @@ export default function TeacherCommunicationHub({ user, course }) {
                   </span>
                   <button
                     onClick={async () => {
-                      if (confirm('Delete this office hour slot?')) {
+                      const ok = await confirm('This office hour slot will be removed.', {
+                        title: 'Delete Slot?',
+                        confirmLabel: 'Delete',
+                        destructive: true
+                      })
+                      if (ok) {
                         await deleteOfficeHourSlot(slot.id)
                       }
                     }}
@@ -238,18 +251,14 @@ export default function TeacherCommunicationHub({ user, course }) {
       </div>
 
       {/* Post Notice Modal */}
-      {showNoticeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-4 text-text-primary">
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
-                <Bell className="h-5 w-5 text-accent" />
-                Post Classroom Announcement
-              </h3>
-              <button onClick={() => setShowNoticeModal(false)} className="text-text-muted hover:text-text-primary">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <Dialog open={showNoticeModal} onOpenChange={setShowNoticeModal}>
+        <DialogContent className="max-w-md bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
+          <DialogHeader className="pb-3 border-b border-border-subtle">
+            <DialogTitle className="font-bold text-base text-text-primary flex items-center gap-2">
+              <Bell className="h-5 w-5 text-accent" />
+              Post Classroom Announcement
+            </DialogTitle>
+          </DialogHeader>
 
             <form onSubmit={handleCreateNotice} className="space-y-3 text-xs">
               <div className="space-y-1">
@@ -314,23 +323,18 @@ export default function TeacherCommunicationHub({ user, course }) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Add Office Hour Slot Modal */}
-      {showSlotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-card border border-border-subtle rounded-3xl p-6 shadow-2xl space-y-4 text-text-primary">
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
-                <Clock className="h-5 w-5 text-purple-400" />
-                Add 15-Min Office Hour Slot
-              </h3>
-              <button onClick={() => setShowSlotModal(false)} className="text-text-muted hover:text-text-primary">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <Dialog open={showSlotModal} onOpenChange={setShowSlotModal}>
+        <DialogContent className="max-w-md bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
+          <DialogHeader className="pb-3 border-b border-border-subtle">
+            <DialogTitle className="font-bold text-base text-text-primary flex items-center gap-2">
+              <Clock className="h-5 w-5 text-purple-400" />
+              Add 15-Min Office Hour Slot
+            </DialogTitle>
+          </DialogHeader>
 
             <form onSubmit={handleAddOfficeSlot} className="space-y-3 text-xs">
               <div className="space-y-1">
@@ -394,9 +398,8 @@ export default function TeacherCommunicationHub({ user, course }) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

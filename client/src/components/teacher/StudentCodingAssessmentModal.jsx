@@ -4,9 +4,11 @@ import {
   XCircle, Clock, Lock, Terminal, X, Sparkles, Check, ChevronRight
 } from 'lucide-react'
 import { saveAssignmentSubmission } from '@/services/teacherService'
+import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 
 export default function StudentCodingAssessmentModal({ user, assignment, onClose, onSubmitted }) {
+  const { confirm } = useToast()
   const allowedLangs = assignment?.allowedLanguages || ['python', 'java', 'cpp']
   const [selectedLanguage, setSelectedLanguage] = useState(allowedLangs[0] || 'python')
   const [code, setCode] = useState(assignment?.boilerplates?.[selectedLanguage] || 'def solution():\n    pass')
@@ -133,7 +135,14 @@ export default function StudentCodingAssessmentModal({ user, assignment, onClose
 
   // Final Submission against All Test Cases (Including Hidden)
   const handleFinalSubmit = async (forcedByViolation = false) => {
-    if (!forcedByViolation && !confirm('Submit your final code for automated evaluation and grading?')) return
+    if (!forcedByViolation) {
+      const ok = await confirm('Your code will be evaluated against all test cases including hidden ones. This cannot be undone.', {
+        title: 'Submit Final Code?',
+        confirmLabel: 'Submit for Grading',
+        destructive: false
+      })
+      if (!ok) return
+    }
 
     setIsSubmitting(true)
     try {
@@ -289,6 +298,13 @@ export default function StudentCodingAssessmentModal({ user, assignment, onClose
                   )}
                 </div>
               ))}
+
+              {assignment?.testCases?.some(t => t.isHidden) && (
+                <div className="mt-4 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500 dark:text-purple-400 text-[11px] font-bold flex items-center gap-2 shadow-sm">
+                  <Lock className="h-4 w-4 shrink-0" />
+                  <span>This assessment includes {assignment.testCases.filter(t => t.isHidden).length} hidden test cases used for final grading.</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
