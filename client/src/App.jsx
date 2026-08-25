@@ -22,6 +22,7 @@ import AICoach from '@/pages/AICoach'
 import Playground from '@/pages/Playground'
 import Library from '@/pages/Library'
 import Courses from '@/pages/Courses'
+import ClassroomVault from '@/pages/ClassroomVault'
 import Bookmarks from '@/pages/Bookmarks'
 import Shares from '@/pages/Shares'
 import Landing from '@/pages/Landing'
@@ -175,6 +176,15 @@ function AppContent() {
             <PageWrapper>
               <TopBar title="Resource Library" />
               <Library />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/classroom"
+          element={
+            <PageWrapper>
+              <TopBar title="Classroom Vault" />
+              <ClassroomVault />
             </PageWrapper>
           }
         />

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles,
   ChevronLeft, ChevronRight, LogOut, Terminal, FolderOpen, Youtube,
-  Bookmark, Share2, Sun, Moon, Timer, StickyNote, MailOpen
+  Bookmark, Share2, Sun, Moon, Timer, StickyNote, MailOpen, School
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -16,6 +16,7 @@ const allNavItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['student', 'teacher', 'phd'] },
 
   // Student-Only Tools
+  { to: '/classroom', icon: School, label: 'Classroom Vault', roles: ['student'] },
   { to: '/problems', icon: Code2, label: 'Problem Log', roles: ['student'] },
   { to: '/topics', icon: BookOpen, label: 'Topic Mastery', roles: ['student'] },
   { to: '/applications', icon: Briefcase, label: 'Applications', roles: ['student'] },

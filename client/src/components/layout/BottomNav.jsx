@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles, Terminal, FolderOpen, Share2 } from 'lucide-react'
+import { LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles, Terminal, FolderOpen, Share2, School } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 
 const allItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Home', roles: ['student', 'teacher', 'phd'] },
+  { to: '/classroom', icon: School, label: 'Classroom', roles: ['student'] },
   { to: '/problems', icon: Code2, label: 'Problems', roles: ['student'] },
   { to: '/topics', icon: BookOpen, label: 'Topics', roles: ['student'] },
   { to: '/applications', icon: Briefcase, label: 'Apps', roles: ['student'] },

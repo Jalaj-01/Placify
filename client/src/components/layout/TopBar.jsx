@@ -1,4 +1,4 @@
-import { WifiOff, FolderOpen, Youtube, Bookmark, LogOut, Share2, Sun, Moon } from 'lucide-react'
+import { WifiOff, FolderOpen, Youtube, Bookmark, LogOut, Share2, Sun, Moon, School } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
@@ -25,6 +25,9 @@ export default function TopBar({ title }) {
           >
             {theme === 'dark' ? <Sun className="h-4.5 w-4.5 text-yellow-400" /> : <Moon className="h-4.5 w-4.5 text-accent" />}
           </button>
+          <Link to="/classroom" className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors" title="Classroom Vault">
+            <School className="h-4.5 w-4.5" />
+          </Link>
           <Link to="/library" className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors" title="Library">
             <FolderOpen className="h-4.5 w-4.5" />
           </Link>
