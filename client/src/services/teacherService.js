@@ -464,6 +464,13 @@ export async function createCourseNotice(courseId, noticeData) {
   return newNotice
 }
 
+export async function updateCourseNotice(courseId, noticeId, noticeData) {
+  await updateDoc(doc(db, 'courses', courseId, 'notices', noticeId), {
+    ...noticeData,
+    updatedAt: serverTimestamp()
+  })
+}
+
 export async function deleteCourseNotice(courseId, noticeId) {
   await deleteDoc(doc(db, 'courses', courseId, 'notices', noticeId))
 }

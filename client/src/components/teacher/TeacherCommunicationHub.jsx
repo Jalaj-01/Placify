@@ -2,29 +2,49 @@ import { useState, useEffect } from 'react'
 import {
   Bell, Plus, Calendar, Clock, Pin, UserCheck, MessageSquare,
   Sparkles, Trash2, Send, X, AlertCircle, CheckCircle2, ShieldCheck,
-  Video, MapPin, ExternalLink, RefreshCw, Undo2
+  Video, MapPin, ExternalLink, RefreshCw, Undo2, Edit3, Timer, Hourglass
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
+import CustomDropdown from '@/components/ui/CustomDropdown'
 import {
-  subscribeCourseNotices, createCourseNotice, deleteCourseNotice,
+  subscribeCourseNotices, createCourseNotice, updateCourseNotice, deleteCourseNotice,
   subscribeOfficeHours, addOfficeHourSlot, batchCreateOfficeHourSlots,
   deleteOfficeHourSlot, cancelOfficeHourBooking
 } from '@/services/teacherService'
 import { cn } from '@/lib/utils'
+
+export function getNoticeExpiryInfo(expiresAt) {
+  if (!expiresAt) return null
+  const exp = new Date(expiresAt).getTime()
+  const now = Date.now()
+  const diffMs = exp - now
+  if (diffMs <= 0) {
+    return { label: 'Expired', isExpired: true }
+  }
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays > 0) {
+    return { label: `Expires in ${diffDays}d`, isExpired: false }
+  }
+  return { label: `Expires in ${diffHours}h`, isExpired: false }
+}
 
 export default function TeacherCommunicationHub({ user, course }) {
   const { success, error: toastError, confirm } = useToast()
   const [notices, setNotices] = useState([])
   const [officeHours, setOfficeHours] = useState([])
   const [showNoticeModal, setShowNoticeModal] = useState(false)
+  const [editingNotice, setEditingNotice] = useState(null)
   const [showSlotModal, setShowSlotModal] = useState(false)
 
   const [noticeForm, setNoticeForm] = useState({
     title: '',
     content: '',
     priority: 'NORMAL',
-    isPinned: false
+    isPinned: false,
+    expiryOption: 'never',
+    customExpiryDate: ''
   })
 
   const [slotForm, setSlotForm] = useState({
@@ -51,21 +71,79 @@ export default function TeacherCommunicationHub({ user, course }) {
     return unsub
   }, [user?.uid])
 
-  const handleCreateNotice = async (e) => {
+  const handleOpenCreateNotice = () => {
+    setEditingNotice(null)
+    setNoticeForm({
+      title: '',
+      content: '',
+      priority: 'NORMAL',
+      isPinned: false,
+      expiryOption: 'never',
+      customExpiryDate: ''
+    })
+    setShowNoticeModal(true)
+  }
+
+  const handleOpenEditNotice = (notice) => {
+    setEditingNotice(notice)
+    let expiryOption = 'never'
+    let customExpiryDate = ''
+
+    if (notice.expiresAt) {
+      expiryOption = 'custom'
+      customExpiryDate = new Date(notice.expiresAt).toISOString().slice(0, 16)
+    }
+
+    setNoticeForm({
+      title: notice.title || '',
+      content: notice.content || '',
+      priority: notice.priority || 'NORMAL',
+      isPinned: !!notice.isPinned,
+      expiryOption,
+      customExpiryDate
+    })
+    setShowNoticeModal(true)
+  }
+
+  const handleSaveNotice = async (e) => {
     e.preventDefault()
     if (!noticeForm.title.trim() || !noticeForm.content.trim()) return
 
+    // Compute expiresAt ISO
+    let computedExpiresAt = null
+    const now = Date.now()
+    if (noticeForm.expiryOption === '24h') {
+      computedExpiresAt = new Date(now + 24 * 60 * 60 * 1000).toISOString()
+    } else if (noticeForm.expiryOption === '3d') {
+      computedExpiresAt = new Date(now + 3 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (noticeForm.expiryOption === '7d') {
+      computedExpiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (noticeForm.expiryOption === 'custom' && noticeForm.customExpiryDate) {
+      computedExpiresAt = new Date(noticeForm.customExpiryDate).toISOString()
+    }
+
     try {
-      await createCourseNotice(course.id, {
-        ...noticeForm,
+      const payload = {
+        title: noticeForm.title.trim(),
+        content: noticeForm.content.trim(),
+        priority: noticeForm.priority,
+        isPinned: noticeForm.isPinned,
+        expiresAt: computedExpiresAt,
         instructorUid: user.uid,
         instructorName: user.displayName || 'Instructor'
-      })
+      }
+
+      if (editingNotice) {
+        await updateCourseNotice(course.id, editingNotice.id, payload)
+        success('Notice Updated', 'Changes saved successfully.')
+      } else {
+        await createCourseNotice(course.id, payload)
+        success('Notice Published', 'Classroom announcement broadcasted to all students.')
+      }
       setShowNoticeModal(false)
-      setNoticeForm({ title: '', content: '', priority: 'NORMAL', isPinned: false })
-      success('Notice Published', 'Classroom announcement broadcasted to all students.')
+      setEditingNotice(null)
     } catch (err) {
-      toastError('Failed to post notice', err.message)
+      toastError('Failed to save notice', err.message)
     }
   }
 
@@ -160,7 +238,7 @@ export default function TeacherCommunicationHub({ user, course }) {
           </div>
 
           <button
-            onClick={() => setShowNoticeModal(true)}
+            onClick={handleOpenCreateNotice}
             className="px-3.5 py-2 rounded-xl bg-accent hover:bg-accent-light text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-accent/20 transition-all cursor-pointer"
           >
             <Plus className="h-4 w-4" /> Post Notice
@@ -168,56 +246,88 @@ export default function TeacherCommunicationHub({ user, course }) {
         </div>
 
         <div className="space-y-3">
-          {notices.map((notice) => (
-            <div
-              key={notice.id}
-              className={cn(
-                "p-4 rounded-2xl border transition-all space-y-2 relative shadow-sm",
-                notice.isPinned ? "bg-accent/10 border-accent/30" : "bg-card border-border-subtle"
-              )}
-            >
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  {notice.isPinned && (
-                    <span className="px-2 py-0.5 rounded bg-accent text-white text-[10px] font-bold flex items-center gap-1">
-                      <Pin className="h-3 w-3" /> Pinned
+          {notices.map((notice) => {
+            const expiryInfo = getNoticeExpiryInfo(notice.expiresAt)
+
+            return (
+              <div
+                key={notice.id}
+                className={cn(
+                  "p-4 rounded-2xl border transition-all space-y-2 relative shadow-sm",
+                  notice.isPinned ? "bg-accent/10 border-accent/30" : "bg-card border-border-subtle"
+                )}
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {notice.isPinned && (
+                      <span className="px-2 py-0.5 rounded bg-accent text-white text-[10px] font-bold flex items-center gap-1">
+                        <Pin className="h-3 w-3" /> Pinned
+                      </span>
+                    )}
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-bold",
+                      notice.priority === 'URGENT'
+                        ? "bg-semantic-red/15 text-semantic-red border border-semantic-red/20"
+                        : notice.priority === 'IMPORTANT'
+                        ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                        : "bg-surface text-text-muted border border-border-subtle"
+                    )}>
+                      {notice.priority}
                     </span>
-                  )}
-                  <span className={cn(
-                    "px-2 py-0.5 rounded text-[10px] font-bold",
-                    notice.priority === 'URGENT' ? "bg-semantic-red/15 text-semantic-red" : "bg-surface text-text-muted"
-                  )}>
-                    {notice.priority}
-                  </span>
-                  <span className="font-bold text-text-primary text-xs">{notice.title}</span>
+
+                    {expiryInfo && (
+                      <span className={cn(
+                        "px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 border",
+                        expiryInfo.isExpired
+                          ? "bg-semantic-red/10 text-semantic-red border-semantic-red/20"
+                          : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 font-mono"
+                      )}>
+                        <Timer className="h-3 w-3" />
+                        {expiryInfo.label}
+                      </span>
+                    )}
+
+                    <span className="font-bold text-text-primary text-xs">{notice.title}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEditNotice(notice)}
+                      className="text-text-muted hover:text-accent p-1.5 rounded-lg hover:bg-surface transition-colors cursor-pointer"
+                      title="Edit Notice"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const ok = await confirm('This notice will be permanently removed.', {
+                          title: 'Delete Notice?',
+                          confirmLabel: 'Delete',
+                          destructive: true
+                        })
+                        if (ok) {
+                          await deleteCourseNotice(course.id, notice.id)
+                        }
+                      }}
+                      className="text-text-muted hover:text-semantic-red p-1.5 rounded-lg hover:bg-surface transition-colors cursor-pointer"
+                      title="Delete Notice"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
 
-                <button
-                  onClick={async () => {
-                    const ok = await confirm('This notice will be permanently removed.', {
-                      title: 'Delete Notice?',
-                      confirmLabel: 'Delete',
-                      destructive: true
-                    })
-                    if (ok) {
-                      await deleteCourseNotice(course.id, notice.id)
-                    }
-                  }}
-                  className="text-text-muted hover:text-semantic-red p-1 cursor-pointer"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
+                <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
+                  {notice.content}
+                </p>
 
-              <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
-                {notice.content}
-              </p>
-
-              <div className="text-[10px] text-text-muted font-mono pt-1">
-                Posted by {notice.instructorName} • {new Date(notice.createdAt?.toDate?.() || Date.now()).toLocaleDateString()}
+                <div className="text-[10px] text-text-muted font-mono pt-1">
+                  Posted by {notice.instructorName} • {new Date(notice.createdAt?.toDate?.() || Date.now()).toLocaleDateString()}
+                  {notice.updatedAt && ' (Edited)'}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
 
           {notices.length === 0 && (
             <div className="p-8 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-2xl bg-card">
@@ -365,17 +475,20 @@ export default function TeacherCommunicationHub({ user, course }) {
         </div>
       </div>
 
-      {/* Post Notice Modal */}
+      {/* Post / Edit Notice Modal */}
       <Dialog open={showNoticeModal} onOpenChange={setShowNoticeModal}>
-        <DialogContent className="max-w-md bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
+        <DialogContent className="max-w-lg bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
           <DialogHeader className="pb-3 border-b border-border-subtle">
             <DialogTitle className="font-bold text-base text-text-primary flex items-center gap-2">
               <Bell className="h-5 w-5 text-accent" />
-              Post Classroom Announcement
+              {editingNotice ? 'Edit Classroom Announcement' : 'Post Classroom Announcement'}
             </DialogTitle>
+            <DialogDescription className="text-xs text-text-muted">
+              {editingNotice ? 'Update the notice details, priority, or auto-expiration timer.' : 'Broadcast urgent updates, exam notifications, and assignments to all students.'}
+            </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleCreateNotice} className="space-y-3.5 text-xs">
+          <form onSubmit={handleSaveNotice} className="space-y-4 text-xs">
             <div className="space-y-1">
               <label className="text-text-secondary font-bold block">Notice Title *</label>
               <input
@@ -396,37 +509,79 @@ export default function TeacherCommunicationHub({ user, course }) {
                 placeholder="Full instructions, room change details, or links..."
                 value={noticeForm.content}
                 onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })}
-                className="w-full bg-base border border-border-subtle rounded-xl p-3 text-text-primary focus:outline-none focus:border-accent resize-none"
+                className="w-full bg-base border border-border-subtle rounded-xl p-3 text-text-primary focus:outline-none focus:border-accent resize-none leading-relaxed"
               />
             </div>
 
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer font-bold">
+            {/* Priority & Expiry Controls using sleek CustomDropdown */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1">
+                <label className="text-text-secondary font-bold block">Announcement Priority</label>
+                <CustomDropdown
+                  options={[
+                    { value: 'NORMAL', label: 'Normal Priority', badge: 'Normal' },
+                    { value: 'IMPORTANT', label: 'Important Notice', badge: 'Important' },
+                    { value: 'URGENT', label: 'Urgent Priority', badge: 'Urgent' }
+                  ]}
+                  value={noticeForm.priority}
+                  onChange={(val) => setNoticeForm({ ...noticeForm, priority: val })}
+                  className="w-full"
+                  buttonClassName="w-full justify-between rounded-xl font-bold border-border-subtle"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-text-secondary font-bold block">Auto-Expire Timer</label>
+                <CustomDropdown
+                  options={[
+                    { value: 'never', label: 'Never (Persistent)', icon: Clock },
+                    { value: '24h', label: 'Expires in 24 Hours', icon: Timer },
+                    { value: '3d', label: 'Expires in 3 Days', icon: Timer },
+                    { value: '7d', label: 'Expires in 7 Days', icon: Timer },
+                    { value: 'custom', label: 'Custom Expiry Date...', icon: Calendar }
+                  ]}
+                  value={noticeForm.expiryOption}
+                  onChange={(val) => setNoticeForm({ ...noticeForm, expiryOption: val })}
+                  className="w-full"
+                  buttonClassName="w-full justify-between rounded-xl font-bold border-border-subtle"
+                />
+              </div>
+            </div>
+
+            {/* Custom Expiry Date picker if selected */}
+            {noticeForm.expiryOption === 'custom' && (
+              <div className="p-3 rounded-2xl bg-surface border border-border-subtle space-y-1.5 animate-in fade-in duration-150">
+                <label className="text-text-secondary font-bold block">Select Custom Expiration Date & Time</label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={noticeForm.customExpiryDate}
+                  onChange={(e) => setNoticeForm({ ...noticeForm, customExpiryDate: e.target.value })}
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-text-primary focus:outline-none focus:border-accent"
+                />
+              </div>
+            )}
+
+            <div className="pt-1">
+              <label className="flex items-center gap-2 cursor-pointer font-bold select-none">
                 <input
                   type="checkbox"
                   checked={noticeForm.isPinned}
                   onChange={(e) => setNoticeForm({ ...noticeForm, isPinned: e.target.checked })}
-                  className="rounded accent-accent"
+                  className="rounded accent-accent h-4 w-4"
                 />
-                <span>Pin to top of notice board</span>
+                <span className="text-text-primary">Pin announcement to top of classroom notice board</span>
               </label>
-
-              <select
-                value={noticeForm.priority}
-                onChange={(e) => setNoticeForm({ ...noticeForm, priority: e.target.value })}
-                className="bg-base border border-border-subtle rounded-xl px-3 py-1.5 text-text-primary font-bold text-xs"
-              >
-                <option value="NORMAL">Normal Priority</option>
-                <option value="IMPORTANT">Important</option>
-                <option value="URGENT">Urgent Priority</option>
-              </select>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border-subtle">
               <button
                 type="button"
-                onClick={() => setShowNoticeModal(false)}
-                className="px-4 py-2 rounded-xl text-text-secondary hover:text-text-primary font-bold"
+                onClick={() => {
+                  setShowNoticeModal(false)
+                  setEditingNotice(null)
+                }}
+                className="px-4 py-2 rounded-xl text-text-secondary hover:text-text-primary font-bold cursor-pointer"
               >
                 Cancel
               </button>
@@ -434,7 +589,7 @@ export default function TeacherCommunicationHub({ user, course }) {
                 type="submit"
                 className="px-6 py-2.5 rounded-xl bg-accent hover:bg-accent-light text-white font-bold shadow-lg shadow-accent/25 cursor-pointer"
               >
-                Broadcast Notice
+                {editingNotice ? 'Save Changes' : 'Broadcast Notice'}
               </button>
             </div>
           </form>

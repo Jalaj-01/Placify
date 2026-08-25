@@ -3,13 +3,14 @@ import {
   School, Bell, Calendar, Clock, Code2, Layers, Users, Plus,
   Sparkles, Pin, CheckCircle2, UserCheck, ExternalLink, ArrowRight,
   BookOpen, Trash2, Undo2, MapPin, Video, Award, AlertCircle, Play,
-  UserMinus, LogOut
+  UserMinus, LogOut, Timer
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import CustomDropdown from '@/components/ui/CustomDropdown'
 import StudentCourseEnrollModal from '@/components/teacher/StudentCourseEnrollModal'
 import StudentCodingAssessmentModal from '@/components/teacher/StudentCodingAssessmentModal'
+import { getNoticeExpiryInfo } from '@/components/teacher/TeacherCommunicationHub'
 import {
   subscribeStudentEnrolledCourses,
   subscribeCourseNotices,
@@ -375,44 +376,66 @@ export default function StudentClassroomVault({ user, profile }) {
           {/* Tab 1: Notices */}
           {activeTab === 'notices' && (
             <div className="space-y-3">
-              {notices.map((n) => (
-                <div
-                  key={n.id}
-                  className={cn(
-                    "p-5 rounded-2xl border transition-all space-y-2 shadow-sm",
-                    n.isPinned ? "bg-accent/10 border-accent/30 ring-1 ring-accent/20" : "bg-card border-border-subtle"
-                  )}
-                >
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {n.isPinned && (
-                        <span className="px-2 py-0.5 rounded-md bg-accent text-white text-[10px] font-bold flex items-center gap-1">
-                          <Pin className="h-3 w-3" /> Pinned
+              {notices.map((n) => {
+                const expiryInfo = getNoticeExpiryInfo(n.expiresAt)
+
+                return (
+                  <div
+                    key={n.id}
+                    className={cn(
+                      "p-5 rounded-2xl border transition-all space-y-2 shadow-sm",
+                      n.isPinned ? "bg-accent/10 border-accent/30 ring-1 ring-accent/20" : "bg-card border-border-subtle"
+                    )}
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {n.isPinned && (
+                          <span className="px-2 py-0.5 rounded-md bg-accent text-white text-[10px] font-bold flex items-center gap-1">
+                            <Pin className="h-3 w-3" /> Pinned
+                          </span>
+                        )}
+                        <span className={cn(
+                          "px-2 py-0.5 rounded text-[10px] font-bold",
+                          n.priority === 'URGENT'
+                            ? "bg-semantic-red/15 text-semantic-red border border-semantic-red/20"
+                            : n.priority === 'IMPORTANT'
+                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                            : "bg-surface text-text-muted border border-border-subtle"
+                        )}>
+                          {n.priority}
                         </span>
-                      )}
-                      <span className={cn(
-                        "px-2 py-0.5 rounded text-[10px] font-bold",
-                        n.priority === 'URGENT' ? "bg-semantic-red/15 text-semantic-red" : "bg-surface text-text-muted border border-border-subtle"
-                      )}>
-                        {n.priority}
+
+                        {expiryInfo && (
+                          <span className={cn(
+                            "px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 border",
+                            expiryInfo.isExpired
+                              ? "bg-semantic-red/10 text-semantic-red border-semantic-red/20"
+                              : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 font-mono"
+                          )}>
+                            <Timer className="h-3 w-3" />
+                            {expiryInfo.label}
+                          </span>
+                        )}
+
+                        <h4 className="font-bold text-sm text-text-primary">{n.title}</h4>
+                      </div>
+
+                      <span className="text-[11px] text-text-muted font-mono">
+                        {new Date(n.createdAt?.toDate?.() || Date.now()).toLocaleDateString()}
                       </span>
-                      <h4 className="font-bold text-sm text-text-primary">{n.title}</h4>
                     </div>
 
-                    <span className="text-[11px] text-text-muted font-mono">
-                      {new Date(n.createdAt?.toDate?.() || Date.now()).toLocaleDateString()}
-                    </span>
-                  </div>
+                    <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
+                      {n.content}
+                    </p>
 
-                  <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
-                    {n.content}
-                  </p>
-
-                  <div className="text-[10px] text-text-muted font-mono pt-1">
-                    Published by {n.instructorName || 'Course Instructor'}
+                    <div className="text-[10px] text-text-muted font-mono pt-1">
+                      Published by {n.instructorName || 'Course Instructor'}
+                      {n.updatedAt && ' (Edited)'}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
 
               {notices.length === 0 && (
                 <div className="p-8 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-2xl bg-card">
