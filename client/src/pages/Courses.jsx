@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity, Minimize2, Maximize2, Share2, Terminal, CheckCircle2, Download, Pencil, FileCode, School, Bold, Italic, Underline, Heading, List, ListOrdered, Code, Link2, Eye, Edit3, Sparkles } from 'lucide-react'
+import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity, Minimize2, Maximize2, Share2, Terminal, CheckCircle2, Download, Pencil, FileCode, School, Bold, Italic, Underline, List, ListOrdered, Link2, Sparkles } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCourses } from '@/hooks/useCourses'
 import { usePlayground } from '@/hooks/usePlayground'
@@ -13,7 +13,6 @@ import { apiCall } from '@/services/apiClient'
 import ShareDialog from '@/components/share/ShareDialog'
 import { Badge } from '@/components/ui/badge'
 import StudentCourseEnrollModal from '@/components/teacher/StudentCourseEnrollModal'
-import NotesMarkdownViewer from '@/components/notes/NotesMarkdownViewer'
 
 const VERILOG_DEFAULT_CODE = `module test;
     reg [3:0] a, b;
@@ -41,6 +40,84 @@ module adder(
     assign sum = a + b;
 endmodule`
 
+// Normalize any legacy markdown text or unformatted note to rich styled HTML
+export function normalizeNoteContentToHtml(content) {
+  if (!content) return ''
+  const text = String(content).trim()
+  if (!text) return ''
+
+  // If already clean HTML without raw markdown markers, return as is
+  if (/<(p|div|h[1-6]|ul|ol|li|strong|b|em|i|u|span|blockquote|code|pre)\b[^>]*>/i.test(text) && 
+      !text.includes('##') && !text.includes('****') && !text.includes('#<u>')) {
+    return text
+  }
+
+  // Convert legacy markdown syntax to clean HTML tags
+  const lines = text.split('\n')
+  const htmlLines = []
+  let inUl = false
+  let inOl = false
+
+  const parseInlineStyles = (str) => {
+    return str
+      .replace(/\*{3,4}(.*?)\*{3,4}/g, '<strong>$1</strong>')
+      .replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>')
+      .replace(/\*\s*([^0-9\*\.\n][^\*]*?)\s*\*/g, '<em>$1</em>')
+      .replace(new RegExp('`([^`]+)`', 'g'), '<code>$1</code>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim()
+    if (!line) {
+      if (inUl) { htmlLines.push('</ul>'); inUl = false }
+      if (inOl) { htmlLines.push('</ol>'); inOl = false }
+      htmlLines.push('<p><br></p>')
+      continue
+    }
+
+    line = parseInlineStyles(line)
+
+    // Heading: ## or # or #<u>...</u>
+    if (/^#{1,4}\s*/.test(line)) {
+      if (inUl) { htmlLines.push('</ul>'); inUl = false }
+      if (inOl) { htmlLines.push('</ol>'); inOl = false }
+      const cleanHeading = line.replace(/^#{1,4}\s*/, '')
+      htmlLines.push(`<h2>${cleanHeading}</h2>`)
+      continue
+    }
+
+    // Numbered list: 1. or 2.
+    const numMatch = line.match(/^(\*|\*{4})?\s*(\d+)\.\s*(.*?)\s*(\*|\*{4})?$/)
+    if (numMatch) {
+      if (inUl) { htmlLines.push('</ul>'); inUl = false }
+      if (!inOl) { htmlLines.push('<ol>'); inOl = true }
+      const itemText = numMatch[3]
+      htmlLines.push(`<li>${itemText}</li>`)
+      continue
+    }
+
+    // Bullet list: - or *
+    if (/^[-*]\s+/.test(line)) {
+      if (inOl) { htmlLines.push('</ol>'); inOl = false }
+      if (!inUl) { htmlLines.push('<ul>'); inUl = true }
+      const itemText = line.replace(/^[-*]\s+/, '')
+      htmlLines.push(`<li>${itemText}</li>`)
+      continue
+    }
+
+    if (inUl) { htmlLines.push('</ul>'); inUl = false }
+    if (inOl) { htmlLines.push('</ol>'); inOl = false }
+
+    htmlLines.push(`<p>${line}</p>`)
+  }
+
+  if (inUl) htmlLines.push('</ul>')
+  if (inOl) htmlLines.push('</ol>')
+
+  return htmlLines.join('')
+}
+
 export default function Courses() {
   const { user } = useAuth()
   const { courses, loading, addCourse, deleteCourse, updateNotes, updateProgress } = useCourses(user?.uid)
@@ -59,12 +136,11 @@ export default function Courses() {
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
 
-  // Notes states & refs
+  // Notes states & WYSIWYG ref
   const [localNotes, setLocalNotes] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
   const [isNotesDirty, setIsNotesDirty] = useState(false)
-  const [notesTab, setNotesTab] = useState('write') // 'write' | 'preview'
-  const notesTextareaRef = useRef(null)
+  const notesEditorRef = useRef(null)
 
   // Progress states & YouTube Player ref
   const playerRef = useRef(null)
@@ -359,7 +435,11 @@ export default function Courses() {
     if (courses.length > 0 && !activeCourse) {
       const initialCourse = courses[0]
       setActiveCourse(initialCourse)
-      setLocalNotes(initialCourse.notes || '')
+      const normalized = normalizeNoteContentToHtml(initialCourse.notes || '')
+      setLocalNotes(normalized)
+      if (notesEditorRef.current) {
+        notesEditorRef.current.innerHTML = normalized
+      }
       setOverrideVideoId('')
       
       const resumeTime = getSavedResumeTime(initialCourse, initialCourse.progress?.lastVideoId || initialCourse.embedId)
@@ -371,6 +451,16 @@ export default function Courses() {
       setActiveVideoId(initialCourse.progress?.lastVideoId || initialCourse.embedId || '')
     }
   }, [courses, activeCourse])
+
+  // Synchronize editor innerHTML when active course changes
+  useEffect(() => {
+    if (notesEditorRef.current && activeCourse) {
+      const normalized = normalizeNoteContentToHtml(activeCourse.notes || '')
+      if (notesEditorRef.current.innerHTML !== normalized) {
+        notesEditorRef.current.innerHTML = normalized
+      }
+    }
+  }, [activeCourse?.id])
 
   // Get saved resume time from localStorage or Firestore progress
   const getSavedResumeTime = (course, videoId) => {
@@ -468,16 +558,20 @@ export default function Courses() {
   // Sync state values when switching active course
   const handleSelectCourse = (course) => {
     if (isNotesDirty && activeCourse) {
-      updateNotes(activeCourse.id, localNotes)
+      const contentToSave = notesEditorRef.current ? notesEditorRef.current.innerHTML : localNotes
+      updateNotes(activeCourse.id, contentToSave)
     }
     if (playerRef.current && activeCourse) {
       saveCurrentProgress(playerRef.current, activeCourse)
     }
     setActiveCourse(course)
-    setLocalNotes(course.notes || '')
+    const normalized = normalizeNoteContentToHtml(course.notes || '')
+    setLocalNotes(normalized)
+    if (notesEditorRef.current) {
+      notesEditorRef.current.innerHTML = normalized
+    }
     setOverrideVideoId('')
     setIsNotesDirty(false)
-    setNotesTab('write')
     
     // Set playback states from course.progress or localStorage
     const resumeTime = getSavedResumeTime(course, course.progress?.lastVideoId || course.embedId)
@@ -710,9 +804,11 @@ export default function Courses() {
 
   const handleSaveNotes = async () => {
     if (!activeCourse) return
+    const finalContent = notesEditorRef.current ? notesEditorRef.current.innerHTML : localNotes
     setNotesSaving(true)
     try {
-      await updateNotes(activeCourse.id, localNotes)
+      await updateNotes(activeCourse.id, finalContent)
+      setLocalNotes(finalContent)
       setIsNotesDirty(false)
     } catch (err) {
       console.error('Failed to save notes', err)
@@ -721,195 +817,64 @@ export default function Courses() {
     }
   }
 
-  // Notes Markdown Formatting helper (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+H, etc.)
-  const applyNotesFormatting = (formatType) => {
-    const textarea = notesTextareaRef.current
-    if (!textarea) return
-
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = localNotes.substring(start, end)
-    const fullText = localNotes
-
-    let newText = ''
-    let newCursorPos = start
-
-    switch (formatType) {
-      case 'bold': { // Ctrl + B
-        if (selectedText) {
-          newText = fullText.substring(0, start) + `**${selectedText}**` + fullText.substring(end)
-          newCursorPos = end + 4
-        } else {
-          newText = fullText.substring(0, start) + '****' + fullText.substring(end)
-          newCursorPos = start + 2
-        }
-        break
-      }
-      case 'italic': { // Ctrl + I
-        if (selectedText) {
-          newText = fullText.substring(0, start) + `*${selectedText}*` + fullText.substring(end)
-          newCursorPos = end + 2
-        } else {
-          newText = fullText.substring(0, start) + '**' + fullText.substring(end)
-          newCursorPos = start + 1
-        }
-        break
-      }
-      case 'underline': { // Ctrl + U
-        if (selectedText) {
-          newText = fullText.substring(0, start) + `<u>${selectedText}</u>` + fullText.substring(end)
-          newCursorPos = end + 7
-        } else {
-          newText = fullText.substring(0, start) + '<u></u>' + fullText.substring(end)
-          newCursorPos = start + 3
-        }
-        break
-      }
-      case 'heading': { // Ctrl + H
-        const lineStart = fullText.lastIndexOf('\n', start - 1) + 1
-        const lineEnd = fullText.indexOf('\n', end)
-        const actualLineEnd = lineEnd === -1 ? fullText.length : lineEnd
-        const currentLine = fullText.substring(lineStart, actualLineEnd)
-
-        let updatedLine = ''
-        if (currentLine.startsWith('### ')) {
-          updatedLine = currentLine.substring(4)
-        } else if (currentLine.startsWith('## ')) {
-          updatedLine = '### ' + currentLine.substring(3)
-        } else if (currentLine.startsWith('# ')) {
-          updatedLine = '## ' + currentLine.substring(2)
-        } else {
-          updatedLine = '# ' + currentLine
-        }
-
-        newText = fullText.substring(0, lineStart) + updatedLine + fullText.substring(actualLineEnd)
-        newCursorPos = Math.min(newText.length, start + (updatedLine.length - currentLine.length))
-        break
-      }
-      case 'bullet': {
-        const lineStart = fullText.lastIndexOf('\n', start - 1) + 1
-        const lineEnd = fullText.indexOf('\n', end)
-        const actualLineEnd = lineEnd === -1 ? fullText.length : lineEnd
-        const currentLine = fullText.substring(lineStart, actualLineEnd)
-        
-        let updatedLine = ''
-        if (currentLine.startsWith('- ')) {
-          updatedLine = currentLine.substring(2)
-        } else {
-          updatedLine = '- ' + currentLine
-        }
-        newText = fullText.substring(0, lineStart) + updatedLine + fullText.substring(actualLineEnd)
-        newCursorPos = Math.min(newText.length, start + (updatedLine.length - currentLine.length))
-        break
-      }
-      case 'number': {
-        const lineStart = fullText.lastIndexOf('\n', start - 1) + 1
-        const lineEnd = fullText.indexOf('\n', end)
-        const actualLineEnd = lineEnd === -1 ? fullText.length : lineEnd
-        const currentLine = fullText.substring(lineStart, actualLineEnd)
-        
-        let updatedLine = ''
-        if (/^\d+\.\s/.test(currentLine)) {
-          updatedLine = currentLine.replace(/^\d+\.\s/, '')
-        } else {
-          updatedLine = '1. ' + currentLine
-        }
-        newText = fullText.substring(0, lineStart) + updatedLine + fullText.substring(actualLineEnd)
-        newCursorPos = Math.min(newText.length, start + (updatedLine.length - currentLine.length))
-        break
-      }
-      case 'code': {
-        if (selectedText) {
-          if (selectedText.includes('\n')) {
-            newText = fullText.substring(0, start) + '```\n' + selectedText + '\n```' + fullText.substring(end)
-            newCursorPos = end + 8
-          } else {
-            newText = fullText.substring(0, start) + '`' + selectedText + '`' + fullText.substring(end)
-            newCursorPos = end + 2
-          }
-        } else {
-          newText = fullText.substring(0, start) + '``' + fullText.substring(end)
-          newCursorPos = start + 1
-        }
-        break
-      }
-      case 'link': {
-        if (selectedText) {
-          newText = fullText.substring(0, start) + `[${selectedText}](https://)` + fullText.substring(end)
-          newCursorPos = start + selectedText.length + 11
-        } else {
-          newText = fullText.substring(0, start) + '[link](https://)' + fullText.substring(end)
-          newCursorPos = start + 7
-        }
-        break
-      }
-      default:
-        return
-    }
-
-    setLocalNotes(newText)
+  // WYSIWYG Execution command for Bold, Italic, Underline, Lists, etc.
+  const execCmd = (command, value = null) => {
+    if (!notesEditorRef.current) return
+    notesEditorRef.current.focus()
+    document.execCommand(command, false, value)
+    const newHtml = notesEditorRef.current.innerHTML
+    setLocalNotes(newHtml)
     setIsNotesDirty(true)
-
-    setTimeout(() => {
-      if (notesTextareaRef.current) {
-        notesTextareaRef.current.focus()
-        notesTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
-      }
-    }, 0)
   }
 
-  // Keyboard shortcut listener on notes textarea
-  const handleNotesKeyDown = (e) => {
+  const handleToggleHeading = () => {
+    if (!notesEditorRef.current) return
+    notesEditorRef.current.focus()
+    const selection = window.getSelection()
+    if (selection && selection.anchorNode) {
+      const parent = selection.anchorNode.parentElement
+      if (parent && (parent.tagName === 'H2' || parent.closest('h2'))) {
+        document.execCommand('formatBlock', false, '<p>')
+      } else {
+        document.execCommand('formatBlock', false, '<h2>')
+      }
+    } else {
+      document.execCommand('formatBlock', false, '<h2>')
+    }
+    const newHtml = notesEditorRef.current.innerHTML
+    setLocalNotes(newHtml)
+    setIsNotesDirty(true)
+  }
+
+  const handleEditorKeyDown = (e) => {
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase()
       if (key === 'b') {
         e.preventDefault()
-        applyNotesFormatting('bold')
+        execCmd('bold')
       } else if (key === 'i') {
         e.preventDefault()
-        applyNotesFormatting('italic')
+        execCmd('italic')
       } else if (key === 'u') {
         e.preventDefault()
-        applyNotesFormatting('underline')
+        execCmd('underline')
       } else if (key === 'h') {
         e.preventDefault()
-        applyNotesFormatting('heading')
+        handleToggleHeading()
       } else if (key === 's') {
         e.preventDefault()
         handleSaveNotes()
       } else if (key === 'k') {
         e.preventDefault()
-        applyNotesFormatting('link')
-      } else if (key === 'e') {
-        e.preventDefault()
-        applyNotesFormatting('code')
+        const url = prompt('Enter URL:', 'https://')
+        if (url) execCmd('createLink', url)
       }
     } else if (e.key === 'Tab') {
       e.preventDefault()
-      const textarea = notesTextareaRef.current
-      if (!textarea) return
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const val = textarea.value
       if (e.shiftKey) {
-        // Unindent 2 spaces
-        const lineStart = val.lastIndexOf('\n', start - 1) + 1
-        if (val.substring(lineStart, lineStart + 2) === '  ') {
-          const updated = val.substring(0, lineStart) + val.substring(lineStart + 2)
-          setLocalNotes(updated)
-          setIsNotesDirty(true)
-          setTimeout(() => {
-            textarea.setSelectionRange(Math.max(lineStart, start - 2), Math.max(lineStart, end - 2))
-          }, 0)
-        }
+        execCmd('outdent')
       } else {
-        // Indent 2 spaces
-        const updated = val.substring(0, start) + '  ' + val.substring(end)
-        setLocalNotes(updated)
-        setIsNotesDirty(true)
-        setTimeout(() => {
-          textarea.setSelectionRange(start + 2, start + 2)
-        }, 0)
+        execCmd('indent')
       }
     }
   }
@@ -1397,8 +1362,8 @@ export default function Courses() {
                   /* Notepad block */
                   <div className="xl:col-span-1">
                     <Card className="border border-border-subtle bg-card h-full flex flex-col overflow-hidden shadow-md">
-                      {/* Card Header with Write/Preview toggle & Save button */}
-                      <CardHeader className="p-2.5 sm:p-3 border-b border-border-subtle/60 flex flex-row items-center justify-between shrink-0 bg-surface/30">
+                      {/* Card Header with Save button */}
+                      <CardHeader className="p-3 border-b border-border-subtle/60 flex flex-row items-center justify-between shrink-0 bg-surface/30">
                         <div className="flex items-center gap-2">
                           <BookOpen className="h-4 w-4 text-accent-light" />
                           <CardTitle className="text-xs font-bold text-text-primary uppercase tracking-widest">
@@ -1406,152 +1371,131 @@ export default function Courses() {
                           </CardTitle>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
-                          {/* Write / Preview Tab Switcher */}
-                          <div className="flex bg-surface p-0.5 rounded-lg border border-border-subtle shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setNotesTab('write')}
-                              className={cn(
-                                "px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1",
-                                notesTab === 'write' ? "bg-accent text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
-                              )}
-                            >
-                              <Edit3 className="h-3 w-3" />
-                              <span>Write</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setNotesTab('preview')}
-                              className={cn(
-                                "px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1",
-                                notesTab === 'preview' ? "bg-accent text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
-                              )}
-                            >
-                              <Eye className="h-3 w-3" />
-                              <span>Preview</span>
-                            </button>
-                          </div>
-
-                          {/* Save Button */}
-                          <Button
-                            size="sm"
-                            onClick={handleSaveNotes}
-                            disabled={notesSaving || !isNotesDirty}
-                            className={cn(
-                              "h-6 text-[10px] flex items-center gap-1 px-2.5 transition-all rounded-md font-semibold",
-                              isNotesDirty ? "bg-accent hover:bg-accent-light text-white animate-pulse" : "bg-elevated border border-border text-text-secondary"
-                            )}
-                          >
-                            {notesSaving ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Save className="h-3 w-3" />
-                            )}
-                            {isNotesDirty ? 'Save *' : 'Saved'}
-                          </Button>
-                        </div>
+                        {/* Save Button */}
+                        <Button
+                          size="sm"
+                          onClick={handleSaveNotes}
+                          disabled={notesSaving || !isNotesDirty}
+                          className={cn(
+                            "h-7 text-xs flex items-center gap-1.5 px-3 transition-all rounded-lg font-bold shadow-sm",
+                            isNotesDirty ? "bg-accent hover:bg-accent-light text-white animate-pulse" : "bg-elevated border border-border text-text-secondary"
+                          )}
+                        >
+                          {notesSaving ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Save className="h-3.5 w-3.5" />
+                          )}
+                          {isNotesDirty ? 'Save Notes *' : 'Saved'}
+                        </Button>
                       </CardHeader>
 
-                      {/* Formatting Toolbar (Visible in Write Mode) */}
-                      {notesTab === 'write' && (
-                        <div className="px-2.5 py-1.5 border-b border-border-subtle bg-surface/50 flex items-center gap-1 flex-wrap text-text-muted shrink-0 text-xs">
-                          <button
-                            type="button"
-                            onClick={() => applyNotesFormatting('bold')}
-                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors font-bold text-xs"
-                            title="Bold (Ctrl+B)"
-                          >
-                            <Bold className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => applyNotesFormatting('italic')}
-                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors text-xs"
-                            title="Italic (Ctrl+I)"
-                          >
-                            <Italic className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => applyNotesFormatting('underline')}
-                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors text-xs"
-                            title="Underline (Ctrl+U)"
-                          >
-                            <Underline className="h-3.5 w-3.5" />
-                          </button>
-                          <div className="h-3.5 w-px bg-border-subtle mx-0.5" />
-                          <button
-                            type="button"
-                            onClick={() => applyNotesFormatting('heading')}
-                            className="px-1.5 py-0.5 rounded-md hover:bg-hover hover:text-text-primary transition-colors font-bold text-[11px] text-accent"
-                            title="Heading (Ctrl+H)"
-                          >
-                            H
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => applyNotesFormatting('bullet')}
-                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors"
-                            title="Bullet List"
-                          >
-                            <List className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => applyNotesFormatting('number')}
-                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors"
-                            title="Numbered List"
-                          >
-                            <ListOrdered className="h-3.5 w-3.5" />
-                          </button>
-                          <div className="h-3.5 w-px bg-border-subtle mx-0.5" />
-                          <button
-                            type="button"
-                            onClick={() => applyNotesFormatting('code')}
-                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors font-mono text-[10px]"
-                            title="Code Block"
-                          >
-                            <Code className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => applyNotesFormatting('link')}
-                            className="p-1 rounded-md hover:bg-hover hover:text-text-primary transition-colors"
-                            title="Insert Link"
-                          >
-                            <Link2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      )}
+                      {/* Formatting Toolbar */}
+                      <div className="px-3 py-1.5 border-b border-border-subtle bg-surface/50 flex items-center gap-1 flex-wrap text-text-muted shrink-0 text-xs">
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            execCmd('bold')
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors font-bold"
+                          title="Bold (Ctrl+B)"
+                        >
+                          <Bold className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            execCmd('italic')
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                          title="Italic (Ctrl+I)"
+                        >
+                          <Italic className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            execCmd('underline')
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                          title="Underline (Ctrl+U)"
+                        >
+                          <Underline className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="h-3.5 w-px bg-border-subtle mx-0.5" />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            handleToggleHeading()
+                          }}
+                          className="px-2 py-0.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors font-extrabold text-xs text-accent"
+                          title="Heading (Ctrl+H)"
+                        >
+                          H
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            execCmd('insertUnorderedList')
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                          title="Bullet List"
+                        >
+                          <List className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            execCmd('insertOrderedList')
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                          title="Numbered List"
+                        >
+                          <ListOrdered className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="h-3.5 w-px bg-border-subtle mx-0.5" />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            const url = prompt('Enter URL:', 'https://')
+                            if (url) execCmd('createLink', url)
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                          title="Insert Link (Ctrl+K)"
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
 
-                      {/* Notes Body Area */}
-                      <CardContent className="p-2.5 sm:p-3 flex-1 flex flex-col min-h-[300px] overflow-hidden">
-                        {notesTab === 'write' ? (
-                          <div className="flex-1 flex flex-col min-h-0">
-                            <textarea
-                              ref={notesTextareaRef}
-                              value={localNotes}
-                              onChange={(e) => {
-                                setLocalNotes(e.target.value)
-                                setIsNotesDirty(true)
-                              }}
-                              onKeyDown={handleNotesKeyDown}
-                              onBlur={handleSaveNotes}
-                              className="w-full flex-1 bg-base text-text-primary text-xs font-sans p-3.5 outline-none resize-none rounded-xl border border-border-subtle focus:border-accent/40 leading-relaxed transition-all shadow-inner font-normal"
-                              placeholder="📝 Type lecture notes, algorithms, complexity (# Heading, **bold**, <u>underline</u>, *italic*).&#10;&#10;Shortcuts: Ctrl+B (Bold), Ctrl+U (Underline), Ctrl+I (Italic), Ctrl+H (Heading), Ctrl+S (Save)."
-                            />
-                            <div className="pt-2 flex items-center justify-between text-[10px] text-text-muted/80 select-none">
-                              <span className="hidden sm:inline">Shortcuts: <kbd className="font-mono text-[9px] bg-surface px-1 py-0.5 rounded border border-border-subtle">Ctrl+B</kbd> Bold • <kbd className="font-mono text-[9px] bg-surface px-1 py-0.5 rounded border border-border-subtle">Ctrl+U</kbd> Underline • <kbd className="font-mono text-[9px] bg-surface px-1 py-0.5 rounded border border-border-subtle">Ctrl+H</kbd> Heading</span>
-                              <span className="sm:hidden">Ctrl+B/U/I/H/S</span>
-                              <span>{localNotes.length} chars</span>
-                            </div>
+                      {/* ContentEditable WYSIWYG Notes Area */}
+                      <CardContent className="p-3 flex-1 flex flex-col min-h-[320px] overflow-hidden">
+                        <div className="flex-1 flex flex-col min-h-0">
+                          <div
+                            ref={notesEditorRef}
+                            contentEditable
+                            suppressContentEditableWarning
+                            onInput={(e) => {
+                              setLocalNotes(e.currentTarget.innerHTML)
+                              setIsNotesDirty(true)
+                            }}
+                            onKeyDown={handleEditorKeyDown}
+                            onBlur={handleSaveNotes}
+                            data-placeholder="📝 Type lecture notes, algorithms, complexity...&#10;&#10;Use Ctrl+B (Bold), Ctrl+U (Underline), Ctrl+I (Italic), Ctrl+H (Heading), Ctrl+S (Save)."
+                            className="w-full flex-1 p-3.5 bg-base text-text-primary text-xs font-normal focus:outline-none overflow-y-auto leading-relaxed rounded-xl border border-border-subtle focus:border-accent/40 transition-all shadow-inner [&_h1]:text-base [&_h1]:font-extrabold [&_h1]:text-text-primary [&_h1]:my-2 [&_h1]:border-b [&_h1]:border-border-subtle/50 [&_h1]:pb-1 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-text-primary [&_h2]:my-1.5 [&_h2]:text-accent-light [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-text-primary [&_h3]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1.5 [&_a]:text-accent [&_a]:underline [&_u]:underline [&_u]:decoration-accent/80 [&_u]:underline-offset-2 [&_b]:font-bold [&_strong]:font-bold [&_i]:italic [&_em]:italic [&_code]:bg-surface [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:font-mono [&_code]:text-accent [&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-text-secondary empty:before:content-[attr(data-placeholder)] empty:before:text-text-muted/60 empty:before:pointer-events-none empty:before:whitespace-pre-wrap"
+                          />
+                          <div className="pt-2 flex items-center justify-between text-[10px] text-text-muted select-none">
+                            <span className="hidden sm:inline">Shortcuts: <kbd className="font-mono text-[9px] bg-surface px-1 py-0.5 rounded border border-border-subtle">Ctrl+B</kbd> Bold • <kbd className="font-mono text-[9px] bg-surface px-1 py-0.5 rounded border border-border-subtle">Ctrl+U</kbd> Underline • <kbd className="font-mono text-[9px] bg-surface px-1 py-0.5 rounded border border-border-subtle">Ctrl+H</kbd> Heading</span>
+                            <span className="sm:hidden">Ctrl+B/U/I/H/S</span>
+                            <span className="text-[9px]">{isNotesDirty ? 'Unsaved changes' : 'All changes saved'}</span>
                           </div>
-                        ) : (
-                          <div className="w-full flex-1 bg-base rounded-xl border border-border-subtle p-3.5 overflow-y-auto leading-relaxed max-h-[420px]">
-                            <NotesMarkdownViewer content={localNotes} />
-                          </div>
-                        )}
+                        </div>
                       </CardContent>
                     </Card>
                   </div>
