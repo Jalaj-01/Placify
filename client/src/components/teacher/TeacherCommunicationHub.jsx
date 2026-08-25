@@ -504,29 +504,6 @@ export default function TeacherCommunicationHub({ user, course }) {
               </select>
             </div>
 
-            {/* Live Slots Generation Preview */}
-            <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 space-y-2">
-              <div className="flex items-center justify-between text-purple-600 dark:text-purple-400 font-bold text-xs">
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4" />
-                  Auto-Generated Slots Preview:
-                </span>
-                <span>{generatedSlots.length} Slots</span>
-              </div>
-
-              {generatedSlots.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                  {generatedSlots.map((s, idx) => (
-                    <span key={idx} className="px-2 py-0.5 rounded-lg bg-card border border-purple-500/30 text-purple-600 dark:text-purple-300 font-mono text-[10px] font-bold">
-                      {s.startTime} - {s.endTime}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[11px] text-text-muted">Enter valid start and end times to preview slots.</p>
-              )}
-            </div>
-
             <div className="space-y-1">
               <label className="text-text-secondary font-bold block">Meeting Link or Cabin Room *</label>
               <input
