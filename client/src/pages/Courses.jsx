@@ -150,6 +150,7 @@ export default function Courses() {
   const [activeVideoTitle, setActiveVideoTitle] = useState('')
   const [activeVideoId, setActiveVideoId] = useState('')
   const [overrideVideoId, setOverrideVideoId] = useState('')
+  const [videoEmbedUrl, setVideoEmbedUrl] = useState('')
 
   // Sharing & Coding states
   const { files = [], saveFile, deleteFile } = usePlayground(user?.uid)
@@ -430,38 +431,6 @@ export default function Courses() {
     }
   }, [files, showPlayground, pgLanguage, pgFileId])
 
-  // Sync active course on load
-  useEffect(() => {
-    if (courses.length > 0 && !activeCourse) {
-      const initialCourse = courses[0]
-      setActiveCourse(initialCourse)
-      const normalized = normalizeNoteContentToHtml(initialCourse.notes || '')
-      setLocalNotes(normalized)
-      if (notesEditorRef.current) {
-        notesEditorRef.current.innerHTML = normalized
-      }
-      setOverrideVideoId('')
-      
-      const resumeTime = getSavedResumeTime(initialCourse, initialCourse.progress?.lastVideoId || initialCourse.embedId)
-      const savedPercent = initialCourse.progress?.percent || (initialCourse.progress?.duration ? Math.round((resumeTime / initialCourse.progress.duration) * 100) : 0)
-      setProgressPercent(savedPercent)
-      setCurrentTime(resumeTime)
-      setDuration(initialCourse.progress?.duration || 0)
-      setActiveVideoTitle(initialCourse.progress?.lastVideoTitle || initialCourse.name || '')
-      setActiveVideoId(initialCourse.progress?.lastVideoId || initialCourse.embedId || '')
-    }
-  }, [courses, activeCourse])
-
-  // Synchronize editor innerHTML when active course changes
-  useEffect(() => {
-    if (notesEditorRef.current && activeCourse) {
-      const normalized = normalizeNoteContentToHtml(activeCourse.notes || '')
-      if (notesEditorRef.current.innerHTML !== normalized) {
-        notesEditorRef.current.innerHTML = normalized
-      }
-    }
-  }, [activeCourse?.id])
-
   // Get saved resume time from localStorage or Firestore progress
   const getSavedResumeTime = (course, videoId) => {
     if (!course) return 0
@@ -498,6 +467,61 @@ export default function Courses() {
 
     return 0
   }
+
+  // Build embed URL with initial resume timestamp (Stable during playback)
+  const buildInitialEmbedUrl = (course, specificVidId = null) => {
+    if (!course) return ''
+    if (specificVidId) {
+      const resumeSec = getSavedResumeTime(course, specificVidId)
+      const startParam = resumeSec > 1 ? `&start=${resumeSec}` : ''
+      return `https://www.youtube.com/embed/${specificVidId}?enablejsapi=1${startParam}`
+    }
+    if (course.isPlaylist) {
+      const targetVid = course.progress?.lastVideoId
+      if (targetVid) {
+        const resumeSec = getSavedResumeTime(course, targetVid)
+        const startParam = resumeSec > 1 ? `&start=${resumeSec}` : ''
+        return `https://www.youtube.com/embed/${targetVid}?list=${course.embedId}&enablejsapi=1${startParam}`
+      }
+      return `https://www.youtube.com/embed/videoseries?list=${course.embedId}&enablejsapi=1`
+    }
+    const resumeSec = getSavedResumeTime(course, course.embedId)
+    const startParam = resumeSec > 1 ? `&start=${resumeSec}` : ''
+    return `https://www.youtube.com/embed/${course.embedId}?enablejsapi=1${startParam}`
+  }
+
+  // Sync active course on load
+  useEffect(() => {
+    if (courses.length > 0 && !activeCourse) {
+      const initialCourse = courses[0]
+      setActiveCourse(initialCourse)
+      const normalized = normalizeNoteContentToHtml(initialCourse.notes || '')
+      setLocalNotes(normalized)
+      if (notesEditorRef.current) {
+        notesEditorRef.current.innerHTML = normalized
+      }
+      setOverrideVideoId('')
+      
+      const resumeTime = getSavedResumeTime(initialCourse, initialCourse.progress?.lastVideoId || initialCourse.embedId)
+      const savedPercent = initialCourse.progress?.percent || (initialCourse.progress?.duration ? Math.round((resumeTime / initialCourse.progress.duration) * 100) : 0)
+      setProgressPercent(savedPercent)
+      setCurrentTime(resumeTime)
+      setDuration(initialCourse.progress?.duration || 0)
+      setActiveVideoTitle(initialCourse.progress?.lastVideoTitle || initialCourse.name || '')
+      setActiveVideoId(initialCourse.progress?.lastVideoId || initialCourse.embedId || '')
+      setVideoEmbedUrl(buildInitialEmbedUrl(initialCourse))
+    }
+  }, [courses, activeCourse])
+
+  // Synchronize editor innerHTML when active course changes
+  useEffect(() => {
+    if (notesEditorRef.current && activeCourse) {
+      const normalized = normalizeNoteContentToHtml(activeCourse.notes || '')
+      if (notesEditorRef.current.innerHTML !== normalized) {
+        notesEditorRef.current.innerHTML = normalized
+      }
+    }
+  }, [activeCourse?.id])
 
   // Save current playback progress to both localStorage & Firestore
   const saveCurrentProgress = (ytPlayer, targetCourse = activeCourse) => {
@@ -581,6 +605,7 @@ export default function Courses() {
     setDuration(course.progress?.duration || 0)
     setActiveVideoTitle(course.progress?.lastVideoTitle || course.name || '')
     setActiveVideoId(course.progress?.lastVideoId || course.embedId || '')
+    setVideoEmbedUrl(buildInitialEmbedUrl(course))
   }
 
   // Handle manual tracking override via slider
@@ -747,7 +772,7 @@ export default function Courses() {
         playerRef.current = null
       }
     }
-  }, [activeCourse?.id, overrideVideoId])
+  }, [activeCourse?.id, videoEmbedUrl])
 
   const parseYoutubeUrl = (url) => {
     let embedId = ''
@@ -877,27 +902,6 @@ export default function Courses() {
         execCmd('indent')
       }
     }
-  }
-
-  const getEmbedUrl = (course) => {
-    if (!course) return ''
-    if (overrideVideoId) {
-      const resumeSec = getSavedResumeTime(course, overrideVideoId)
-      const startParam = resumeSec > 0 ? `&start=${resumeSec}` : ''
-      return `https://www.youtube.com/embed/${overrideVideoId}?enablejsapi=1${startParam}`
-    }
-    if (course.isPlaylist) {
-      const targetVid = course.progress?.lastVideoId
-      if (targetVid) {
-        const resumeSec = getSavedResumeTime(course, targetVid)
-        const startParam = resumeSec > 0 ? `&start=${resumeSec}` : ''
-        return `https://www.youtube.com/embed/${targetVid}?list=${course.embedId}&enablejsapi=1${startParam}`
-      }
-      return `https://www.youtube.com/embed/videoseries?list=${course.embedId}&enablejsapi=1`
-    }
-    const resumeSec = getSavedResumeTime(course, course.embedId)
-    const startParam = resumeSec > 0 ? `&start=${resumeSec}` : ''
-    return `https://www.youtube.com/embed/${course.embedId}?enablejsapi=1${startParam}`
   }
 
   const formatTime = (secs) => {
@@ -1106,8 +1110,8 @@ export default function Courses() {
                   <div className="w-full aspect-video rounded-xl sm:rounded-2xl border border-border-subtle bg-black overflow-hidden shadow-lg sm:shadow-2xl relative">
                     <iframe
                       id="yt-iframe-player"
-                      key={`${activeCourse.id}-${overrideVideoId || activeCourse.progress?.lastVideoId || activeCourse.embedId}`}
-                      src={getEmbedUrl(activeCourse)}
+                      key={videoEmbedUrl || activeCourse?.id}
+                      src={videoEmbedUrl || buildInitialEmbedUrl(activeCourse)}
                       title={activeCourse.name}
                       className="w-full h-full absolute inset-0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -1155,6 +1159,7 @@ export default function Courses() {
                                   setDuration(vid.duration || 0)
                                   setActiveVideoId(vid.id)
                                   setActiveVideoTitle(vid.title || '')
+                                  setVideoEmbedUrl(buildInitialEmbedUrl(activeCourse, vid.id))
                                 }}
                                 className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-accent/15 text-accent-light hover:bg-accent hover:text-white shrink-0"
                               >
