@@ -415,6 +415,10 @@ export async function updateResearchProject(courseId, projectId, data) {
   await updateDoc(doc(db, 'courses', courseId, 'research', projectId), data)
 }
 
+export async function deleteResearchProject(courseId, projectId) {
+  await deleteDoc(doc(db, 'courses', courseId, 'research', projectId))
+}
+
 // ═══════════════════════════════════════════════════════════════
 // 6. BROADCAST NOTICES & OFFICE HOURS
 // ═══════════════════════════════════════════════════════════════
