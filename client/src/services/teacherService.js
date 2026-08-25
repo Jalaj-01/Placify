@@ -224,44 +224,64 @@ export function subscribeSyllabus(courseId, callback) {
 export async function saveSyllabusUnits(courseId, units, pacingConfig = {}) {
   const ref = doc(db, 'courses', courseId, 'syllabus', 'main')
 
-  // Calculate Sub-Topics completion metrics
+  // Calculate Sub-Topics completion and total planned lectures metrics
   let totalSubTopics = 0
   let completedSubTopics = 0
+  let calculatedTotalPlanned = 0
+  let totalWeightage = 0
+
   units.forEach(u => {
-    (u.chapters || []).forEach(ch => {
-      (ch.subTopics || []).forEach(st => {
+    calculatedTotalPlanned += Number(u.plannedTotalLectures || 0)
+    totalWeightage += Number(u.marksWeightage || 0)
+
+    ;(u.chapters || []).forEach(ch => {
+      ;(ch.subTopics || []).forEach(st => {
         totalSubTopics++
         if (st.isCompleted) completedSubTopics++
       })
     })
   })
 
+  // If units have no planned total lectures set, compute from subtopic hours
+  if (calculatedTotalPlanned === 0 && units.length > 0) {
+    units.forEach(u => {
+      let unitHours = 0
+      ;(u.chapters || []).forEach(ch => {
+        ;(ch.subTopics || []).forEach(st => {
+          unitHours += Number(st.plannedHours || 1)
+        })
+      })
+      calculatedTotalPlanned += Math.max(1, Math.ceil(unitHours))
+    })
+  }
+
+  const planned = pacingConfig.totalPlannedLectures || calculatedTotalPlanned || 40
+  const delivered = pacingConfig.totalDeliveredLectures || 0
+
   const overallCompletionPercentage = totalSubTopics > 0
     ? Math.round((completedSubTopics / totalSubTopics) * 100)
     : 0
 
-  const delivered = pacingConfig.totalDeliveredLectures || 0
-  const planned = pacingConfig.totalPlannedLectures || 40
-  const targetStart = pacingConfig.targetStartDate ? new Date(pacingConfig.targetStartDate) : new Date()
-  const targetEnd = pacingConfig.targetEndDate ? new Date(pacingConfig.targetEndDate) : new Date(Date.now() + 120 * 24 * 60 * 60 * 1000)
-
-  const totalCourseDays = Math.max(1, (targetEnd - targetStart) / (1000 * 60 * 60 * 24))
-  const elapsedDays = Math.max(0, Math.min(totalCourseDays, (new Date() - targetStart) / (1000 * 60 * 60 * 24)))
-  const expectedProgress = Math.round((elapsedDays / totalCourseDays) * planned)
-  const deviation = delivered - expectedProgress
+  // Pacing calculation based on syllabus progress vs delivered classes
+  const expectedDeliveredForProgress = Math.round((overallCompletionPercentage / 100) * planned)
+  const deviation = delivered - expectedDeliveredForProgress
 
   let pacingStatus = 'ON_TRACK'
-  if (deviation <= -2) pacingStatus = 'BEHIND_SCHEDULE'
-  else if (deviation >= 2) pacingStatus = 'AHEAD'
+  if (delivered > 0 && overallCompletionPercentage === 0) {
+    pacingStatus = 'BEHIND_SCHEDULE'
+  } else if (deviation <= -2) {
+    pacingStatus = 'AHEAD' // Delivered fewer classes than topics covered = fast pace
+  } else if (deviation >= 3) {
+    pacingStatus = 'BEHIND_SCHEDULE' // Delivered lots of classes but low syllabus completion = behind pace
+  }
 
   await setDoc(ref, {
     courseId,
     units,
     pacingMetrics: {
-      targetStartDate: targetStart,
-      targetEndDate: targetEnd,
       totalPlannedLectures: planned,
       totalDeliveredLectures: delivered,
+      totalMarksWeightage: totalWeightage || 100,
       completedSubTopicsCount: completedSubTopics,
       totalSubTopicsCount: totalSubTopics,
       overallCompletionPercentage,
