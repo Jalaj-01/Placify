@@ -80,7 +80,7 @@ function AppContent() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#060609] flex items-center justify-center">
+      <div className="min-h-screen bg-base flex items-center justify-center">
         <div className="space-y-4 w-64 text-center">
           <Loader2 className="h-8 w-8 text-accent animate-spin mx-auto" />
           <p className="text-xs text-text-muted">Loading your command center...</p>

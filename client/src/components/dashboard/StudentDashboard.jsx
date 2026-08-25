@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   LayoutDashboard, Code2, CheckSquare, Briefcase, Flame, Users, Sparkles,
-  Target, Award, ChevronRight, Zap, ShieldCheck, Play, ArrowUpRight
+  Target, Award, ChevronRight, Zap, ShieldCheck, Play, ArrowUpRight, School
 } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
 import ProgressRing from '@/components/dashboard/ProgressRing'
@@ -11,6 +11,7 @@ import DailyFocusQueue from '@/components/dashboard/DailyFocusQueue'
 import RadarCompetency from '@/components/dashboard/RadarCompetency'
 import StickyNotesCard from '@/components/notes/StickyNotesCard'
 import ApplicationsKanban from '@/components/applications/ApplicationsKanban'
+import StudentClassroomVault from '@/components/student/StudentClassroomVault'
 import { computeAutomatedProgress } from '@/services/firestoreService'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -25,7 +26,7 @@ export default function StudentDashboard({
   updateTopic
 }) {
   const { openAICoach, openTimerSetup, openGroupStudy } = useAppStore()
-  const [activeStudentTab, setActiveStudentTab] = useState('overview') // 'overview' | 'kanban'
+  const [activeStudentTab, setActiveStudentTab] = useState('overview') // 'overview' | 'classroom' | 'kanban'
 
   // Safe defaults
   const safeProblems = Array.isArray(problems) ? problems : []
@@ -73,24 +74,32 @@ export default function StudentDashboard({
 
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
             <button
+              onClick={() => setActiveStudentTab('classroom')}
+              className="px-4 py-2.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-600 dark:text-purple-300 text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <School className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <span>Classroom Vault</span>
+            </button>
+
+            <button
               onClick={openTimerSetup}
-              className="px-4 py-2.5 rounded-xl bg-surface/90 hover:bg-surface border border-accent/40 text-accent-light text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+              className="px-4 py-2.5 rounded-xl bg-surface/90 hover:bg-surface border border-accent/40 text-accent-light text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <Play className="h-3.5 w-3.5 text-accent fill-current" />
-              <span>Launch Mock Timer</span>
+              <span>Mock Timer</span>
             </button>
 
             <button
               onClick={openAICoach}
-              className="px-4 py-2.5 rounded-xl bg-surface/90 hover:bg-surface border border-accent/40 text-accent-light text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+              className="px-4 py-2.5 rounded-xl bg-surface/90 hover:bg-surface border border-accent/40 text-accent-light text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <Sparkles className="h-4 w-4 text-accent animate-pulse" />
-              <span>Ask AI Coach</span>
+              <span>AI Coach</span>
             </button>
 
             <button
               onClick={() => openGroupStudy()}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent to-accent-light text-white text-xs font-extrabold hover:opacity-95 transition-all shadow-lg shadow-accent/30 flex items-center gap-2 border border-white/20 hover:scale-[1.02] active:scale-[0.98]"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent to-accent-light text-white text-xs font-extrabold hover:opacity-95 transition-all shadow-lg shadow-accent/30 flex items-center gap-2 border border-white/20 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <Users className="h-4 w-4" />
               <span>Group Study Hub</span>
@@ -103,7 +112,7 @@ export default function StudentDashboard({
       <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-surface/80 border border-white/10 backdrop-blur-md overflow-x-auto shadow-md">
         <button
           onClick={() => setActiveStudentTab('overview')}
-          className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2.5 ${
+          className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2.5 cursor-pointer ${
             activeStudentTab === 'overview'
               ? 'bg-accent text-white shadow-lg shadow-accent/25'
               : 'text-text-muted hover:text-text-primary hover:bg-white/5'
@@ -114,8 +123,20 @@ export default function StudentDashboard({
         </button>
 
         <button
+          onClick={() => setActiveStudentTab('classroom')}
+          className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2.5 cursor-pointer ${
+            activeStudentTab === 'classroom'
+              ? 'bg-accent text-white shadow-lg shadow-accent/25'
+              : 'text-text-muted hover:text-text-primary hover:bg-white/5'
+          }`}
+        >
+          <School className="h-4 w-4" />
+          <span>Classroom Vault & Doubt Clearing</span>
+        </button>
+
+        <button
           onClick={() => setActiveStudentTab('kanban')}
-          className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2.5 ${
+          className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2.5 cursor-pointer ${
             activeStudentTab === 'kanban'
               ? 'bg-accent text-white shadow-lg shadow-accent/25'
               : 'text-text-muted hover:text-text-primary hover:bg-white/5'
@@ -127,6 +148,10 @@ export default function StudentDashboard({
       </div>
 
       {/* Render Active View */}
+      {activeStudentTab === 'classroom' && (
+        <StudentClassroomVault user={user} profile={profile} />
+      )}
+
       {activeStudentTab === 'kanban' && (
         <ApplicationsKanban applications={safeApps} userEmail={user?.email} />
       )}

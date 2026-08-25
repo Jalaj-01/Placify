@@ -131,20 +131,20 @@ export default function GrantExpenseTracker() {
 
       {/* Claim Modal */}
       {showClaimModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0c0d14] border border-white/10 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl bg-card border border-border-subtle p-6 shadow-2xl space-y-4 text-text-primary">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <h4 className="font-bold text-text-primary text-base">Log Research Reimbursement Claim</h4>
-              <button onClick={() => setShowClaimModal(false)} className="text-text-muted hover:text-white">✕</button>
+              <button onClick={() => setShowClaimModal(false)} className="text-text-muted hover:text-text-primary">✕</button>
             </div>
 
             <form onSubmit={handleAddClaim} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs text-text-secondary block">Select Grant Funding Bucket</label>
+                <label className="text-xs text-text-secondary font-bold block">Select Grant Funding Bucket</label>
                 <select
                   value={claimForm.grant}
                   onChange={(e) => setClaimForm({ ...claimForm, grant: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                 >
                   <option value="SERB CRG-2026">SERB Core Research Grant (CRG-2026)</option>
                   <option value="DST-FIST Travel">DST-FIST Travel Fellowship</option>
@@ -152,30 +152,30 @@ export default function GrantExpenseTracker() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs text-text-secondary block">Expense Description *</label>
+                <label className="text-xs text-text-secondary font-bold block">Expense Description *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. ACM Conference Registration Fee or AWS GPU Credits"
                   value={claimForm.description}
                   onChange={(e) => setClaimForm({ ...claimForm, description: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs text-text-secondary block">Claim Amount (₹)</label>
+                <label className="text-xs text-text-secondary font-bold block">Claim Amount (₹)</label>
                 <input
                   type="number"
                   value={claimForm.amount}
                   onChange={(e) => setClaimForm({ ...claimForm, amount: Number(e.target.value) })}
-                  className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-semantic-green text-white font-semibold text-xs hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-xl bg-semantic-green text-white font-bold text-xs hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-semantic-green/20"
               >
                 <Send className="h-4 w-4" />
                 <span>Submit Reimbursement Claim</span>

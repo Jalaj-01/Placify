@@ -412,13 +412,13 @@ export default function PhdDashboard({ user, profile }) {
 
       {/* Add / Edit Research Paper Modal */}
       {showAddPaperModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0c0d14] border border-white/10 p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-3xl bg-card border border-border-subtle p-6 shadow-2xl space-y-5 text-text-primary">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <h3 className="font-bold text-text-primary text-base">
                 {editingPaperId ? 'Edit Research Paper' : 'Add Research Paper / Manuscript'}
               </h3>
-              <button onClick={() => setShowAddPaperModal(false)} className="text-text-muted hover:text-white">
+              <button onClick={() => setShowAddPaperModal(false)} className="text-text-muted hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -432,7 +432,7 @@ export default function PhdDashboard({ user, profile }) {
                   placeholder="Enter full title of research paper..."
                   value={paperForm.title}
                   onChange={(e) => setPaperForm({ ...paperForm, title: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                 />
               </div>
 
@@ -444,7 +444,7 @@ export default function PhdDashboard({ user, profile }) {
                     placeholder="e.g. IEEE TPDS"
                     value={paperForm.journal}
                     onChange={(e) => setPaperForm({ ...paperForm, journal: e.target.value })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                   />
                 </div>
 
@@ -453,7 +453,7 @@ export default function PhdDashboard({ user, profile }) {
                   <select
                     value={paperForm.status}
                     onChange={(e) => setPaperForm({ ...paperForm, status: e.target.value })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                   >
                     <option value="Drafting">Drafting</option>
                     <option value="Under Peer Review">Under Peer Review</option>
@@ -472,7 +472,7 @@ export default function PhdDashboard({ user, profile }) {
                     placeholder="e.g. 4.8 or Core A*"
                     value={paperForm.impactFactor}
                     onChange={(e) => setPaperForm({ ...paperForm, impactFactor: e.target.value })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                   />
                 </div>
 
@@ -483,7 +483,7 @@ export default function PhdDashboard({ user, profile }) {
                     placeholder="e.g. Aug 2026"
                     value={paperForm.submittedDate}
                     onChange={(e) => setPaperForm({ ...paperForm, submittedDate: e.target.value })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                   />
                 </div>
               </div>
@@ -495,7 +495,7 @@ export default function PhdDashboard({ user, profile }) {
                   placeholder="e.g. Prof. V. K. Sharma, Dr. A. Roy"
                   value={paperForm.coAuthors}
                   onChange={(e) => setPaperForm({ ...paperForm, coAuthors: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                 />
               </div>
 

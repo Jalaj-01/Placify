@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import {
   Bell, Plus, Calendar, Clock, Pin, UserCheck, MessageSquare,
-  Sparkles, Trash2, Send, X, AlertCircle, CheckCircle2, ShieldCheck
+  Sparkles, Trash2, Send, X, AlertCircle, CheckCircle2, ShieldCheck,
+  Video, MapPin, ExternalLink, RefreshCw, Undo2
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import {
   subscribeCourseNotices, createCourseNotice, deleteCourseNotice,
-  subscribeOfficeHours, addOfficeHourSlot, deleteOfficeHourSlot
+  subscribeOfficeHours, addOfficeHourSlot, batchCreateOfficeHourSlots,
+  deleteOfficeHourSlot, cancelOfficeHourBooking
 } from '@/services/teacherService'
 import { cn } from '@/lib/utils'
 
@@ -28,8 +30,8 @@ export default function TeacherCommunicationHub({ user, course }) {
   const [slotForm, setSlotForm] = useState({
     date: new Date().toISOString().split('T')[0],
     startTime: '14:00',
-    endTime: '14:15',
-    meetingType: 'GOOGLE_MEET',
+    endTime: '16:00',
+    slotDurationMinutes: '30', // '15' | '30' | '45' | '60' | 'entire'
     meetingLocationOrLink: 'https://meet.google.com/xyz-abcd-efg'
   })
 
@@ -61,22 +63,84 @@ export default function TeacherCommunicationHub({ user, course }) {
       })
       setShowNoticeModal(false)
       setNoticeForm({ title: '', content: '', priority: 'NORMAL', isPinned: false })
+      success('Notice Published', 'Classroom announcement broadcasted to all students.')
     } catch (err) {
       toastError('Failed to post notice', err.message)
     }
   }
 
+  // Calculate generated slots preview
+  const generateSlotsPreview = () => {
+    const { startTime, endTime, slotDurationMinutes, date } = slotForm
+    if (!startTime || !endTime) return []
+
+    const [startH, startM] = startTime.split(':').map(Number)
+    const [endH, endM] = endTime.split(':').map(Number)
+    const startMinutes = startH * 60 + startM
+    const endMinutes = endH * 60 + endM
+
+    if (endMinutes <= startMinutes) return []
+
+    if (slotDurationMinutes === 'entire') {
+      return [{
+        date,
+        startTime,
+        endTime,
+        courseId: course?.id || '',
+        courseCode: course?.courseCode || '',
+        courseTitle: course?.title || '',
+        meetingLocationOrLink: slotForm.meetingLocationOrLink
+      }]
+    }
+
+    const duration = parseInt(slotDurationMinutes, 10) || 15
+    const slots = []
+    let current = startMinutes
+
+    while (current + duration <= endMinutes) {
+      const sH = String(Math.floor(current / 60)).padStart(2, '0')
+      const sM = String(current % 60).padStart(2, '0')
+      const next = current + duration
+      const eH = String(Math.floor(next / 60)).padStart(2, '0')
+      const eM = String(next % 60).padStart(2, '0')
+
+      slots.push({
+        date,
+        startTime: `${sH}:${sM}`,
+        endTime: `${eH}:${eM}`,
+        courseId: course?.id || '',
+        courseCode: course?.courseCode || '',
+        courseTitle: course?.title || '',
+        meetingLocationOrLink: slotForm.meetingLocationOrLink
+      })
+      current = next
+    }
+
+    return slots
+  }
+
+  const generatedSlots = generateSlotsPreview()
+
   const handleAddOfficeSlot = async (e) => {
     e.preventDefault()
+    if (generatedSlots.length === 0) {
+      toastError('Invalid Time Window', 'End time must be after start time.')
+      return
+    }
+
     try {
-      await addOfficeHourSlot({
-        ...slotForm,
+      const slotsPayload = generatedSlots.map(s => ({
+        ...s,
         instructorUid: user.uid,
-        instructorName: user.displayName || 'Instructor'
-      })
+        instructorName: user.displayName || 'Instructor',
+        instructorEmail: user.email || ''
+      }))
+
+      await batchCreateOfficeHourSlots(slotsPayload)
       setShowSlotModal(false)
+      success('Slots Published', `${slotsPayload.length} reservation slot(s) added for students.`)
     } catch (err) {
-      toastError('Failed to add office slot', err.message)
+      toastError('Failed to add office slots', err.message)
     }
   }
 
@@ -97,7 +161,7 @@ export default function TeacherCommunicationHub({ user, course }) {
 
           <button
             onClick={() => setShowNoticeModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-accent hover:bg-accent-light text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-accent/20 transition-all"
+            className="px-3.5 py-2 rounded-xl bg-accent hover:bg-accent-light text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-accent/20 transition-all cursor-pointer"
           >
             <Plus className="h-4 w-4" /> Post Notice
           </button>
@@ -139,7 +203,7 @@ export default function TeacherCommunicationHub({ user, course }) {
                       await deleteCourseNotice(course.id, notice.id)
                     }
                   }}
-                  className="text-text-muted hover:text-semantic-red p-1"
+                  className="text-text-muted hover:text-semantic-red p-1 cursor-pointer"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -157,7 +221,7 @@ export default function TeacherCommunicationHub({ user, course }) {
 
           {notices.length === 0 && (
             <div className="p-8 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-2xl bg-card">
-              No notices published for this class yet.
+              No notices published for this class yet. Click "Post Notice" above.
             </div>
           )}
         </div>
@@ -167,18 +231,18 @@ export default function TeacherCommunicationHub({ user, course }) {
       <div className="lg:col-span-5 space-y-4">
         <div className="flex items-center justify-between p-4 rounded-2xl bg-card border border-border-subtle shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+            <div className="h-10 w-10 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
               <Calendar className="h-5 w-5" />
             </div>
             <div>
               <h3 className="font-bold text-sm text-text-primary">Office Hours Doubt Slots</h3>
-              <p className="text-xs text-text-muted">15-minute 1-on-1 reservation slots.</p>
+              <p className="text-xs text-text-muted">1-on-1 reservation windows for students.</p>
             </div>
           </div>
 
           <button
             onClick={() => setShowSlotModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
+            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-purple-500/20 transition-all cursor-pointer"
           >
             <Plus className="h-4 w-4" /> Add Slot
           </button>
@@ -189,8 +253,8 @@ export default function TeacherCommunicationHub({ user, course }) {
             <div
               key={slot.id}
               className={cn(
-                "p-3.5 rounded-2xl border transition-all space-y-1.5 shadow-sm",
-                slot.isBooked ? "bg-semantic-green/10 border-semantic-green/30" : "bg-card border-border-subtle"
+                "p-3.5 rounded-2xl border transition-all space-y-2 shadow-sm",
+                slot.isBooked ? "bg-purple-500/10 border-purple-500/30" : "bg-card border-border-subtle"
               )}
             >
               <div className="flex items-center justify-between text-xs">
@@ -201,11 +265,14 @@ export default function TeacherCommunicationHub({ user, course }) {
 
                 <div className="flex items-center gap-1.5">
                   <span className={cn(
-                    "px-2 py-0.5 rounded text-[10px] font-bold",
-                    slot.isBooked ? "bg-semantic-green/20 text-semantic-green" : "bg-surface text-text-muted"
+                    "px-2.5 py-0.5 rounded-full text-[10px] font-bold border",
+                    slot.isBooked
+                      ? "bg-semantic-green/15 text-semantic-green border-semantic-green/30"
+                      : "bg-surface text-text-muted border-border-subtle"
                   )}>
-                    {slot.isBooked ? 'Reserved' : 'Open'}
+                    {slot.isBooked ? '● Reserved' : '○ Open'}
                   </span>
+
                   <button
                     onClick={async () => {
                       const ok = await confirm('This office hour slot will be removed.', {
@@ -217,7 +284,8 @@ export default function TeacherCommunicationHub({ user, course }) {
                         await deleteOfficeHourSlot(slot.id)
                       }
                     }}
-                    className="p-1 text-text-muted hover:text-semantic-red"
+                    className="p-1 text-text-muted hover:text-semantic-red cursor-pointer"
+                    title="Delete Slot"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -225,26 +293,73 @@ export default function TeacherCommunicationHub({ user, course }) {
               </div>
 
               {slot.isBooked ? (
-                <div className="p-2 rounded-xl bg-surface border border-border-subtle text-xs space-y-1">
-                  <div className="font-bold text-text-primary flex items-center gap-1">
-                    <UserCheck className="h-3.5 w-3.5 text-semantic-green" />
-                    Booked by {slot.studentName || 'Student'}
+                <div className="p-3 rounded-xl bg-card border border-purple-500/20 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-text-primary flex items-center gap-1.5">
+                      <UserCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      <span>{slot.studentName || 'Student'}</span>
+                      {slot.studentRollNumber && (
+                        <span className="px-1.5 py-0.2 rounded bg-base text-text-muted text-[10px] font-mono border border-border-subtle">
+                          {slot.studentRollNumber}
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        const ok = await confirm(`Cancel booking with ${slot.studentName} and reopen slot?`, {
+                          title: 'Reopen Slot?',
+                          confirmLabel: 'Reopen',
+                          destructive: false
+                        })
+                        if (ok) {
+                          await cancelOfficeHourBooking(slot.id)
+                        }
+                      }}
+                      className="text-[10px] text-text-muted hover:text-accent font-bold flex items-center gap-1"
+                    >
+                      <Undo2 className="h-3 w-3" /> Reopen
+                    </button>
                   </div>
+
                   {slot.doubtDescription && (
-                    <p className="text-[11px] text-text-secondary">"{slot.doubtDescription}"</p>
+                    <p className="text-xs text-text-secondary italic bg-surface/70 p-2 rounded-lg border border-border-subtle">
+                      "{slot.doubtDescription}"
+                    </p>
+                  )}
+
+                  {slot.meetingLocationOrLink && (
+                    <div className="pt-1 flex items-center justify-between text-[11px]">
+                      <span className="text-text-muted truncate max-w-[200px]">
+                        {slot.meetingLocationOrLink}
+                      </span>
+                      {slot.meetingLocationOrLink.startsWith('http') && (
+                        <a
+                          href={slot.meetingLocationOrLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2 py-0.5 rounded bg-accent text-white font-bold flex items-center gap-1 text-[10px]"
+                        >
+                          Join Meet <ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : (
-                <span className="text-[11px] text-text-muted block font-mono">
-                  {slot.meetingLocationOrLink}
-                </span>
+                <div className="flex items-center justify-between text-[11px] text-text-muted pt-1">
+                  <span className="truncate max-w-[240px] font-mono">
+                    {slot.meetingLocationOrLink}
+                  </span>
+                  <span className="text-[10px] font-bold text-accent">Ready for Booking</span>
+                </div>
               )}
             </div>
           ))}
 
           {officeHours.length === 0 && (
             <div className="p-8 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-2xl bg-card">
-              No office hour slots created. Add slots for students to book doubt clearing.
+              No office hour slots created yet. Click "+ Add Slot" to open 1–2 hour doubt clearing windows.
             </div>
           )}
         </div>
@@ -260,146 +375,190 @@ export default function TeacherCommunicationHub({ user, course }) {
             </DialogTitle>
           </DialogHeader>
 
-            <form onSubmit={handleCreateNotice} className="space-y-3 text-xs">
-              <div className="space-y-1">
-                <label className="text-text-secondary font-bold block">Notice Title *</label>
+          <form onSubmit={handleCreateNotice} className="space-y-3.5 text-xs">
+            <div className="space-y-1">
+              <label className="text-text-secondary font-bold block">Notice Title *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Mid-term Quiz Schedule & Syllabus"
+                value={noticeForm.title}
+                onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })}
+                className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2.5 text-text-primary focus:outline-none focus:border-accent"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-text-secondary font-bold block">Announcement Message *</label>
+              <textarea
+                rows={4}
+                required
+                placeholder="Full instructions, room change details, or links..."
+                value={noticeForm.content}
+                onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })}
+                className="w-full bg-base border border-border-subtle rounded-xl p-3 text-text-primary focus:outline-none focus:border-accent resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer font-bold">
                 <input
-                  type="text"
-                  required
-                  placeholder="e.g. Mid-term Quiz Schedule & Syllabus"
-                  value={noticeForm.title}
-                  onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })}
-                  className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2 text-text-primary focus:outline-none focus:border-accent"
+                  type="checkbox"
+                  checked={noticeForm.isPinned}
+                  onChange={(e) => setNoticeForm({ ...noticeForm, isPinned: e.target.checked })}
+                  className="rounded accent-accent"
                 />
-              </div>
+                <span>Pin to top of notice board</span>
+              </label>
 
-              <div className="space-y-1">
-                <label className="text-text-secondary font-bold block">Announcement Message *</label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Full instructions, room change details, or links..."
-                  value={noticeForm.content}
-                  onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })}
-                  className="w-full bg-base border border-border-subtle rounded-xl p-3 text-text-primary focus:outline-none focus:border-accent resize-none"
-                />
-              </div>
+              <select
+                value={noticeForm.priority}
+                onChange={(e) => setNoticeForm({ ...noticeForm, priority: e.target.value })}
+                className="bg-base border border-border-subtle rounded-xl px-3 py-1.5 text-text-primary font-bold text-xs"
+              >
+                <option value="NORMAL">Normal Priority</option>
+                <option value="IMPORTANT">Important</option>
+                <option value="URGENT">Urgent Priority</option>
+              </select>
+            </div>
 
-              <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2 cursor-pointer font-bold">
-                  <input
-                    type="checkbox"
-                    checked={noticeForm.isPinned}
-                    onChange={(e) => setNoticeForm({ ...noticeForm, isPinned: e.target.checked })}
-                    className="rounded accent-accent"
-                  />
-                  <span>Pin to top of notice board</span>
-                </label>
-
-                <select
-                  value={noticeForm.priority}
-                  onChange={(e) => setNoticeForm({ ...noticeForm, priority: e.target.value })}
-                  className="bg-base border border-border-subtle rounded-lg px-2.5 py-1 text-text-primary font-bold text-xs"
-                >
-                  <option value="NORMAL">Normal Priority</option>
-                  <option value="IMPORTANT">Important</option>
-                  <option value="URGENT">Urgent Priority</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowNoticeModal(false)}
-                  className="px-4 py-2 rounded-xl text-text-secondary hover:text-text-primary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 rounded-xl bg-accent hover:bg-accent-light text-white font-bold shadow-lg shadow-accent/25"
-                >
-                  Broadcast Notice
-                </button>
-              </div>
-            </form>
+            <div className="flex items-center justify-end gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowNoticeModal(false)}
+                className="px-4 py-2 rounded-xl text-text-secondary hover:text-text-primary font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-xl bg-accent hover:bg-accent-light text-white font-bold shadow-lg shadow-accent/25 cursor-pointer"
+              >
+                Broadcast Notice
+              </button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* Add Office Hour Slot Modal */}
+      {/* Add Office Hour Slot Generator Modal */}
       <Dialog open={showSlotModal} onOpenChange={setShowSlotModal}>
-        <DialogContent className="max-w-md bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
+        <DialogContent className="max-w-lg bg-card border border-border-subtle rounded-3xl p-6 text-text-primary">
           <DialogHeader className="pb-3 border-b border-border-subtle">
             <DialogTitle className="font-bold text-base text-text-primary flex items-center gap-2">
-              <Clock className="h-5 w-5 text-purple-400" />
-              Add 15-Min Office Hour Slot
+              <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              Open Office Hours / Doubt Clearing Window
             </DialogTitle>
+            <DialogDescription className="text-xs text-text-muted">
+              Select your availability window (e.g. 1 hr or 2 hrs). The system will automatically split it into individual student reservation slots.
+            </DialogDescription>
           </DialogHeader>
 
-            <form onSubmit={handleAddOfficeSlot} className="space-y-3 text-xs">
+          <form onSubmit={handleAddOfficeSlot} className="space-y-4 text-xs">
+            <div className="space-y-1">
+              <label className="text-text-secondary font-bold block">Availability Date *</label>
+              <input
+                type="date"
+                required
+                value={slotForm.date}
+                onChange={(e) => setSlotForm({ ...slotForm, date: e.target.value })}
+                className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2.5 text-text-primary focus:outline-none focus:border-accent"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-text-secondary font-bold block">Date</label>
+                <label className="text-text-secondary font-bold block">Window Start Time *</label>
                 <input
-                  type="date"
+                  type="time"
                   required
-                  value={slotForm.date}
-                  onChange={(e) => setSlotForm({ ...slotForm, date: e.target.value })}
+                  value={slotForm.startTime}
+                  onChange={(e) => setSlotForm({ ...slotForm, startTime: e.target.value })}
                   className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2 text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-text-secondary font-bold block">Start Time</label>
-                  <input
-                    type="time"
-                    required
-                    value={slotForm.startTime}
-                    onChange={(e) => setSlotForm({ ...slotForm, startTime: e.target.value })}
-                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-text-primary focus:outline-none focus:border-accent"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-text-secondary font-bold block">End Time</label>
-                  <input
-                    type="time"
-                    required
-                    value={slotForm.endTime}
-                    onChange={(e) => setSlotForm({ ...slotForm, endTime: e.target.value })}
-                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-text-primary focus:outline-none focus:border-accent"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-1">
-                <label className="text-text-secondary font-bold block">Meeting Link or Cabin Room</label>
+                <label className="text-text-secondary font-bold block">Window End Time *</label>
                 <input
-                  type="text"
-                  placeholder="e.g. Cabin 402 or https://meet.google.com/..."
-                  value={slotForm.meetingLocationOrLink}
-                  onChange={(e) => setSlotForm({ ...slotForm, meetingLocationOrLink: e.target.value })}
+                  type="time"
+                  required
+                  value={slotForm.endTime}
+                  onChange={(e) => setSlotForm({ ...slotForm, endTime: e.target.value })}
                   className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2 text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
+            </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowSlotModal(false)}
-                  className="px-4 py-2 rounded-xl text-text-secondary hover:text-text-primary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg"
-                >
-                  Add Slot
-                </button>
+            <div className="space-y-1">
+              <label className="text-text-secondary font-bold block">Slot Breakdown Interval</label>
+              <select
+                value={slotForm.slotDurationMinutes}
+                onChange={(e) => setSlotForm({ ...slotForm, slotDurationMinutes: e.target.value })}
+                className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2.5 text-text-primary font-bold focus:outline-none focus:border-accent"
+              >
+                <option value="15">15-Minute 1-on-1 Slots (Fast Doubt Clearing)</option>
+                <option value="30">30-Minute 1-on-1 Slots (Standard In-depth Doubts)</option>
+                <option value="45">45-Minute Slots</option>
+                <option value="60">60-Minute (1 Hour) Slots</option>
+                <option value="entire">Single Continuous Window (No sub-division)</option>
+              </select>
+            </div>
+
+            {/* Live Slots Generation Preview */}
+            <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 space-y-2">
+              <div className="flex items-center justify-between text-purple-600 dark:text-purple-400 font-bold text-xs">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4" />
+                  Auto-Generated Slots Preview:
+                </span>
+                <span>{generatedSlots.length} Slots</span>
               </div>
-            </form>
+
+              {generatedSlots.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                  {generatedSlots.map((s, idx) => (
+                    <span key={idx} className="px-2 py-0.5 rounded-lg bg-card border border-purple-500/30 text-purple-600 dark:text-purple-300 font-mono text-[10px] font-bold">
+                      {s.startTime} - {s.endTime}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-text-muted">Enter valid start and end times to preview slots.</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-text-secondary font-bold block">Meeting Link or Cabin Room *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Cabin 402 or https://meet.google.com/..."
+                value={slotForm.meetingLocationOrLink}
+                onChange={(e) => setSlotForm({ ...slotForm, meetingLocationOrLink: e.target.value })}
+                className="w-full bg-base border border-border-subtle rounded-xl px-3.5 py-2.5 text-text-primary focus:outline-none focus:border-accent"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowSlotModal(false)}
+                className="px-4 py-2 rounded-xl text-text-secondary hover:text-text-primary font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={generatedSlots.length === 0}
+                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold shadow-lg shadow-purple-500/25 cursor-pointer"
+              >
+                Publish {generatedSlots.length} Slots Live
+              </button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
   )
 }
+

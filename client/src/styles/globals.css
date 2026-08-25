@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --bg-base: #f8fafc;
     --bg-surface: #ffffff;
     --bg-card: #ffffff;
@@ -19,6 +20,7 @@
   }
 
   html.dark {
+    color-scheme: dark;
     --bg-base: #090d16;
     --bg-surface: #111625;
     --bg-card: #161c2e;
@@ -45,23 +47,24 @@
   }
 
   /* ── Global styled select ───────────────────────────────────────
-     Replaces the ugly OS-native dropdown with a themed one
+     Replaces the OS-native dropdown with a themed, polished look
      that matches the app design across all browsers.           */
   select {
     appearance: none;
     -webkit-appearance: none;
-    background-color: var(--bg-base);
+    -moz-appearance: none;
+    background-color: var(--bg-card);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
     border-radius: 0.75rem;
-    padding: 0.5rem 2.5rem 0.5rem 0.875rem;
+    padding: 0.5rem 2.25rem 0.5rem 0.875rem;
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     outline: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    /* Custom chevron arrow in the app's accent color */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    /* Custom chevron arrow */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
   }
@@ -72,14 +75,15 @@
   }
 
   select:hover {
-    border-color: rgba(99, 102, 241, 0.4);
+    border-color: rgba(99, 102, 241, 0.5);
   }
 
-  /* Style the dropdown options list to match dark theme */
+  /* Style the dropdown options list */
   select option {
     background-color: var(--bg-card);
     color: var(--text-primary);
-    padding: 0.5rem;
+    padding: 0.625rem;
+    font-weight: 500;
   }
 
   /* ── Scrollbars ───────────────────────────────────────────────── */

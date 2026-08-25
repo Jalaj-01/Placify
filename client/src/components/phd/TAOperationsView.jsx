@@ -137,62 +137,62 @@ export default function TAOperationsView() {
 
       {/* Submit TA Log Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0c0d14] border border-white/10 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl bg-card border border-border-subtle p-6 shadow-2xl space-y-4 text-text-primary">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <h4 className="font-bold text-text-primary text-base">Submit TA Duty Hours Log</h4>
-              <button onClick={() => setShowLogModal(false)} className="text-text-muted hover:text-white">✕</button>
+              <button onClick={() => setShowLogModal(false)} className="text-text-muted hover:text-text-primary">✕</button>
             </div>
 
             <form onSubmit={handleAddTALog} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs text-text-secondary block">Assigned Batch</label>
+                <label className="text-xs text-text-secondary font-bold block">Assigned Batch</label>
                 <input
                   type="text"
                   value={logForm.batch}
                   onChange={(e) => setLogForm({ ...logForm, batch: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs text-text-secondary block">Duty Activity Description *</label>
+                <label className="text-xs text-text-secondary font-bold block">Duty Activity Description *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Lab proctoring, assignment grading, tutorial class..."
                   value={logForm.activity}
                   onChange={(e) => setLogForm({ ...logForm, activity: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs text-text-secondary block">Hours Completed</label>
+                  <label className="text-xs text-text-secondary font-bold block">Hours Completed</label>
                   <input
                     type="number"
                     step="0.5"
                     value={logForm.hours}
                     onChange={(e) => setLogForm({ ...logForm, hours: Number(e.target.value) })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-text-secondary block">Date</label>
+                  <label className="text-xs text-text-secondary font-bold block">Date</label>
                   <input
                     type="text"
                     value={logForm.date}
                     onChange={(e) => setLogForm({ ...logForm, date: e.target.value })}
-                    className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
+                    className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-semantic-green"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-semantic-green text-white font-semibold text-xs hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-xl bg-semantic-green text-white font-bold text-xs hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-semantic-green/20"
               >
                 <Send className="h-4 w-4" />
                 <span>Submit Work Log for Verification</span>

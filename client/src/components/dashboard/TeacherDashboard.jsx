@@ -16,6 +16,7 @@ import TeacherResearchManager from '@/components/teacher/TeacherResearchManager'
 import TeacherCommunicationHub from '@/components/teacher/TeacherCommunicationHub'
 import { subscribeTeacherCourses } from '@/services/teacherService'
 import { useAppStore } from '@/store/useAppStore'
+import CustomDropdown from '@/components/ui/CustomDropdown'
 import { cn } from '@/lib/utils'
 
 export default function TeacherDashboard({ user, profile }) {
@@ -76,26 +77,31 @@ export default function TeacherDashboard({ user, profile }) {
       {courses.length > 0 && (
         <div className="p-3.5 rounded-2xl bg-card border border-border-subtle flex items-center justify-between gap-3 flex-wrap text-xs shadow-sm">
           <div className="flex items-center gap-2.5">
-            <span className="text-text-muted font-bold">ACTIVE CLASSROOM:</span>
-            <select
+            <span className="text-text-muted font-bold flex items-center gap-1.5">
+              <School className="h-4 w-4 text-accent" />
+              <span>ACTIVE CLASSROOM:</span>
+            </span>
+            <CustomDropdown
+              options={courses.map(c => ({
+                value: c.id,
+                label: c.title,
+                sublabel: `${c.department || 'CSE'} • ${c.semester || ''}`,
+                badge: `${c.courseCode} • ${c.section}`,
+                icon: School
+              }))}
               value={selectedCourse?.id || ''}
-              onChange={(e) => {
-                const c = courses.find(item => item.id === e.target.value)
+              onChange={(val) => {
+                const c = courses.find(item => item.id === val)
                 if (c) setSelectedCourse(c)
               }}
-              className="bg-base border border-border-subtle rounded-xl px-3 py-1.5 font-bold text-accent text-xs focus:outline-none focus:border-accent"
-            >
-              {courses.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.title} ({c.courseCode}) • {c.section}
-                </option>
-              ))}
-            </select>
+              placeholder="Select Classroom..."
+              buttonClassName="rounded-xl font-bold text-accent border-border-subtle"
+            />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-text-muted">Student Join Code:</span>
-            <span className="px-2.5 py-1 rounded-lg bg-base border border-border-subtle font-mono font-black text-accent text-xs tracking-wider">
+            <span className="text-text-muted font-medium">Student Join Code:</span>
+            <span className="px-3 py-1.5 rounded-xl bg-accent/15 border border-accent/30 font-mono font-black text-accent text-xs tracking-wider shadow-inner">
               {selectedCourse?.courseCode || '------'}
             </span>
           </div>

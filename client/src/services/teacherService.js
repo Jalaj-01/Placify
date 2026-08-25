@@ -126,13 +126,41 @@ export async function joinCourseByCode(studentUser, code, rollNumber = '') {
     status: 'ACTIVE'
   })
 
-  // Increment student count
+  // Increment student count and update enrolledStudentUids on course doc
   const allRoster = await getDocs(collection(db, 'courses', courseId, 'roster'))
   await updateDoc(doc(db, 'courses', courseId), {
-    studentsCount: allRoster.size
+    studentsCount: allRoster.size,
+    enrolledStudentUids: arrayUnion(studentUser.uid)
+  })
+
+  // Also write to student's user enrolledCourses collection
+  const studentCourseRef = doc(db, 'users', studentUser.uid, 'enrolledCourses', courseId)
+  await setDoc(studentCourseRef, {
+    courseId,
+    title: courseData.title,
+    courseCode: courseData.courseCode,
+    section: courseData.section || 'Sec A',
+    semester: courseData.semester || '5th Sem',
+    department: courseData.department || 'CSE',
+    instructorName: courseData.instructorName || 'Instructor',
+    instructorUid: courseData.instructorUid || '',
+    description: courseData.description || '',
+    enrolledAt: serverTimestamp()
   })
 
   return { courseId, ...courseData }
+}
+
+export function subscribeStudentEnrolledCourses(studentUid, callback) {
+  if (!studentUid) return () => {}
+  const q = query(collection(db, 'users', studentUid, 'enrolledCourses'))
+  return onSnapshot(q, (snap) => {
+    const courses = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    callback(courses)
+  }, (err) => {
+    console.warn('subscribeStudentEnrolledCourses error:', err)
+    callback([])
+  })
 }
 
 export function subscribeCourseRoster(courseId, callback) {
@@ -429,10 +457,54 @@ export function subscribeOfficeHours(instructorUid, callback) {
   return onSnapshot(q, (snap) => {
     const data = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+      .sort((a, b) => {
+        const dateCompare = (a.date || '').localeCompare(b.date || '')
+        if (dateCompare !== 0) return dateCompare
+        return (a.startTime || '').localeCompare(b.startTime || '')
+      })
     callback(data)
   }, (err) => {
     console.warn('subscribeOfficeHours error:', err)
+    callback([])
+  })
+}
+
+export function subscribeCourseOfficeHours(instructorUid, courseId, callback) {
+  if (!instructorUid && !courseId) return () => {}
+  let q
+  if (instructorUid) {
+    q = query(collection(db, 'officeHours'), where('instructorUid', '==', instructorUid))
+  } else {
+    q = query(collection(db, 'officeHours'), where('courseId', '==', courseId))
+  }
+  return onSnapshot(q, (snap) => {
+    const data = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const dateCompare = (a.date || '').localeCompare(b.date || '')
+        if (dateCompare !== 0) return dateCompare
+        return (a.startTime || '').localeCompare(b.startTime || '')
+      })
+    callback(data)
+  }, (err) => {
+    console.warn('subscribeCourseOfficeHours error:', err)
+    callback([])
+  })
+}
+
+export function subscribeStudentBookedOfficeHours(studentUid, callback) {
+  if (!studentUid) return () => {}
+  const q = query(
+    collection(db, 'officeHours'),
+    where('studentUid', '==', studentUid)
+  )
+  return onSnapshot(q, (snap) => {
+    const data = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+    callback(data)
+  }, (err) => {
+    console.warn('subscribeStudentBookedOfficeHours error:', err)
     callback([])
   })
 }
@@ -447,6 +519,48 @@ export async function addOfficeHourSlot(slotData) {
   }
   await setDoc(ref, newSlot)
   return newSlot
+}
+
+export async function batchCreateOfficeHourSlots(slotsArray) {
+  const created = []
+  for (const slotData of slotsArray) {
+    const ref = doc(collection(db, 'officeHours'))
+    const newSlot = {
+      id: ref.id,
+      ...slotData,
+      isBooked: false,
+      createdAt: serverTimestamp()
+    }
+    await setDoc(ref, newSlot)
+    created.push(newSlot)
+  }
+  return created
+}
+
+export async function bookOfficeHourSlot(slotId, studentUser, doubtDescription = '', rollNumber = '') {
+  const ref = doc(db, 'officeHours', slotId)
+  await updateDoc(ref, {
+    isBooked: true,
+    studentUid: studentUser.uid,
+    studentName: studentUser.displayName || 'Student',
+    studentEmail: studentUser.email || '',
+    studentRollNumber: rollNumber || '',
+    doubtDescription: doubtDescription.trim(),
+    bookedAt: serverTimestamp()
+  })
+}
+
+export async function cancelOfficeHourBooking(slotId) {
+  const ref = doc(db, 'officeHours', slotId)
+  await updateDoc(ref, {
+    isBooked: false,
+    studentUid: null,
+    studentName: null,
+    studentEmail: null,
+    studentRollNumber: null,
+    doubtDescription: null,
+    bookedAt: null
+  })
 }
 
 export async function updateOfficeHourSlot(slotId, data) {

@@ -103,51 +103,51 @@ export default function SupervisorLogbook() {
 
       {/* Add Log Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0c0d14] border border-white/10 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl bg-card border border-border-subtle p-6 shadow-2xl space-y-4 text-text-primary">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <h4 className="font-bold text-text-primary text-base">Log Advisor Sync Meeting</h4>
-              <button onClick={() => setShowLogModal(false)} className="text-text-muted hover:text-white">✕</button>
+              <button onClick={() => setShowLogModal(false)} className="text-text-muted hover:text-text-primary">✕</button>
             </div>
 
             <form onSubmit={handleAddLog} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs text-text-secondary block">Meeting Topic / Research Agenda *</label>
+                <label className="text-xs text-text-secondary font-bold block">Meeting Topic / Research Agenda *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Graph Partitioning Benchmark Results"
                   value={newLog.topic}
                   onChange={(e) => setNewLog({ ...newLog, topic: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs text-text-secondary block">Action Items (One per line)</label>
+                <label className="text-xs text-text-secondary font-bold block">Action Items (One per line)</label>
                 <textarea
                   rows={3}
                   placeholder="Run 100-node cluster experiment&#10;Draft IEEE TPDS Section 4"
                   value={newLog.actionItemsText}
                   onChange={(e) => setNewLog({ ...newLog, actionItemsText: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg p-3 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none"
+                  className="w-full bg-base border border-border-subtle rounded-xl p-3 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs text-text-secondary block">Advisor Feedback / Guidance</label>
+                <label className="text-xs text-text-secondary font-bold block">Advisor Feedback / Guidance</label>
                 <textarea
                   rows={2}
                   placeholder="Enter remarks or directions given by advisor..."
                   value={newLog.advisorFeedback}
                   onChange={(e) => setNewLog({ ...newLog, advisorFeedback: e.target.value })}
-                  className="w-full bg-base border border-white/15 rounded-lg p-3 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none"
+                  className="w-full bg-base border border-border-subtle rounded-xl p-3 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-accent text-white font-semibold text-xs hover:bg-accent-light transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-light transition-colors flex items-center justify-center gap-2 shadow-lg shadow-accent/20"
               >
                 <Send className="h-4 w-4" />
                 <span>Save Logbook Entry</span>
