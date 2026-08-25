@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import {
   School, Bell, Calendar, Clock, Code2, Layers, Users, Plus,
   Sparkles, Pin, CheckCircle2, UserCheck, ExternalLink, ArrowRight,
-  BookOpen, Trash2, Undo2, MapPin, Video, Award, AlertCircle, Play
+  BookOpen, Trash2, Undo2, MapPin, Video, Award, AlertCircle, Play,
+  UserMinus, LogOut
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
@@ -18,7 +19,8 @@ import {
   subscribeCourseOfficeHours,
   subscribeStudentBookedOfficeHours,
   bookOfficeHourSlot,
-  cancelOfficeHourBooking
+  cancelOfficeHourBooking,
+  unenrollStudentFromCourse
 } from '@/services/teacherService'
 import { cn } from '@/lib/utils'
 
@@ -171,6 +173,33 @@ export default function StudentClassroomVault({ user, profile }) {
     }
   }
 
+  // Handle unenroll from course
+  const handleUnenrollCourse = async (courseToLeave) => {
+    if (!courseToLeave || !user?.uid) return
+    const cId = courseToLeave.courseId || courseToLeave.id
+    const cTitle = courseToLeave.title || 'this course'
+    const cCode = courseToLeave.courseCode || ''
+
+    const ok = await confirm(
+      `Are you sure you want to unenroll from "${cTitle}" (${cCode})? You will lose access to its assessments, timetable, and doubt slots.`,
+      {
+        title: 'Unenroll from Classroom?',
+        confirmLabel: 'Yes, Unenroll',
+        destructive: true
+      }
+    )
+    if (!ok) return
+
+    try {
+      await unenrollStudentFromCourse(user.uid, cId)
+      const remaining = enrolledCourses.filter(c => (c.courseId || c.id) !== cId)
+      setSelectedCourse(remaining.length > 0 ? remaining[0] : null)
+      success('Unenrolled Successfully', `You have left ${cTitle}.`)
+    } catch (err) {
+      toastError('Unenroll Failed', err.message)
+    }
+  }
+
   const openSlots = officeHours.filter(s => !s.isBooked)
 
   return (
@@ -262,7 +291,7 @@ export default function StudentClassroomVault({ user, profile }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-3 py-1 rounded-xl bg-card border border-border-subtle font-mono text-[11px] font-bold text-accent">
                   {notices.length} Notices
                 </span>
@@ -272,6 +301,15 @@ export default function StudentClassroomVault({ user, profile }) {
                 <span className="px-3 py-1 rounded-xl bg-card border border-border-subtle font-mono text-[11px] font-bold text-semantic-green">
                   {openSlots.length} Open Slots
                 </span>
+
+                <button
+                  onClick={() => handleUnenrollCourse(selectedCourse)}
+                  className="px-3 py-1 rounded-xl bg-semantic-red/10 hover:bg-semantic-red/20 border border-semantic-red/30 text-semantic-red text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  title="Leave this classroom"
+                >
+                  <UserMinus className="h-3.5 w-3.5" />
+                  <span>Unenroll</span>
+                </button>
               </div>
             </div>
           )}

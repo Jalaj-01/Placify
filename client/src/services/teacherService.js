@@ -180,9 +180,25 @@ export async function updateStudentRosterStatus(courseId, studentUid, status) {
 
 export async function removeStudentFromRoster(courseId, studentUid) {
   await deleteDoc(doc(db, 'courses', courseId, 'roster', studentUid))
+  await deleteDoc(doc(db, 'users', studentUid, 'enrolledCourses', courseId))
   const allRoster = await getDocs(collection(db, 'courses', courseId, 'roster'))
   await updateDoc(doc(db, 'courses', courseId), {
-    studentsCount: allRoster.size
+    studentsCount: allRoster.size,
+    enrolledStudentUids: arrayRemove(studentUid)
+  })
+}
+
+export async function unenrollStudentFromCourse(studentUid, courseId) {
+  if (!studentUid || !courseId) return
+  // Remove from student profile
+  await deleteDoc(doc(db, 'users', studentUid, 'enrolledCourses', courseId))
+  // Remove from course roster
+  await deleteDoc(doc(db, 'courses', courseId, 'roster', studentUid))
+  // Update course student count & array
+  const allRoster = await getDocs(collection(db, 'courses', courseId, 'roster'))
+  await updateDoc(doc(db, 'courses', courseId), {
+    studentsCount: allRoster.size,
+    enrolledStudentUids: arrayRemove(studentUid)
   })
 }
 
