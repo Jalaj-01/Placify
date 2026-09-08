@@ -10,25 +10,53 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == uid;
     }
 
-    // 1. Profile collection group lookups
-    match /{path=**}/profile/{profileId} {
-      allow read: if isAuth();
+    function isAdmin() {
+      return isAuth() &&
+        ('email' in request.auth.token) && (
+          request.auth.token.email.lower() == 'jalajgupta550@gmail.com' ||
+          request.auth.token.email.lower() == 'jalaj.gupta25m@iiitg.ac.in'
+        );
     }
 
-    // 2. Users' private data tree
+    // 1. Profile collection group lookups & admin management
+    match /{path=**}/profile/{profileId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && (isAdmin() || isOwner(request.auth.uid));
+    }
+
+    // 2. Users' private data tree (root document and all subcollections)
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
     match /users/{userId}/{document=**} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isAdmin();
     }
 
     // 3. Profile explicit write
     match /users/{userId}/profile/{profileId} {
-      allow write: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isAdmin();
     }
 
     // 4. Sharing
     match /users/{userId}/shares/{shareId} {
-      allow read, delete: if isOwner(userId);
+      allow read, delete: if isOwner(userId) || isAdmin();
       allow create: if isAuth();
+    }
+
+    // ── ADMIN & WHITELIST COLLECTIONS ───────────────────────────
+    match /authorized_teachers/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /announcements/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /audit_logs/{docId} {
+      allow read, write: if isAdmin();
     }
 
     // ── TEACHER COLLECTIONS ──────────────────────────────────────

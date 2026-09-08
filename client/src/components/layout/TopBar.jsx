@@ -1,17 +1,28 @@
-import { WifiOff, FolderOpen, Youtube, Bookmark, LogOut, Share2, Sun, Moon, School } from 'lucide-react'
+import { WifiOff, FolderOpen, Youtube, Bookmark, LogOut, Share2, Sun, Moon, School, Shield } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
+import { isSuperAdmin } from '@/config/adminConfig'
 
 export default function TopBar({ title }) {
   const { isOffline, theme, toggleTheme } = useAppStore()
-  const { signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
+  const isAdmin = isSuperAdmin(user?.email) || profile?.role === 'admin'
 
   return (
     <header className="lg:hidden sticky top-0 z-30 border-b border-border-subtle bg-base/95 backdrop-blur-md px-4 py-3">
       <div className="flex items-center justify-between">
         <h1 className="text-section font-semibold">{title}</h1>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="p-1.5 rounded-lg text-amber-400 hover:bg-amber-500/15 border border-amber-500/30 transition-colors"
+              title="Admin Command Console"
+            >
+              <Shield className="h-4.5 w-4.5 fill-current" />
+            </Link>
+          )}
           {isOffline && (
             <div className="flex items-center gap-1.5 text-micro text-semantic-yellow animate-pulse mr-2">
               <WifiOff className="h-3.5 w-3.5" />

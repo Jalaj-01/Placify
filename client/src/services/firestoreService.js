@@ -7,20 +7,75 @@ import { db } from '@/config/firebase'
 import { topicSeeds } from '@/utils/topicSeeds'
 import { getTodayString, isYesterday, getNextReviewDate } from '@/utils/dateHelpers'
 
+import { isSuperAdmin } from '@/config/adminConfig'
+import { checkTeacherAuthorization } from '@/services/adminService'
+
 const userPath = (uid, sub) => collection(db, 'users', uid, sub)
 
 // ─── Profile ───────────────────────────────────────────────
 export async function getOrCreateProfile(user) {
   const ref = doc(db, 'users', user.uid, 'profile', 'main')
   const snap = await getDoc(ref)
-  if (snap.exists()) return snap.data()
+  const cleanEmail = (user.email || '').toLowerCase().trim()
+  const isAdmin = isSuperAdmin(cleanEmail)
 
+  // Check teacher whitelist if not an admin
+  let teacherData = null
+  if (!isAdmin && cleanEmail) {
+    try {
+      teacherData = await checkTeacherAuthorization(cleanEmail)
+    } catch (e) {
+      console.warn('Teacher whitelist lookup error:', e)
+    }
+  }
+
+  // Calculate target role
+  let targetRole = 'student'
+  if (isAdmin) {
+    targetRole = 'admin'
+  } else if (teacherData) {
+    targetRole = 'teacher'
+  }
+
+  if (snap.exists()) {
+    const existing = snap.data()
+    const updates = {}
+    let needsUpdate = false
+
+    // Sync role if admin or whitelisted teacher
+    if (isAdmin && existing.role !== 'admin') {
+      updates.role = 'admin'
+      needsUpdate = true
+    } else if (teacherData && existing.role !== 'teacher') {
+      updates.role = 'teacher'
+      updates.department = teacherData.department || existing.department || 'Computer Science & Engineering'
+      updates.verifiedTeacher = true
+      needsUpdate = true
+    }
+
+    if (!existing.onboardingComplete) {
+      updates.onboardingComplete = true
+      needsUpdate = true
+    }
+
+    if (needsUpdate) {
+      await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() })
+      return { ...existing, ...updates }
+    }
+    return existing
+  }
+
+  // Brand new profile
   const profile = {
     displayName: user.displayName || '',
     email: user.email || '',
     photoURL: user.photoURL || '',
+    role: targetRole,
+    department: teacherData?.department || 'Computer Science & Engineering',
+    verifiedTeacher: targetRole === 'teacher',
+    isBlocked: false,
     streakData: { currentStreak: 0, longestStreak: 0, lastActiveDate: null, activityLog: [] },
-    onboardingComplete: false,
+    onboardingComplete: true,
     createdAt: serverTimestamp(),
   }
   await setDoc(ref, profile)

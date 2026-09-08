@@ -3,7 +3,7 @@ import {
   Users, Video, FileText, Code2, Trophy, Play, Plus,
   Send, X, Clock, UserPlus, LogOut, Check, Save,
   Bold, Italic, Underline, List, ListOrdered, Link2, Undo, Redo,
-  Sparkles, Award, Info
+  Sparkles, Award, Info, Copy, Hash, LogIn
 } from 'lucide-react'
 import { useSocket } from '@/hooks/useSocket'
 import { useAppStore } from '@/store/useAppStore'
@@ -18,10 +18,25 @@ export default function GroupStudyModal({ user }) {
   const isOpen = useAppStore(s => s.groupStudyOpen)
   const onClose = useAppStore(s => s.closeGroupStudy)
   const activeStudyRoomId = useAppStore(s => s.activeStudyRoomId)
+  const openGroupStudy = useAppStore(s => s.openGroupStudy)
 
-  // Room State
-  const [roomId, setRoomId] = useState(activeStudyRoomId || 'global-study-room')
+  // Room State - Private isolated room
+  const [roomId, setRoomId] = useState(activeStudyRoomId || `room-${Math.random().toString(36).substring(2, 8)}`)
+  const [copiedCode, setCopiedCode] = useState(false)
+  const [joinCodeInput, setJoinCodeInput] = useState('')
+  const [showJoinCodeModal, setShowJoinCodeModal] = useState(false)
   const [onlineCount, setOnlineCount] = useState(1)
+
+  // Keep roomId strictly synced when activeStudyRoomId changes from store (e.g. invite accept)
+  useEffect(() => {
+    if (activeStudyRoomId && activeStudyRoomId !== roomId) {
+      setRoomId(activeStudyRoomId)
+      setNotes([
+        { id: Date.now(), author: 'System', text: `Connected to Study Room #${activeStudyRoomId}!`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+      ])
+      setOnlineCount(1)
+    }
+  }, [activeStudyRoomId])
 
   // Live Members & Contribution Tracking State
   const [members, setMembers] = useState([
@@ -361,11 +376,28 @@ export default function GroupStudyModal({ user }) {
             <div className="flex items-center gap-2.5 flex-wrap">
               <h2 className="text-lg font-bold text-text-primary">Group Study Hub</h2>
               <span className="px-2.5 py-0.5 rounded-full bg-semantic-green/15 text-semantic-green text-xs font-bold flex items-center gap-1.5 border border-semantic-green/30">
-                <span className="h-2 w-2 rounded-full bg-semantic-green animate-pulse" /> Live Room ({onlineCount} Online)
+                <span className="h-2 w-2 rounded-full bg-semantic-green animate-pulse" /> Live ({onlineCount} Online)
               </span>
+
+              {/* Private Room Code Badge & Copy */}
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl bg-base border border-border-subtle text-[11px] font-mono shadow-xs">
+                <Hash className="h-3 w-3 text-accent" />
+                <span className="font-bold text-text-primary">{roomId}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(roomId)
+                    setCopiedCode(true)
+                    setTimeout(() => setCopiedCode(false), 2000)
+                  }}
+                  className="p-1 text-text-muted hover:text-accent transition-colors"
+                  title="Copy Room ID"
+                >
+                  {copiedCode ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                </button>
+              </div>
             </div>
             <p className="text-xs text-text-muted mt-0.5">
-              Co-watch, Pair Code, and Chat Simultaneously.
+              Private Collaboration Session. Only peers with this Room ID can join.
             </p>
           </div>
         </div>
@@ -446,7 +478,16 @@ export default function GroupStudyModal({ user }) {
           )}
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => setShowJoinCodeModal(true)}
+            className="px-3 py-1.5 rounded-xl bg-surface hover:bg-white/10 text-text-secondary hover:text-text-primary border border-border-subtle font-bold text-xs flex items-center gap-1.5 transition-colors"
+            title="Switch or Join Room by Code"
+          >
+            <LogIn className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Join by Code</span>
+          </button>
+
           <button
             onClick={() => setShowInvite(!showInvite)}
             className="px-3.5 py-1.5 rounded-xl bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25 font-bold text-xs flex items-center gap-1.5 transition-colors"
@@ -462,6 +503,51 @@ export default function GroupStudyModal({ user }) {
           </button>
         </div>
       </div>
+
+      {/* Join Room by Code Modal */}
+      {showJoinCodeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-sm rounded-3xl bg-card border border-border-subtle p-6 space-y-4 shadow-2xl text-text-primary">
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <Hash className="h-4 w-4 text-accent" />
+                <h3 className="font-bold text-sm">Join Study Room</h3>
+              </div>
+              <button onClick={() => setShowJoinCodeModal(false)} className="text-text-muted hover:text-text-primary">✕</button>
+            </div>
+            <p className="text-xs text-text-secondary">
+              Enter the Room ID shared by your friend to join their private collaboration session:
+            </p>
+            <input
+              type="text"
+              placeholder="e.g. room-8x2d9a"
+              value={joinCodeInput}
+              onChange={(e) => setJoinCodeInput(e.target.value.trim())}
+              className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs font-mono font-bold text-text-primary focus:outline-none focus:border-accent"
+            />
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setShowJoinCodeModal(false)}
+                className="px-3.5 py-2 rounded-xl bg-surface text-text-secondary text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (joinCodeInput) {
+                    openGroupStudy(joinCodeInput)
+                    setShowJoinCodeModal(false)
+                    setJoinCodeInput('')
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold shadow-md"
+              >
+                Join Room
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invite Dropdown / Panel */}
       {showInvite && (

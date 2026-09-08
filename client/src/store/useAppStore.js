@@ -59,9 +59,12 @@ export const useAppStore = create((set) => ({
 
   // Group Study Modal State
   groupStudyOpen: false,
-  activeStudyRoomId: 'global-study-room',
-  openGroupStudy: (roomId = 'global-study-room') => set({ groupStudyOpen: true, activeStudyRoomId: roomId }),
-  closeGroupStudy: () => set({ groupStudyOpen: false }),
+  activeStudyRoomId: null,
+  openGroupStudy: (roomId = null) => {
+    const finalRoomId = roomId || `room-${Date.now().toString(36).slice(-4)}-${Math.random().toString(36).substring(2, 6)}`
+    set({ groupStudyOpen: true, activeStudyRoomId: finalRoomId })
+  },
+  closeGroupStudy: () => set({ groupStudyOpen: false, activeStudyRoomId: null }),
 
   // Pending Invites State
   pendingInvites: [],

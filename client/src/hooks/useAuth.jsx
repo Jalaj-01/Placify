@@ -152,6 +152,20 @@ export function AuthProvider({ children }) {
         department: 'AI & Neural Systems Lab',
         onboardingComplete: true
       }
+    } else if (role === 'admin') {
+      sessionObj = {
+        uid: 'demo_admin_jalaj',
+        email: 'jalajgupta550@gmail.com',
+        displayName: 'Jalaj Gupta (Super Admin)',
+        photoURL: '',
+      }
+      profileObj = {
+        displayName: 'Jalaj Gupta',
+        email: 'jalajgupta550@gmail.com',
+        role: 'admin',
+        department: 'Computer Science & Engineering',
+        onboardingComplete: true
+      }
     }
 
     setUser(sessionObj)

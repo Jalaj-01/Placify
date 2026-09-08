@@ -26,6 +26,9 @@ import ClassroomVault from '@/pages/ClassroomVault'
 import Bookmarks from '@/pages/Bookmarks'
 import Shares from '@/pages/Shares'
 import Landing from '@/pages/Landing'
+import Admin from '@/pages/Admin'
+import AdminGuard from '@/components/auth/AdminGuard'
+import BlockedAccountScreen from '@/components/auth/BlockedAccountScreen'
 import { Loader2 } from 'lucide-react'
 
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
@@ -37,7 +40,7 @@ import { useApplications } from '@/hooks/useApplications'
 import { requestNotificationPermission, runNotificationScheduler } from '@/utils/notifications'
 
 function AppContent() {
-  const { user, signOut, loading: authLoading } = useAuth()
+  const { user, profile, signOut, loading: authLoading } = useAuth()
   const setOffline = useAppStore((s) => s.setOffline)
   const theme = useAppStore((s) => s.theme)
   const { streakData } = useStreak(user?.uid)
@@ -100,6 +103,17 @@ function AppContent() {
     )
   }
 
+  // Intercept suspended accounts immediately
+  if (profile?.isBlocked) {
+    return (
+      <BlockedAccountScreen
+        user={user}
+        profile={profile}
+        onSignOut={signOut}
+      />
+    )
+  }
+
   // Private routing for logged-in users
   return (
     <div className="min-h-screen bg-base text-text-primary">
@@ -116,6 +130,19 @@ function AppContent() {
         {/* Redirect root to dashboard when authenticated */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         
+        {/* Super-Admin Command Console */}
+        <Route
+          path="/admin"
+          element={
+            <AdminGuard>
+              <PageWrapper>
+                <TopBar title="Admin Command Center" />
+                <Admin />
+              </PageWrapper>
+            </AdminGuard>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={

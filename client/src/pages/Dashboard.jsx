@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useProblems } from '@/hooks/useProblems'
 import { useTopics } from '@/hooks/useTopics'
@@ -6,13 +7,15 @@ import { useApplications } from '@/hooks/useApplications'
 import { useStreak } from '@/hooks/useStreak'
 import { useAppStore } from '@/store/useAppStore'
 import { Skeleton } from '@/components/ui/skeleton'
-import RoleOnboardingModal from '@/components/auth/RoleOnboardingModal'
 import StudentDashboard from '@/components/dashboard/StudentDashboard'
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard'
 import PhdDashboard from '@/components/dashboard/PhdDashboard'
-import { ShieldCheck, UserCheck, RotateCcw } from 'lucide-react'
+import { isSuperAdmin } from '@/config/adminConfig'
+import { subscribeAnnouncements } from '@/services/adminService'
+import { Shield, UserCheck, Bell, AlertTriangle, AlertCircle, Info, ArrowUpRight } from 'lucide-react'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const { user, profile } = useAuth()
   const { problems, loading: loadingProbs, updateProblem } = useProblems(user?.uid)
   const { topics, loading: loadingTopics, updateTopic } = useTopics(user?.uid)
@@ -21,12 +24,25 @@ export default function Dashboard() {
 
   const { toggleStickyNotes } = useAppStore()
 
-  const [activeRole, setActiveRole] = useState(() => localStorage.getItem('placify_active_role'))
-  const [showRoleOnboarding, setShowRoleOnboarding] = useState(false)
+  const cleanEmail = (user?.email || '').toLowerCase().trim()
+  const isAdmin = isSuperAdmin(cleanEmail) || profile?.role === 'admin'
+
+  const [activeRole, setActiveRole] = useState(() => {
+    if (isAdmin) {
+      return localStorage.getItem('placify_active_role') || 'admin'
+    }
+    return (profile?.role || 'student').toLowerCase().trim()
+  })
+
+  const [announcements, setAnnouncements] = useState([])
 
   useEffect(() => {
     const handleStorage = () => {
-      setActiveRole(localStorage.getItem('placify_active_role'))
+      if (isAdmin) {
+        setActiveRole(localStorage.getItem('placify_active_role') || 'admin')
+      } else {
+        setActiveRole((profile?.role || 'student').toLowerCase().trim())
+      }
     }
     window.addEventListener('storage', handleStorage)
     window.addEventListener('placify-role-change', handleStorage)
@@ -34,22 +50,44 @@ export default function Dashboard() {
       window.removeEventListener('storage', handleStorage)
       window.removeEventListener('placify-role-change', handleStorage)
     }
+  }, [isAdmin, profile?.role])
+
+  // Subscribe to active announcements
+  useEffect(() => {
+    const unsub = subscribeAnnouncements((list) => {
+      setAnnouncements(list.filter((a) => a.active !== false))
+    })
+    return () => {
+      if (typeof unsub === 'function') unsub()
+    }
   }, [])
 
-  const loading = loadingProbs || loadingTopics || loadingApps
-
-  const rawRole = (activeRole || localStorage.getItem('placify_active_role') || profile?.role || '').toLowerCase().trim()
+  // Calculate effective role
+  let rawRole = (profile?.role || 'student').toLowerCase().trim()
+  if (isAdmin) {
+    rawRole = (activeRole || 'admin').toLowerCase().trim()
+  }
   const effectiveRole = rawRole === 'faculty' ? 'teacher' : (rawRole === 'research' ? 'phd' : rawRole)
 
-  const handleRoleSaved = (newRole) => {
-    const norm = (newRole || '').toLowerCase().trim()
-    setActiveRole(norm)
-    localStorage.setItem('placify_active_role', norm)
-    window.dispatchEvent(new Event('placify-role-change'))
-    setShowRoleOnboarding(false)
-  }
+  // If effective role is admin, redirect to /admin (Admin Command is the single console)
+  useEffect(() => {
+    if (effectiveRole === 'admin') {
+      navigate('/admin', { replace: true })
+    }
+  }, [effectiveRole, navigate])
 
-  if (loading) {
+  const loading = effectiveRole !== 'admin' && (loadingProbs || loadingTopics || loadingApps)
+
+  // Filter announcements for current audience
+  const visibleAnnouncements = announcements.filter((a) => {
+    const aud = (a.audience || 'all').toLowerCase()
+    if (aud === 'all') return true
+    if (effectiveRole === 'student' && aud === 'student') return true
+    if (effectiveRole === 'teacher' && aud === 'teacher') return true
+    return false
+  })
+
+  if (loading || effectiveRole === 'admin') {
     return (
       <div className="space-y-6 animate-pulse p-2">
         <div className="flex gap-4">
@@ -65,32 +103,52 @@ export default function Dashboard() {
     )
   }
 
-  // Show onboarding modal if user has not set a role yet or clicked to re-select
-  if (!effectiveRole || showRoleOnboarding) {
-    return (
-      <RoleOnboardingModal
-        user={user}
-        onRoleSaved={handleRoleSaved}
-      />
-    )
-  }
-
   return (
     <div className="space-y-5 w-full max-w-full">
-      {/* Sleek Master Workspace Header Action Bar */}
+      {/* 1. Platform Announcements Banner (Broadcasted from Admin Panel) */}
+      {visibleAnnouncements.length > 0 && (
+        <div className="space-y-2">
+          {visibleAnnouncements.slice(0, 2).map((item) => (
+            <div
+              key={item.id}
+              className={`px-4 py-3 rounded-2xl border backdrop-blur-xl flex items-start justify-between gap-3 text-xs shadow-md ${
+                item.priority === 'urgent'
+                  ? 'bg-semantic-red/10 border-semantic-red/30 text-semantic-red'
+                  : item.priority === 'warning'
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                  : 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                {item.priority === 'urgent' ? (
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                ) : item.priority === 'warning' ? (
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                ) : (
+                  <Bell className="h-4 w-4 shrink-0 mt-0.5" />
+                )}
+                <div className="space-y-0.5">
+                  <span className="font-bold text-text-primary block">{item.title}</span>
+                  <p className="text-text-secondary text-[11px] leading-relaxed">{item.message}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 3. Workspace Header Action Bar for non-admin roles */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 rounded-2xl bg-surface/60 border border-white/10 backdrop-blur-xl shadow-lg text-xs">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent/15 text-accent font-bold border border-accent/20">
             <UserCheck className="h-4 w-4" />
             <span className="capitalize">{effectiveRole} Workspace</span>
           </div>
-          <button
-            onClick={() => setShowRoleOnboarding(true)}
-            className="px-3 py-1.5 rounded-xl bg-surface hover:bg-white/10 text-text-secondary hover:text-text-primary transition-all flex items-center gap-1.5 font-semibold border border-white/10"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span>Switch Role</span>
-          </button>
+          {!isAdmin && (
+            <span className="text-[11px] text-text-muted font-mono hidden sm:inline">
+              Role: <strong className="text-text-secondary capitalize">{effectiveRole}</strong> (Fixed Access)
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5 self-end sm:self-auto">
@@ -113,7 +171,7 @@ export default function Dashboard() {
         <PhdDashboard user={user} profile={profile} />
       )}
 
-      {(effectiveRole === 'student' || (!['teacher', 'phd'].includes(effectiveRole))) && (
+      {effectiveRole === 'student' && (
         <StudentDashboard
           user={user}
           profile={profile}
@@ -128,3 +186,4 @@ export default function Dashboard() {
     </div>
   )
 }
+
