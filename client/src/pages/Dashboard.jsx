@@ -12,7 +12,7 @@ import TeacherDashboard from '@/components/dashboard/TeacherDashboard'
 import PhdDashboard from '@/components/dashboard/PhdDashboard'
 import { isSuperAdmin } from '@/config/adminConfig'
 import { subscribeAnnouncements } from '@/services/adminService'
-import { Shield, UserCheck, Bell, AlertTriangle, AlertCircle, Info, ArrowUpRight } from 'lucide-react'
+import { Shield, UserCheck, Bell, AlertTriangle, AlertCircle, Info, Flame, Clock, ArrowUpRight } from 'lucide-react'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -78,8 +78,16 @@ export default function Dashboard() {
 
   const loading = effectiveRole !== 'admin' && (loadingProbs || loadingTopics || loadingApps)
 
-  // Filter announcements for current audience
+  // Filter announcements for current audience & verify not expired
   const visibleAnnouncements = announcements.filter((a) => {
+    if (a.active === false) return false
+
+    // Auto-filter expired announcements
+    if (a.expiresAt) {
+      const expTime = a.expiresAt.toDate ? a.expiresAt.toDate().getTime() : new Date(a.expiresAt).getTime()
+      if (!isNaN(expTime) && expTime < Date.now()) return false
+    }
+
     const aud = (a.audience || 'all').toLowerCase()
     if (aud === 'all') return true
     if (effectiveRole === 'student' && aud === 'student') return true
@@ -108,32 +116,59 @@ export default function Dashboard() {
       {/* 1. Platform Announcements Banner (Broadcasted from Admin Panel) */}
       {visibleAnnouncements.length > 0 && (
         <div className="space-y-2">
-          {visibleAnnouncements.slice(0, 2).map((item) => (
-            <div
-              key={item.id}
-              className={`px-4 py-3 rounded-2xl border backdrop-blur-xl flex items-start justify-between gap-3 text-xs shadow-md ${
-                item.priority === 'urgent'
-                  ? 'bg-semantic-red/10 border-semantic-red/30 text-semantic-red'
-                  : item.priority === 'warning'
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                  : 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-              }`}
-            >
-              <div className="flex items-start gap-2.5">
-                {item.priority === 'urgent' ? (
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                ) : item.priority === 'warning' ? (
-                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                ) : (
-                  <Bell className="h-4 w-4 shrink-0 mt-0.5" />
-                )}
-                <div className="space-y-0.5">
-                  <span className="font-bold text-text-primary block">{item.title}</span>
-                  <p className="text-text-secondary text-[11px] leading-relaxed">{item.message}</p>
+          {visibleAnnouncements.slice(0, 2).map((item) => {
+            const isUrgent = item.priority === 'urgent'
+            const isWarning = item.priority === 'warning'
+            const isNotice = item.priority === 'notice'
+
+            let timeLeftLabel = null
+            if (item.expiresAt) {
+              const expTime = item.expiresAt.toDate ? item.expiresAt.toDate().getTime() : new Date(item.expiresAt).getTime()
+              const diffHours = Math.floor((expTime - Date.now()) / (1000 * 60 * 60))
+              if (diffHours >= 0 && diffHours < 24) {
+                timeLeftLabel = diffHours === 0 ? 'Ends soon' : `Ends in ${diffHours}h`
+              }
+            }
+
+            return (
+              <div
+                key={item.id}
+                className={`px-4 py-3 rounded-2xl border backdrop-blur-xl flex items-start justify-between gap-3 text-xs shadow-md ${
+                  isUrgent
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                    : isWarning
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                    : isNotice
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
+                }`}
+              >
+                <div className="flex items-start gap-2.5 min-w-0">
+                  {isUrgent ? (
+                    <Flame className="h-4 w-4 shrink-0 mt-0.5 text-rose-400 animate-pulse" />
+                  ) : isWarning ? (
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-400" />
+                  ) : isNotice ? (
+                    <Bell className="h-4 w-4 shrink-0 mt-0.5 text-emerald-400" />
+                  ) : (
+                    <Info className="h-4 w-4 shrink-0 mt-0.5 text-cyan-400" />
+                  )}
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-text-primary">{item.title}</span>
+                      {timeLeftLabel && (
+                        <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-[10px] font-mono flex items-center gap-1">
+                          <Clock className="h-2.5 w-2.5" />
+                          <span>{timeLeftLabel}</span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-text-secondary text-[11px] leading-relaxed">{item.message}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

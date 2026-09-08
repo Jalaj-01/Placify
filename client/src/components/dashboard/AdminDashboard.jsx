@@ -118,8 +118,14 @@ export default function AdminDashboard({ user, profile }) {
   const totalStudents = users.filter((u) => (u.role || 'student').toLowerCase() === 'student').length
   const totalTeachers = users.filter((u) => ['teacher', 'faculty'].includes((u.role || '').toLowerCase())).length
   const totalPhd = users.filter((u) => ['phd', 'research'].includes((u.role || '').toLowerCase())).length
-  const totalBlocked = users.filter((u) => u.isBlocked).length
-  const activeAnnouncements = announcements.filter((a) => a.active !== false).length
+  const activeAnnouncements = announcements.filter((a) => {
+    if (a.active === false) return false
+    if (a.expiresAt) {
+      const exp = a.expiresAt.toDate ? a.expiresAt.toDate().getTime() : new Date(a.expiresAt).getTime()
+      if (!isNaN(exp) && exp < Date.now()) return false
+    }
+    return true
+  }).length
 
   return (
     <div className="space-y-6 w-full max-w-full pb-16">

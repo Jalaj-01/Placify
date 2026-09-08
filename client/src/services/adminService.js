@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-  query, orderBy, onSnapshot, serverTimestamp, where, collectionGroup, writeBatch
+  query, orderBy, onSnapshot, serverTimestamp, Timestamp, where, collectionGroup, writeBatch
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { isSuperAdmin } from '@/config/adminConfig'
@@ -461,14 +461,29 @@ export async function deleteUserProfile(adminUser, targetUid, targetEmail = '', 
 /**
  * Post a platform-wide announcement
  */
-export async function createAnnouncement(adminUser, { title, message, priority = 'info', audience = 'all' }) {
+export async function createAnnouncement(adminUser, { title, message, priority = 'info', audience = 'all', expiresAt = null }) {
   if (!title || !message) throw new Error('Title and message are required')
+
+  let expireTimestamp = null
+  if (expiresAt) {
+    if (expiresAt instanceof Date) {
+      expireTimestamp = Timestamp.fromDate(expiresAt)
+    } else if (expiresAt.toDate && typeof expiresAt.toDate === 'function') {
+      expireTimestamp = expiresAt
+    } else {
+      const parsed = new Date(expiresAt)
+      if (!isNaN(parsed.getTime())) {
+        expireTimestamp = Timestamp.fromDate(parsed)
+      }
+    }
+  }
 
   const ref = await addDoc(collection(db, 'announcements'), {
     title: title.trim(),
     message: message.trim(),
-    priority, // 'info' | 'warning' | 'urgent'
+    priority, // 'info' | 'notice' | 'warning' | 'urgent'
     audience, // 'all' | 'student' | 'teacher'
+    expiresAt: expireTimestamp,
     createdBy: adminUser?.email || 'admin',
     createdAt: serverTimestamp(),
     active: true,
@@ -479,9 +494,53 @@ export async function createAnnouncement(adminUser, { title, message, priority =
     title,
     audience,
     priority,
+    hasExpiry: !!expireTimestamp,
   })
 
   return ref.id
+}
+
+/**
+ * Update an existing platform-wide announcement
+ */
+export async function updateAnnouncement(adminUser, announcementId, { title, message, priority = 'info', audience = 'all', expiresAt = null, active = true }) {
+  if (!announcementId) throw new Error('Announcement ID is required')
+  if (!title || !message) throw new Error('Title and message are required')
+
+  let expireTimestamp = null
+  if (expiresAt) {
+    if (expiresAt instanceof Date) {
+      expireTimestamp = Timestamp.fromDate(expiresAt)
+    } else if (expiresAt.toDate && typeof expiresAt.toDate === 'function') {
+      expireTimestamp = expiresAt
+    } else {
+      const parsed = new Date(expiresAt)
+      if (!isNaN(parsed.getTime())) {
+        expireTimestamp = Timestamp.fromDate(parsed)
+      }
+    }
+  }
+
+  const ref = doc(db, 'announcements', announcementId)
+  await updateDoc(ref, {
+    title: title.trim(),
+    message: message.trim(),
+    priority,
+    audience,
+    expiresAt: expireTimestamp,
+    active: active !== false,
+    updatedBy: adminUser?.email || 'admin',
+    updatedAt: serverTimestamp(),
+  })
+
+  await recordAuditLog(adminUser, 'ANNOUNCEMENT_UPDATED', {
+    announcementId,
+    title,
+    audience,
+    priority,
+    active: active !== false,
+    hasExpiry: !!expireTimestamp,
+  })
 }
 
 /**
