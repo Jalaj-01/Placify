@@ -92,6 +92,10 @@ export default function Notes() {
   const [showJoinNbModal, setShowJoinNbModal] = useState(false)
   const [shareModalTarget, setShareModalTarget] = useState(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const [showLinkModal, setShowLinkModal] = useState(false)
+  const [linkModalUrl, setLinkModalUrl] = useState('https://')
+  const [linkModalText, setLinkModalText] = useState('')
+  const savedRangeRef = useRef(null)
 
   // Create Notebook Form
   const [newNbTitle, setNewNbTitle] = useState('')
@@ -174,6 +178,67 @@ export default function Notes() {
     const taskHtml = `<div style="display: flex; align-items: center; gap: 8px; margin: 6px 0;"><input type="checkbox" style="width: 16px; height: 16px; cursor: pointer; accent-color: #6366f1;" /> <span>Checklist task item...</span></div><p></p>`
     document.execCommand('insertHTML', false, taskHtml)
     handleEditorInput()
+  }
+
+  // Open custom styled link insertion dialog
+  const handleOpenLinkModal = () => {
+    let selectedText = ''
+    let range = null
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0) {
+      range = sel.getRangeAt(0)
+      selectedText = sel.toString().trim()
+    }
+    savedRangeRef.current = range
+    setLinkModalText(selectedText || '')
+    if (selectedText.startsWith('http://') || selectedText.startsWith('https://')) {
+      setLinkModalUrl(selectedText)
+    } else {
+      setLinkModalUrl('https://')
+    }
+    setShowLinkModal(true)
+  }
+
+  // Apply hyperlink to selection or insert link tag
+  const handleApplyLink = (e) => {
+    if (e) e.preventDefault()
+    let url = linkModalUrl.trim()
+    if (!url || url === 'https://' || url === 'http://') {
+      setShowLinkModal(false)
+      return
+    }
+
+    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url) && !url.startsWith('/')) {
+      url = `https://${url}`
+    }
+
+    if (editorRef.current) {
+      editorRef.current.focus()
+      const sel = window.getSelection()
+      if (savedRangeRef.current) {
+        sel.removeAllRanges()
+        sel.addRange(savedRangeRef.current)
+      }
+
+      const currentSelText = sel.toString()
+      const displayText = linkModalText.trim() || currentSelText || url
+
+      if (currentSelText && (!linkModalText.trim() || linkModalText.trim() === currentSelText)) {
+        document.execCommand('createLink', false, url)
+      } else {
+        const safeUrl = url.replace(/"/g, '&quot;')
+        const safeText = displayText.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        const linkHtml = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="color: #6366f1; text-decoration: underline; font-weight: 500;">${safeText}</a>`
+        document.execCommand('insertHTML', false, linkHtml)
+      }
+
+      handleEditorInput()
+    }
+
+    setShowLinkModal(false)
+    setLinkModalUrl('https://')
+    setLinkModalText('')
+    savedRangeRef.current = null
   }
 
   const handleCreateNotebook = async (e) => {
@@ -751,12 +816,9 @@ export default function Notes() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  const url = prompt('Enter URL to insert hyperlink:', 'https://')
-                  if (url) execCmd('createLink', url)
-                }}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary"
-                title="Insert Hyperlink"
+                onClick={handleOpenLinkModal}
+                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                title="Insert Hyperlink (Ctrl+K)"
               >
                 <Link2 className="h-3.5 w-3.5" />
               </button>
@@ -817,6 +879,9 @@ export default function Notes() {
                       } else if (k === 'u') {
                         e.preventDefault()
                         execCmd('underline')
+                      } else if (k === 'k') {
+                        e.preventDefault()
+                        handleOpenLinkModal()
                       }
                     }
                   }}
@@ -1335,6 +1400,82 @@ export default function Notes() {
                 Done
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 5: CUSTOM STYLED INSERT HYPERLINK DIALOG ── */}
+      {showLinkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-surface border border-border-subtle rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-2xl bg-accent/20 text-accent flex items-center justify-center">
+                  <Link2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-text-primary">Insert Hyperlink</h3>
+                  <p className="text-[11px] text-text-muted">Attach a web link or reference to your notes</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLinkModal(false)}
+                className="text-text-muted hover:text-text-primary p-1 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleApplyLink} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-1.5">
+                  Display Text <span className="text-text-muted font-normal lowercase">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. System Design CheatSheet"
+                  value={linkModalText}
+                  onChange={(e) => setLinkModalText(e.target.value)}
+                  className="w-full bg-card border border-border-subtle rounded-xl px-3.5 py-2.5 text-xs text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-accent shadow-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-1.5">
+                  Target URL <span className="text-accent">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="https://example.com"
+                    value={linkModalUrl}
+                    onChange={(e) => setLinkModalUrl(e.target.value)}
+                    className="w-full bg-card border border-border-subtle rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-text-primary font-mono placeholder:text-text-muted/60 focus:outline-none focus:border-accent shadow-xs"
+                    autoFocus
+                    required
+                  />
+                  <Link2 className="h-4 w-4 text-text-muted absolute left-3 top-3 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setShowLinkModal(false)}
+                  className="px-4 py-2 rounded-xl border border-border-subtle hover:bg-hover text-xs font-bold text-text-secondary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-light text-white font-bold text-xs shadow-md shadow-accent/20 flex items-center gap-1.5 transition-all active:scale-95"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  <span>Insert Link</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

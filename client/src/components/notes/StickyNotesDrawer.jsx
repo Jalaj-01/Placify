@@ -88,6 +88,10 @@ export default function StickyNotesDrawer() {
   const [noteContent, setNoteContent] = useState('')
   const [noteColor, setNoteColor] = useState('yellow')
   const [isPinned, setIsPinned] = useState(false)
+  const [showLinkModal, setShowLinkModal] = useState(false)
+  const [linkModalUrl, setLinkModalUrl] = useState('https://')
+  const [linkModalText, setLinkModalText] = useState('')
+  const stickySavedRangeRef = useRef(null)
 
   // WYSIWYG ContentEditable Ref
   const editorRef = useRef(null)
@@ -107,6 +111,65 @@ export default function StickyNotesDrawer() {
     editorRef.current.focus()
     document.execCommand(command, false, value)
     setNoteContent(editorRef.current.innerHTML)
+  }
+
+  const handleOpenLinkModal = () => {
+    let selectedText = ''
+    let range = null
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0) {
+      range = sel.getRangeAt(0)
+      selectedText = sel.toString().trim()
+    }
+    stickySavedRangeRef.current = range
+    setLinkModalText(selectedText || '')
+    if (selectedText.startsWith('http://') || selectedText.startsWith('https://')) {
+      setLinkModalUrl(selectedText)
+    } else {
+      setLinkModalUrl('https://')
+    }
+    setShowLinkModal(true)
+  }
+
+  const handleApplyLink = (e) => {
+    if (e) e.preventDefault()
+    let url = linkModalUrl.trim()
+    if (!url || url === 'https://' || url === 'http://') {
+      setShowLinkModal(false)
+      return
+    }
+
+    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url) && !url.startsWith('/')) {
+      url = `https://${url}`
+    }
+
+    if (editorRef.current) {
+      editorRef.current.focus()
+      const sel = window.getSelection()
+      if (stickySavedRangeRef.current) {
+        sel.removeAllRanges()
+        sel.addRange(stickySavedRangeRef.current)
+      }
+
+      const currentSelText = sel.toString()
+      const displayText = linkModalText.trim() || currentSelText || url
+
+      if (currentSelText && (!linkModalText.trim() || linkModalText.trim() === currentSelText)) {
+        document.execCommand('createLink', false, url)
+      } else {
+        const safeUrl = url.replace(/"/g, '&quot;')
+        const safeText = displayText.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        const linkHtml = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="color: #6366f1; text-decoration: underline; font-weight: 500;">${safeText}</a>`
+        document.execCommand('insertHTML', false, linkHtml)
+      }
+
+      setNoteContent(editorRef.current.innerHTML)
+    }
+
+    setShowLinkModal(false)
+    setLinkModalUrl('https://')
+    setLinkModalText('')
+    stickySavedRangeRef.current = null
   }
 
   const handleOpenNewEditor = () => {
@@ -388,8 +451,7 @@ export default function StickyNotesDrawer() {
                           type="button"
                           onMouseDown={(e) => {
                             e.preventDefault()
-                            const url = prompt('Enter URL:', 'https://')
-                            if (url) execCmd('createLink', url)
+                            handleOpenLinkModal()
                           }}
                           className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                           title="Insert Hyperlink"
@@ -636,6 +698,82 @@ export default function StickyNotesDrawer() {
               )
             )}
           </motion.aside>
+
+          {/* ── STICKY NOTE INSERT HYPERLINK DIALOG ── */}
+          {showLinkModal && (
+            <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+              <div className="bg-surface border border-border-subtle rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-2xl bg-accent/20 text-accent flex items-center justify-center">
+                      <Link2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-text-primary">Insert Link</h3>
+                      <p className="text-[11px] text-text-muted">Attach link to sticky note</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowLinkModal(false)}
+                    className="text-text-muted hover:text-text-primary p-1 rounded-lg"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleApplyLink} className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider block mb-1">
+                      Display Text <span className="text-text-muted font-normal lowercase">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Documentation"
+                      value={linkModalText}
+                      onChange={(e) => setLinkModalText(e.target.value)}
+                      className="w-full bg-card border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider block mb-1">
+                      Target URL <span className="text-accent">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="https://example.com"
+                        value={linkModalUrl}
+                        onChange={(e) => setLinkModalUrl(e.target.value)}
+                        className="w-full bg-card border border-border-subtle rounded-xl pl-8 pr-3 py-2 text-xs text-text-primary font-mono focus:outline-none focus:border-accent"
+                        autoFocus
+                        required
+                      />
+                      <Link2 className="h-3.5 w-3.5 text-text-muted absolute left-2.5 top-2.5 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-border-subtle">
+                    <button
+                      type="button"
+                      onClick={() => setShowLinkModal(false)}
+                      className="px-3.5 py-1.5 rounded-xl border border-border-subtle text-xs font-bold text-text-secondary hover:bg-hover"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1.5 rounded-xl bg-accent hover:bg-accent-light text-white font-bold text-xs shadow-md flex items-center gap-1.5"
+                    >
+                      <Check className="h-3 w-3" />
+                      <span>Insert</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </>
       )}
     </AnimatePresence>
