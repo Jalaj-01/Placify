@@ -20,6 +20,8 @@ import Topics from '@/pages/Topics'
 import Applications from '@/pages/Applications'
 import AICoach from '@/pages/AICoach'
 import Playground from '@/pages/Playground'
+import DsaLab from '@/pages/DsaLab'
+import DsaMasterclassPage from '@/pages/DsaMasterclassPage'
 import Library from '@/pages/Library'
 import Courses from '@/pages/Courses'
 import ClassroomVault from '@/pages/ClassroomVault'
@@ -185,6 +187,33 @@ function AppContent() {
             <PageWrapper>
               <TopBar title="AI Coach" />
               <AICoach />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/dsa-lab"
+          element={
+            <PageWrapper>
+              <TopBar title="3D DSA Lab" />
+              <DsaLab />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/dsa-lab/:topicId"
+          element={
+            <PageWrapper>
+              <TopBar title="3D DSA Lab" />
+              <DsaLab />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/dsa-courses"
+          element={
+            <PageWrapper>
+              <TopBar title="DSA 3D Masterclass Academy" />
+              <DsaMasterclassPage />
             </PageWrapper>
           }
         />

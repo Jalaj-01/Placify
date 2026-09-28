@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles,
   ChevronLeft, ChevronRight, LogOut, Terminal, FolderOpen, Youtube,
   Bookmark, Share2, Sun, Moon, Timer, StickyNote, MailOpen, School,
-  Shield, Users, Bell, FileText, GraduationCap, BookOpenCheck, Eye
+  Shield, Users, Bell, FileText, GraduationCap, BookOpenCheck, Eye, Boxes, Film
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -29,6 +29,7 @@ const allNavItems = [
   { to: '/admin?tab=teachers', icon: School, label: 'Teacher Whitelist', roles: ['admin'] },
   { to: '/admin?tab=announcements', icon: Bell, label: 'Broadcasts', roles: ['admin'] },
   { to: '/admin?tab=audit', icon: FileText, label: 'Audit Trail', roles: ['admin'] },
+  { to: '/notebooks', icon: BookOpen, label: 'Collaborative Notebooks', isNotebook: true, roles: ['admin'] },
   { to: '/notes', icon: StickyNote, label: 'Admin Sticky Notes', isStickyNotes: true, roles: ['admin'] },
 
   // Student-Only Tools
@@ -40,9 +41,12 @@ const allNavItems = [
   { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student'] },
   { to: '/invites', icon: MailOpen, label: 'Room Invites', isInvites: true, roles: ['student'] },
   { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student'] },
-  { to: '/notes', icon: StickyNote, label: 'My Notes', isStickyNotes: true, roles: ['student'] },
+  { to: '/notebooks', icon: BookOpen, label: 'Collaborative Notebooks', isNotebook: true, roles: ['student'] },
+  { to: '/notes', icon: StickyNote, label: 'Sticky Notes', isStickyNotes: true, roles: ['student'] },
 
   // Academic & Coding Tools (Student, Teacher, PhD)
+  { to: '/dsa-lab', icon: Boxes, label: '3D DSA Lab', roles: ['student', 'teacher', 'phd'] },
+  { to: '/dsa-courses', icon: Film, label: '3D Video Masterclass', roles: ['student', 'teacher', 'phd'] },
   { to: '/library', icon: FolderOpen, label: 'Resource Library', roles: ['student', 'teacher', 'phd'] },
   { to: '/playground', icon: Terminal, label: 'Code Playground', roles: ['student', 'teacher', 'phd'] },
   { to: '/ai-coach', icon: Sparkles, label: 'AI Placement Coach', isAICoach: true, roles: ['student'] },
@@ -51,11 +55,13 @@ const allNavItems = [
   // Teacher-Only Tools
   { to: '/bookmarks', icon: Bookmark, label: 'Faculty Bookmarks', roles: ['teacher'] },
   { to: '/ai-coach', icon: Sparkles, label: 'AI Teaching Coach', isAICoach: true, roles: ['teacher'] },
+  { to: '/notebooks', icon: BookOpen, label: 'Faculty Notebooks', isNotebook: true, roles: ['teacher'] },
   { to: '/notes', icon: StickyNote, label: 'Faculty Notes', isStickyNotes: true, roles: ['teacher'] },
 
   // PhD Scholar-Only Tools
   { to: '/bookmarks', icon: Bookmark, label: 'Research Bookmarks', roles: ['phd'] },
   { to: '/ai-coach', icon: Sparkles, label: 'AI Research Coach', isAICoach: true, roles: ['phd'] },
+  { to: '/notebooks', icon: BookOpen, label: 'Research Notebooks', isNotebook: true, roles: ['phd'] },
   { to: '/notes', icon: StickyNote, label: 'Research Notes', isStickyNotes: true, roles: ['phd'] },
 ]
 
@@ -121,7 +127,8 @@ export default function Sidebar({ user, onSignOut }) {
   const {
     sidebarCollapsed, toggleSidebar, setSidebarCollapsed,
     openAICoach, aiCoachOpen, openTimerSetup, assessmentTimerOpen,
-    toggleStickyNotes, stickyNotesOpen,
+    toggleStickyNotes, stickyNotesOpen, openNotebooks, openStickyNotes,
+    notesDrawerTab,
     theme, toggleTheme,
     invitesDrawerOpen, toggleInvitesDrawer, pendingInvites
   } = useAppStore()
@@ -131,9 +138,13 @@ export default function Sidebar({ user, onSignOut }) {
   const isExpanded = !sidebarCollapsed || isHovered
 
   const handleNavClick = (item, e) => {
-    if (item.isStickyNotes) {
+    if (item.isNotebook) {
       e.preventDefault()
-      toggleStickyNotes()
+      openNotebooks()
+      setIsHovered(false)
+    } else if (item.isStickyNotes) {
+      e.preventDefault()
+      openStickyNotes()
       setIsHovered(false)
     } else if (item.isTimer) {
       e.preventDefault()
@@ -193,10 +204,11 @@ export default function Sidebar({ user, onSignOut }) {
       {/* Navigation Items */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-none">
         {navItems.map((item) => {
-          const { to, icon: Icon, label, isAICoach, isTimer, isStickyNotes, isInvites } = item
+          const { to, icon: Icon, label, isAICoach, isTimer, isStickyNotes, isNotebook, isInvites } = item
           const isActiveCoach = isAICoach && aiCoachOpen
           const isActiveTimer = isTimer && assessmentTimerOpen
-          const isActiveStickyNotes = isStickyNotes && stickyNotesOpen
+          const isActiveNotebook = isNotebook && stickyNotesOpen && notesDrawerTab === 'notebooks'
+          const isActiveStickyNotes = isStickyNotes && stickyNotesOpen && notesDrawerTab === 'stickies'
           const isActiveInvites = isInvites && invitesDrawerOpen
           const currentFullUrl = location.pathname + location.search
           const isQueryActive = item.to.includes('?')
@@ -210,7 +222,7 @@ export default function Sidebar({ user, onSignOut }) {
               onClick={(e) => handleNavClick(item, e)}
               end={to === '/' || to === '/dashboard' || to === '/admin'}
               className={({ isActive }) => {
-                const active = (isActive && !item.to.includes('?')) || isQueryActive || isActiveCoach || isActiveTimer || isActiveStickyNotes || isActiveInvites
+                const active = (isActive && !item.to.includes('?') && !isNotebook && !isStickyNotes) || isQueryActive || isActiveCoach || isActiveTimer || isActiveNotebook || isActiveStickyNotes || isActiveInvites
                 return cn(
                   'flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-secondary transition-all relative group',
                   active
@@ -219,7 +231,7 @@ export default function Sidebar({ user, onSignOut }) {
                 )
               }}
             >
-              <Icon className={cn('h-5 w-5 shrink-0 transition-colors', (isActiveCoach || isActiveTimer || isActiveStickyNotes || isActiveInvites) && 'text-accent-light')} />
+              <Icon className={cn('h-5 w-5 shrink-0 transition-colors', (isActiveCoach || isActiveTimer || isActiveNotebook || isActiveStickyNotes || isActiveInvites) && 'text-accent-light')} />
               <AnimatePresence>
                 {isExpanded && (
                   <motion.span
@@ -239,7 +251,10 @@ export default function Sidebar({ user, onSignOut }) {
               {isTimer && assessmentTimerOpen && (
                 <span className="h-2 w-2 rounded-full bg-accent animate-ping shrink-0" />
               )}
-              {isStickyNotes && stickyNotesOpen && (
+              {isNotebook && isActiveNotebook && (
+                <span className="h-2 w-2 rounded-full bg-accent animate-pulse shrink-0" />
+              )}
+              {isStickyNotes && isActiveStickyNotes && (
                 <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
               )}
               {isInvites && pendingInvites.length > 0 && (

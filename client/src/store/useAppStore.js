@@ -51,9 +51,22 @@ export const useAppStore = create((set) => ({
     })
   },
 
-  // Right Slide-Over Sticky Notes Drawer State
+  // Right Slide-Over Notes & Notebooks Drawer State
   stickyNotesOpen: false,
-  openStickyNotes: () => set({ stickyNotesOpen: true, sidebarCollapsed: true }),
+  notesDrawerTab: 'notebooks', // 'notebooks' | 'stickies'
+  activeNotebookId: null,
+  notebookExpanded: false,
+  setNotesDrawerTab: (tab) => set({ notesDrawerTab: tab }),
+  setActiveNotebookId: (id) => set({ activeNotebookId: id }),
+  toggleNotebookExpanded: () => set((s) => ({ notebookExpanded: !s.notebookExpanded })),
+  setNotebookExpanded: (expanded) => set({ notebookExpanded: expanded }),
+  openStickyNotes: () => set({ stickyNotesOpen: true, notesDrawerTab: 'stickies', sidebarCollapsed: true }),
+  openNotebooks: (notebookId = null) => set({
+    stickyNotesOpen: true,
+    notesDrawerTab: 'notebooks',
+    activeNotebookId: notebookId,
+    sidebarCollapsed: true
+  }),
   closeStickyNotes: () => set({ stickyNotesOpen: false }),
   toggleStickyNotes: () => set((s) => ({ stickyNotesOpen: !s.stickyNotesOpen, sidebarCollapsed: true })),
 

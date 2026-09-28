@@ -121,11 +121,50 @@ io.on('connection', (socket) => {
   })
 
   // Invite System
-  socket.on('send-invite', ({ toUid, fromName, roomId }) => {
+  socket.on('send-invite', ({ toUid, fromName, roomId, type = 'study', title = '' }) => {
     const targetSocket = userSockets.get(toUid)
     if (targetSocket) {
-      io.to(targetSocket).emit('receive-invite', { fromName, roomId })
+      io.to(targetSocket).emit('receive-invite', { fromName, roomId, type, title })
     }
+  })
+
+  // ─── Collaborative Notebook Real-time Events ───────────────
+  socket.on('notebook-join', ({ roomId, user }) => {
+    const roomName = `notebook-${roomId}`
+    socket.join(roomName)
+    console.log(`Socket ${socket.id} joined notebook room ${roomName}`)
+    socket.to(roomName).emit('notebook-user-joined', {
+      user: user || { uid: socket.uid || socket.id, name: 'Collaborator' },
+      socketId: socket.id,
+    })
+  })
+
+  socket.on('notebook-leave', ({ roomId, user }) => {
+    const roomName = `notebook-${roomId}`
+    socket.leave(roomName)
+    socket.to(roomName).emit('notebook-user-left', {
+      uid: user?.uid || socket.uid || socket.id,
+    })
+  })
+
+  socket.on('notebook-sync', ({ roomId, notebook, sender }) => {
+    const roomName = `notebook-${roomId}`
+    socket.to(roomName).emit('notebook-updated', { notebook, sender })
+  })
+
+  socket.on('notebook-cell-update', ({ roomId, pageId, cellId, updates, sender }) => {
+    const roomName = `notebook-${roomId}`
+    socket.to(roomName).emit('notebook-cell-updated', { pageId, cellId, updates, sender })
+  })
+
+  socket.on('notebook-code-run', ({ roomId, cellId, output, sender }) => {
+    const roomName = `notebook-${roomId}`
+    socket.to(roomName).emit('notebook-code-result', { cellId, output, sender })
+  })
+
+  socket.on('notebook-typing', ({ roomId, user, cellId, isTyping }) => {
+    const roomName = `notebook-${roomId}`
+    socket.to(roomName).emit('notebook-typing-status', { user, cellId, isTyping })
   })
 
   socket.on('disconnect', () => {

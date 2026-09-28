@@ -1,16 +1,27 @@
 import { useState } from 'react'
 import { useAppStore } from '@/store/useAppStore'
-import { X, UserPlus, Check, MailOpen, Hash, ArrowRight, Share2 } from 'lucide-react'
+import { X, UserPlus, Check, MailOpen, Hash, ArrowRight, Share2, BookOpen } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 export default function InvitesDrawer() {
-  const { invitesDrawerOpen, closeInvitesDrawer, pendingInvites, removeInvite, openGroupStudy } = useAppStore()
+  const {
+    invitesDrawerOpen,
+    closeInvitesDrawer,
+    pendingInvites,
+    removeInvite,
+    openGroupStudy,
+    openNotebooks,
+  } = useAppStore()
   const [manualRoomCode, setManualRoomCode] = useState('')
 
   const handleJoin = (invite) => {
     removeInvite(invite.roomId)
-    openGroupStudy(invite.roomId)
+    if (invite.type === 'notebook') {
+      openNotebooks(invite.roomId)
+    } else {
+      openGroupStudy(invite.roomId)
+    }
     closeInvitesDrawer()
   }
 
@@ -110,7 +121,7 @@ export default function InvitesDrawer() {
                   
                   <div className="flex items-start gap-3">
                     <div className="h-10 w-10 bg-accent/20 rounded-xl flex items-center justify-center shrink-0 text-accent">
-                      <UserPlus className="h-5 w-5" />
+                      {invite.type === 'notebook' ? <BookOpen className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-1">
@@ -120,7 +131,9 @@ export default function InvitesDrawer() {
                         </span>
                       </div>
                       <p className="text-[11px] text-text-secondary leading-relaxed mt-0.5">
-                        Invited you to collaborate in their Live Study Room (Shared Code & Notes).
+                        {invite.type === 'notebook'
+                          ? `Invited you to collaborate on notebook: "${invite.title || 'Collaborative Notebook'}"`
+                          : 'Invited you to collaborate in their Live Study Room (Shared Code & Notes).'}
                       </p>
                     </div>
                   </div>

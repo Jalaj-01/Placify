@@ -867,5 +867,63 @@ export async function deleteStickyNote(uid, noteId) {
   await deleteDoc(doc(db, 'users', uid, 'stickyNotes', noteId))
 }
 
+// ─── Collaborative Notebooks ──────────────────────────────
+export function subscribeNotebooks(uid, callback) {
+  if (!uid) return () => {}
+  const q = query(userPath(uid, 'notebooks'), orderBy('updatedAt', 'desc'))
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (err) => {
+      console.warn('subscribeNotebooks Firestore error:', err)
+      callback([])
+    }
+  )
+}
+
+export async function saveNotebook(uid, notebook) {
+  if (!uid || !notebook?.id) return
+  const ref = doc(db, 'users', uid, 'notebooks', notebook.id)
+  await setDoc(ref, {
+    ...notebook,
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+  await recordActivity(uid)
+}
+
+export async function deleteNotebook(uid, notebookId) {
+  if (!uid || !notebookId) return
+  await deleteDoc(doc(db, 'users', uid, 'notebooks', notebookId))
+}
+
+export function subscribeSharedNotebook(roomId, callback) {
+  if (!roomId) return () => {}
+  const ref = doc(db, 'sharedNotebooks', roomId)
+  return onSnapshot(
+    ref,
+    (snap) => {
+      if (snap.exists()) {
+        callback({ id: snap.id, ...snap.data() })
+      } else {
+        callback(null)
+      }
+    },
+    (err) => {
+      console.warn('subscribeSharedNotebook Firestore error:', err)
+      callback(null)
+    }
+  )
+}
+
+export async function saveSharedNotebook(roomId, notebookData) {
+  if (!roomId) return
+  const ref = doc(db, 'sharedNotebooks', roomId)
+  await setDoc(ref, {
+    ...notebookData,
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+}
+
+
 
 
