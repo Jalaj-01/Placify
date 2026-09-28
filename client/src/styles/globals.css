@@ -140,5 +140,91 @@
   .paper-clean {
     background-color: var(--bg-surface);
   }
+
+  /* ── Notebook Document Typography ────────────────────────────── */
+  .notebook-document {
+    min-height: 500px;
+    outline: none;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+  }
+  .notebook-document h1 {
+    font-size: 1.875rem;
+    font-weight: 800;
+    line-height: 1.25;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+  }
+  .notebook-document h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.35;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+  }
+  .notebook-document h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 1rem;
+    margin-bottom: 0.35rem;
+    color: var(--text-primary);
+  }
+  .notebook-document p {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .notebook-document ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .notebook-document ol {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .notebook-document li {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+  .notebook-document blockquote {
+    border-left: 4px solid var(--accent-color);
+    padding-left: 1rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-style: italic;
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+  .notebook-document hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .notebook-document a {
+    color: var(--accent-color);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .notebook-document mark {
+    background-color: #fef08a;
+    color: #1e293b;
+    padding: 0.1rem 0.25rem;
+    border-radius: 0.25rem;
+  }
+  html.dark .notebook-document mark {
+    background-color: #854d0e;
+    color: #fef08a;
+  }
 }
+
 

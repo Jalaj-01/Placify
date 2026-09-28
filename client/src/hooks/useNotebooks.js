@@ -14,7 +14,7 @@ const LOCAL_STORAGE_KEY = 'placify_notebooks'
 const SEED_NOTEBOOKS = [
   {
     id: 'nb-dsa-mastery',
-    title: '⚡ DSA Mastery & Patterns',
+    title: '⚡ DSA Mastery & Algorithm Notes',
     subject: 'DSA',
     paperStyle: 'ruled',
     colorTheme: 'indigo',
@@ -25,86 +25,69 @@ const SEED_NOTEBOOKS = [
     pages: [
       {
         id: 'page-1',
-        title: 'Two Pointers & Sliding Window',
-        cells: [
-          {
-            id: 'c-1',
-            type: 'callout',
-            calloutType: 'tip',
-            title: 'Key Pattern Recognition',
-            content: 'Use Two Pointers when the array is sorted, or when searching for pairs/triplets in O(N) time with O(1) space!',
-          },
-          {
-            id: 'c-2',
-            type: 'markdown',
-            content: '## Max Sum Subarray of Size K\n\nGiven an array of integers and a number $k$, find the maximum sum of any contiguous subarray of size $k$.\n\n- **Time Complexity:** $O(N)$\n- **Space Complexity:** $O(1)$\n\nRun the collaborative code cell below to verify!',
-          },
-          {
-            id: 'c-3',
-            type: 'code',
-            language: 'javascript',
-            content: `// Collaborative Executable Code Cell
-function maxSubArrayOfSizeK(k, arr) {
-  let maxSum = 0;
-  let windowSum = 0;
-  let windowStart = 0;
+        title: 'Two Pointers & Sliding Window Patterns',
+        htmlContent: `<h1>Two Pointers &amp; Sliding Window Analysis</h1>
+<p>The <strong>Two Pointers</strong> technique is an efficient algorithmic approach commonly used in arrays, strings, and linked lists to reduce brute-force time complexity from <u>O(N&sup2;) down to linear O(N)</u>.</p>
 
-  for (let windowEnd = 0; windowEnd < arr.length; windowEnd++) {
-    windowSum += arr[windowEnd];
-    if (windowEnd >= k - 1) {
-      maxSum = Math.max(maxSum, windowSum);
-      windowSum -= arr[windowStart];
-      windowStart++;
-    }
-  }
-  return maxSum;
-}
+<h2>1. Key Pattern Recognition</h2>
+<p>You should consider using this strategy when encountering:</p>
+<ul>
+  <li><strong>Sorted Arrays:</strong> Searching for pairs, triplets, or target sums (e.g. 2-Sum II, 3-Sum).</li>
+  <li><strong>Contiguous Subarrays:</strong> Tracking running windows of varying or fixed sizes.</li>
+  <li><strong>In-place Array Partitioning:</strong> Removing duplicates, moving zeroes, or Dutch National Flag.</li>
+</ul>
 
-const arr = [2, 1, 5, 1, 3, 2];
-const k = 3;
-const result = maxSubArrayOfSizeK(k, arr);
-console.log("Input Array:", arr, "Window Size k:", k);
-console.log("Max Subarray Sum:", result);
-return result;`,
-            output: 'Input Array: [ 2, 1, 5, 1, 3, 2 ] Window Size k: 3\nMax Subarray Sum: 9\nReturned: 9',
-            lastRunBy: 'System Pre-seed',
-            lastRunAt: 'Just now',
-          },
-          {
-            id: 'c-4',
-            type: 'checklist',
-            title: 'Mastery Checklist',
-            items: [
-              { id: 'i-1', text: 'Solve LeetCode #209: Minimum Size Subarray Sum', done: true },
-              { id: 'i-2', text: 'Solve LeetCode #3: Longest Substring Without Repeating Characters', done: false },
-              { id: 'i-3', text: 'Pair code solution with study partner', done: false },
-            ],
-          },
-        ],
+<blockquote>
+  <strong>Golden Rule:</strong> Always determine whether your window is <em>fixed-size</em> (use a simple sliding sum) or <em>dynamically expanding/shrinking</em> (use a while condition on the left pointer)!
+</blockquote>
+
+<h2>2. Core Implementation Strategy</h2>
+<p>When implementing dynamic sliding window algorithms:</p>
+<ol>
+  <li>Initialize two pointers: <code>left = 0</code> and <code>right = 0</code>.</li>
+  <li>Expand the window by advancing <code>right</code> and incorporating the element.</li>
+  <li>While the window condition is violated, shrink from the left by incrementing <code>left</code>.</li>
+  <li>Update your global optimal answer (max length, min length, or total count).</li>
+</ol>
+
+<h2>3. Collaborative Preparation Checklist</h2>
+<ul>
+  <li> Solve LeetCode #209: Minimum Size Subarray Sum</li>
+  <li> Solve LeetCode #3: Longest Substring Without Repeating Characters</li>
+  <li> Review edge cases (empty array, all negative numbers, single element)</li>
+  <li> Practice explaining the invariant out loud with your study partner</li>
+</ul>`,
       },
       {
         id: 'page-2',
-        title: 'Graph BFS & DFS Foundations',
-        cells: [
-          {
-            id: 'c-201',
-            type: 'markdown',
-            content: '## Graph Traversals: BFS vs DFS\n\n- **BFS:** Queue-based, shortest path in unweighted graphs.\n- **DFS:** Recursion/Stack-based, cycle detection, topological sort.',
-          },
-          {
-            id: 'c-202',
-            type: 'callout',
-            calloutType: 'warning',
-            title: 'Watch Out For Cycles!',
-            content: 'Always maintain a `visited` Set or array to avoid infinite loops when traversing undirected cyclic graphs.',
-          },
-        ],
+        title: 'Graph Traversals: BFS vs DFS',
+        htmlContent: `<h1>Graph Traversals: Breadth-First vs Depth-First Search</h1>
+<p>Graph theory represents one of the most fundamental pillars of technical interview rounds at top companies. Understanding traversal patterns ensures confidence across trees, grids, and general graphs.</p>
+
+<h2>1. Breadth-First Search (BFS)</h2>
+<p>BFS traverses level-by-level using an auxiliary <strong>Queue (FIFO)</strong>. It is optimal for finding the <u>shortest path in unweighted graphs</u>.</p>
+<ul>
+  <li><strong>Time Complexity:</strong> O(V + E)</li>
+  <li><strong>Space Complexity:</strong> O(V) for the queue and visited set.</li>
+  <li><strong>Common Applications:</strong> Shortest distance in matrices (e.g., Rotten Oranges, Word Ladder).</li>
+</ul>
+
+<blockquote>
+  <strong>Caution:</strong> Always mark a node as <em>visited immediately when pushing to the queue</em>, not when popping, to avoid duplicate additions and exponential memory overhead!
+</blockquote>
+
+<h2>2. Depth-First Search (DFS)</h2>
+<p>DFS explores as deep as possible along each branch before backtracking using a <strong>Recursion Stack (LIFO)</strong>.</p>
+<ul>
+  <li><strong>Best for:</strong> Cycle detection in directed graphs, topological sorting, connected components, and pathfinding.</li>
+  <li><strong>Key Data Structure:</strong> Visited array / recursion call stack.</li>
+</ul>`,
       },
     ],
   },
   {
     id: 'nb-sys-design',
-    title: '🏗️ System Design & Distributed Systems',
+    title: '🏗️ System Design & Distributed Architecture',
     subject: 'System Design',
     paperStyle: 'grid',
     colorTheme: 'emerald',
@@ -116,20 +99,26 @@ return result;`,
       {
         id: 'page-sys-1',
         title: 'CAP Theorem & Database Sharding',
-        cells: [
-          {
-            id: 'c-301',
-            type: 'callout',
-            calloutType: 'formula',
-            title: 'CAP Theorem Trade-off',
-            content: 'In any distributed data store, you can only simultaneously guarantee at most two out of three: Consistency (C), Availability (A), and Partition Tolerance (P).',
-          },
-          {
-            id: 'c-302',
-            type: 'markdown',
-            content: '### Consistent Hashing\nConsistent hashing minimizes key remapping when nodes are added or removed in a distributed cache cluster.',
-          },
-        ],
+        htmlContent: `<h1>CAP Theorem &amp; Modern Distributed Storage</h1>
+<p>In distributed computer systems, the <strong>CAP theorem</strong> (Brewer's theorem) states that it is impossible for a distributed data store to simultaneously provide more than two out of the following three guarantees:</p>
+
+<h2>The Three Pillars</h2>
+<ul>
+  <li><strong>Consistency (C):</strong> Every read receives the most recent write or an error.</li>
+  <li><strong>Availability (A):</strong> Every non-failing node returns a reasonable response for any request.</li>
+  <li><strong>Partition Tolerance (P):</strong> The system continues to operate despite arbitrary network partitions or dropped packets.</li>
+</ul>
+
+<blockquote>
+  <strong>Architectural Trade-Off:</strong> Since network partitions are an inevitable physical reality in large distributed systems, one must architect either for <em>Consistency + Partition Tolerance (CP)</em> or <em>Availability + Partition Tolerance (AP)</em>.
+</blockquote>
+
+<h2>Database Partitioning &amp; Horizontal Sharding</h2>
+<p>When single-node database instances reach memory or I/O limits, horizontal sharding distributes rows across multiple autonomous database instances.</p>
+<ul>
+  <li><strong>Consistent Hashing:</strong> Minimizes database key reorganizations when nodes are added or removed.</li>
+  <li><strong>Replication Factor:</strong> Maintain at least 3 replicas across disparate availability zones.</li>
+</ul>`,
       },
     ],
   },
@@ -268,7 +257,7 @@ export function useNotebooks(user) {
         })
       }
 
-      const handleCellUpdated = ({ pageId, cellId, updates, sender }) => {
+      const handlePageUpdated = ({ pageId, htmlContent, sender }) => {
         if (sender === uid) return
         setNotebooks((prev) => {
           const currentNb = prev.find((n) => n.id === activeNotebook.id)
@@ -276,40 +265,10 @@ export function useNotebooks(user) {
 
           const updatedPages = currentNb.pages.map((p) => {
             if (p.id !== pageId) return p
-            const updatedCells = p.cells.map((c) => (c.id === cellId ? { ...c, ...updates } : c))
-            return { ...p, cells: updatedCells }
+            return { ...p, htmlContent, updatedAt: new Date().toISOString() }
           })
 
           const updatedNb = { ...currentNb, pages: updatedPages, updatedAt: new Date().toISOString() }
-          const updatedList = prev.map((n) => (n.id === updatedNb.id ? updatedNb : n))
-          saveLocalNotebooks(updatedList)
-          return updatedList
-        })
-      }
-
-      const handleCodeResult = ({ cellId, output, sender }) => {
-        setNotebooks((prev) => {
-          const currentNb = prev.find((n) => n.id === activeNotebook.id)
-          if (!currentNb) return prev
-
-          const updatedPages = currentNb.pages.map((p) => {
-            const hasCell = p.cells.some((c) => c.id === cellId)
-            if (!hasCell) return p
-            const updatedCells = p.cells.map((c) =>
-              c.id === cellId
-                ? {
-                    ...c,
-                    output,
-                    isRunning: false,
-                    lastRunBy: sender || 'Peer',
-                    lastRunAt: 'Just now',
-                  }
-                : c
-            )
-            return { ...p, cells: updatedCells }
-          })
-
-          const updatedNb = { ...currentNb, pages: updatedPages }
           const updatedList = prev.map((n) => (n.id === updatedNb.id ? updatedNb : n))
           saveLocalNotebooks(updatedList)
           return updatedList
@@ -329,8 +288,7 @@ export function useNotebooks(user) {
       socket.on('notebook-user-joined', handleUserJoined)
       socket.on('notebook-user-left', handleUserLeft)
       socket.on('notebook-updated', handleNotebookUpdated)
-      socket.on('notebook-cell-updated', handleCellUpdated)
-      socket.on('notebook-code-result', handleCodeResult)
+      socket.on('notebook-page-updated', handlePageUpdated)
       socket.on('notebook-typing-status', handleTypingStatus)
 
       return () => {
@@ -338,8 +296,7 @@ export function useNotebooks(user) {
         socket.off('notebook-user-joined', handleUserJoined)
         socket.off('notebook-user-left', handleUserLeft)
         socket.off('notebook-updated', handleNotebookUpdated)
-        socket.off('notebook-cell-updated', handleCellUpdated)
-        socket.off('notebook-code-result', handleCodeResult)
+        socket.off('notebook-page-updated', handlePageUpdated)
         socket.off('notebook-typing-status', handleTypingStatus)
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
       }
@@ -402,20 +359,14 @@ export function useNotebooks(user) {
         {
           id: `page-${Date.now()}`,
           title: 'Page 1: Overview & Notes',
-          cells: [
-            {
-              id: `c-${Date.now()}-1`,
-              type: 'callout',
-              calloutType: 'tip',
-              title: 'Welcome to your Collaborative Notebook',
-              content: 'Add rich notes, runnable code snippets, checklists, and invite peers to study and pair program in real time!',
-            },
-            {
-              id: `c-${Date.now()}-2`,
-              type: 'markdown',
-              content: '## Meeting Notes & Study Objectives\n\nStart typing your notes, algorithms, or concepts here...',
-            },
-          ],
+          htmlContent: `<h1>${data.title?.trim() || 'Study Notes'}</h1>
+<p>Start writing your study notes here. You can format with <strong>Bold</strong>, <em>Italic</em>, <u>Underline</u>, headings, and bullet points using the toolbar above.</p>
+<h2>Meeting Objectives &amp; Action Items</h2>
+<ul>
+  <li>Review core lecture concepts</li>
+  <li>Discuss practice problems with peer</li>
+  <li>Compile interview cheat-sheet</li>
+</ul>`,
         },
       ],
     }
@@ -470,13 +421,8 @@ export function useNotebooks(user) {
     const newPage = {
       id: `page-${Date.now()}`,
       title: title.trim() || `Page ${nb.pages.length + 1}`,
-      cells: [
-        {
-          id: `c-${Date.now()}`,
-          type: 'markdown',
-          content: '## New Section\nStart writing notes or add a code cell below...',
-        },
-      ],
+      htmlContent: `<h1>${title.trim() || 'New Topic Section'}</h1>
+<p>Write your detailed notes, bullet points, and key takeaways here...</p>`,
     }
 
     const updatedNb = {
@@ -515,175 +461,26 @@ export function useNotebooks(user) {
     await persistNotebook(updatedNb)
   }
 
-  // ── Cell Operations ──
+  // ── Rich Text HTML Content Update ──
 
-  const addCell = async (pageId, type = 'markdown') => {
-    if (!activeNotebook) return
+  const updatePageContent = async (notebookId, pageId, htmlContent) => {
+    const nb = notebooks.find((n) => n.id === notebookId)
+    if (!nb) return
 
-    const newCellId = `cell-${Date.now()}`
-    let newCell = { id: newCellId, type }
+    const updatedPages = nb.pages.map((p) =>
+      p.id === pageId ? { ...p, htmlContent, updatedAt: new Date().toISOString() } : p
+    )
+    const updatedNb = { ...nb, pages: updatedPages, updatedAt: new Date().toISOString() }
 
-    if (type === 'markdown') {
-      newCell.content = '### Key Concepts & Analysis\nAdd detailed notes, markdown formulas, or definitions here...'
-    } else if (type === 'code') {
-      newCell.language = 'javascript'
-      newCell.content = `// Pair Programming Code Cell
-function solution() {
-  console.log("Collaborative code runner active!");
-  return "Success";
-}
-solution();`
-      newCell.output = ''
-    } else if (type === 'checklist') {
-      newCell.title = 'Tasks & Milestones'
-      newCell.items = [
-        { id: `item-${Date.now()}-1`, text: 'Understand core logic', done: false },
-        { id: `item-${Date.now()}-2`, text: 'Review time & space complexity', done: false },
-      ]
-    } else if (type === 'callout') {
-      newCell.calloutType = 'tip'
-      newCell.title = 'Pro Tip'
-      newCell.content = 'Keep edge cases in mind when preparing for technical rounds!'
-    }
-
-    const updatedPages = activeNotebook.pages.map((p) => {
-      if (p.id !== pageId) return p
-      return { ...p, cells: [...(p.cells || []), newCell] }
-    })
-
-    const updatedNb = { ...activeNotebook, pages: updatedPages, updatedAt: new Date().toISOString() }
-    await persistNotebook(updatedNb)
-  }
-
-  const updateCell = async (pageId, cellId, updates) => {
-    if (!activeNotebook) return
-
-    const updatedPages = activeNotebook.pages.map((p) => {
-      if (p.id !== pageId) return p
-      const updatedCells = (p.cells || []).map((c) => (c.id === cellId ? { ...c, ...updates } : c))
-      return { ...p, cells: updatedCells }
-    })
-
-    const updatedNb = { ...activeNotebook, pages: updatedPages, updatedAt: new Date().toISOString() }
     await persistNotebook(updatedNb)
 
-    // Broadcast granular update over socket for smooth peer synchronization
-    if (activeNotebook.isCollaborative && activeNotebook.collabRoomId && socket) {
-      socket.emit('notebook-cell-update', {
-        roomId: activeNotebook.collabRoomId,
+    // Broadcast live over socket to room
+    if (nb.isCollaborative && nb.collabRoomId && socket) {
+      socket.emit('notebook-page-update', {
+        roomId: nb.collabRoomId,
         pageId,
-        cellId,
-        updates,
+        htmlContent,
         sender: uid,
-      })
-    }
-  }
-
-  const deleteCell = async (pageId, cellId) => {
-    if (!activeNotebook) return
-
-    const updatedPages = activeNotebook.pages.map((p) => {
-      if (p.id !== pageId) return p
-      return { ...p, cells: (p.cells || []).filter((c) => c.id !== cellId) }
-    })
-
-    const updatedNb = { ...activeNotebook, pages: updatedPages, updatedAt: new Date().toISOString() }
-    await persistNotebook(updatedNb)
-  }
-
-  const moveCell = async (pageId, cellId, direction = 'up') => {
-    if (!activeNotebook) return
-
-    const page = activeNotebook.pages.find((p) => p.id === pageId)
-    if (!page || !page.cells) return
-
-    const index = page.cells.findIndex((c) => c.id === cellId)
-    if (index === -1) return
-    if (direction === 'up' && index === 0) return
-    if (direction === 'down' && index === page.cells.length - 1) return
-
-    const targetIndex = direction === 'up' ? index - 1 : index + 1
-    const newCells = [...page.cells]
-    const [moved] = newCells.splice(index, 1)
-    newCells.splice(targetIndex, 0, moved)
-
-    const updatedPages = activeNotebook.pages.map((p) => (p.id === pageId ? { ...p, cells: newCells } : p))
-    const updatedNb = { ...activeNotebook, pages: updatedPages, updatedAt: new Date().toISOString() }
-    await persistNotebook(updatedNb)
-  }
-
-  // ── Code Cell Sandbox Execution ──
-
-  const executeCodeCell = async (pageId, cellId, code, language = 'javascript') => {
-    if (!activeNotebook) return
-
-    // Indicate running
-    await updateCell(pageId, cellId, { isRunning: true })
-
-    const startTime = performance.now()
-    let stdoutLogs = []
-    let outputText = ''
-
-    if (language === 'javascript') {
-      try {
-        // Safe console interceptor
-        const originalLog = console.log
-        const originalWarn = console.warn
-        const originalError = console.error
-
-        console.log = (...args) => {
-          stdoutLogs.push(args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' '))
-        }
-        console.warn = (...args) => {
-          stdoutLogs.push('[WARN] ' + args.map(String).join(' '))
-        }
-        console.error = (...args) => {
-          stdoutLogs.push('[ERR] ' + args.map(String).join(' '))
-        }
-
-        // Execute inside Function sandbox
-        // eslint-disable-next-line no-new-func
-        const sandboxFn = new Function(code)
-        const result = sandboxFn()
-
-        console.log = originalLog
-        console.warn = originalWarn
-        console.error = originalError
-
-        const duration = Math.round(performance.now() - startTime)
-        let parts = []
-        if (stdoutLogs.length > 0) parts.push(stdoutLogs.join('\n'))
-        if (result !== undefined) {
-          parts.push(`=> Return: ${typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result)}`)
-        }
-        parts.push(`✨ Execution finished in ${duration}ms (Exit 0)`)
-        outputText = parts.join('\n')
-      } catch (err) {
-        const duration = Math.round(performance.now() - startTime)
-        outputText = `❌ Runtime Error (${duration}ms):\n${err.message || String(err)}`
-      }
-    } else {
-      // Python / C++ simulation or remote API execution
-      const duration = 120
-      outputText = `[${language.toUpperCase()} Simulator]\nCode analyzed successfully.\nSyntax valid. Execution completed in ${duration}ms.`
-    }
-
-    const updates = {
-      isRunning: false,
-      output: outputText,
-      lastRunBy: user?.displayName || 'You',
-      lastRunAt: 'Just now',
-    }
-
-    await updateCell(pageId, cellId, updates)
-
-    // Broadcast code output to room
-    if (activeNotebook.isCollaborative && activeNotebook.collabRoomId && socket) {
-      socket.emit('notebook-code-run', {
-        roomId: activeNotebook.collabRoomId,
-        cellId,
-        output: outputText,
-        sender: user?.displayName || 'Teammate',
       })
     }
   }
@@ -768,12 +565,12 @@ solution();`
 
   // ── Emit typing status ──
 
-  const emitTyping = (cellId, isTyping = true) => {
+  const emitTyping = (pageId, isTyping = true) => {
     if (!activeNotebook?.isCollaborative || !activeNotebook?.collabRoomId || !socket) return
     socket.emit('notebook-typing', {
       roomId: activeNotebook.collabRoomId,
       user: { uid, name: user?.displayName || 'Peer' },
-      cellId,
+      cellId: pageId,
       isTyping,
     })
   }
@@ -795,11 +592,7 @@ solution();`
     addPage,
     deletePage,
     renamePage,
-    addCell,
-    updateCell,
-    deleteCell,
-    moveCell,
-    executeCodeCell,
+    updatePageContent,
     joinSharedNotebook,
     sendPeerInvite,
     emitTyping,

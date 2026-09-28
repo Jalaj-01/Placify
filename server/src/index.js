@@ -157,6 +157,11 @@ io.on('connection', (socket) => {
     socket.to(roomName).emit('notebook-cell-updated', { pageId, cellId, updates, sender })
   })
 
+  socket.on('notebook-page-update', ({ roomId, pageId, htmlContent, sender }) => {
+    const roomName = `notebook-${roomId}`
+    socket.to(roomName).emit('notebook-page-updated', { pageId, htmlContent, sender })
+  })
+
   socket.on('notebook-code-run', ({ roomId, cellId, output, sender }) => {
     const roomName = `notebook-${roomId}`
     socket.to(roomName).emit('notebook-code-result', { cellId, output, sender })

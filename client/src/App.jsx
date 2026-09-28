@@ -27,6 +27,7 @@ import Courses from '@/pages/Courses'
 import ClassroomVault from '@/pages/ClassroomVault'
 import Bookmarks from '@/pages/Bookmarks'
 import Shares from '@/pages/Shares'
+import Notes from '@/pages/Notes'
 import Landing from '@/pages/Landing'
 import Admin from '@/pages/Admin'
 import AdminGuard from '@/components/auth/AdminGuard'
@@ -268,6 +269,24 @@ function AppContent() {
             <PageWrapper>
               <TopBar title="Shared Inbox" />
               <Shares />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/notes"
+          element={
+            <PageWrapper>
+              <TopBar title="Notes & Collaborative Notebook" />
+              <Notes />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/notebooks"
+          element={
+            <PageWrapper>
+              <TopBar title="Notes & Collaborative Notebook" />
+              <Notes />
             </PageWrapper>
           }
         />

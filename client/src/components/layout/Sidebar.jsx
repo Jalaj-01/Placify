@@ -29,8 +29,7 @@ const allNavItems = [
   { to: '/admin?tab=teachers', icon: School, label: 'Teacher Whitelist', roles: ['admin'] },
   { to: '/admin?tab=announcements', icon: Bell, label: 'Broadcasts', roles: ['admin'] },
   { to: '/admin?tab=audit', icon: FileText, label: 'Audit Trail', roles: ['admin'] },
-  { to: '/notebooks', icon: BookOpen, label: 'Collaborative Notebooks', isNotebook: true, roles: ['admin'] },
-  { to: '/notes', icon: StickyNote, label: 'Admin Sticky Notes', isStickyNotes: true, roles: ['admin'] },
+  { to: '/notes', icon: BookOpen, label: 'Notes & Notebook', roles: ['admin'] },
 
   // Student-Only Tools
   { to: '/classroom', icon: School, label: 'Classroom Vault', roles: ['student'] },
@@ -41,8 +40,7 @@ const allNavItems = [
   { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student'] },
   { to: '/invites', icon: MailOpen, label: 'Room Invites', isInvites: true, roles: ['student'] },
   { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student'] },
-  { to: '/notebooks', icon: BookOpen, label: 'Collaborative Notebooks', isNotebook: true, roles: ['student'] },
-  { to: '/notes', icon: StickyNote, label: 'Sticky Notes', isStickyNotes: true, roles: ['student'] },
+  { to: '/notes', icon: BookOpen, label: 'Notes & Notebook', roles: ['student'] },
 
   // Academic & Coding Tools (Student, Teacher, PhD)
   { to: '/dsa-lab', icon: Boxes, label: '3D DSA Lab', roles: ['student', 'teacher', 'phd'] },
@@ -55,14 +53,12 @@ const allNavItems = [
   // Teacher-Only Tools
   { to: '/bookmarks', icon: Bookmark, label: 'Faculty Bookmarks', roles: ['teacher'] },
   { to: '/ai-coach', icon: Sparkles, label: 'AI Teaching Coach', isAICoach: true, roles: ['teacher'] },
-  { to: '/notebooks', icon: BookOpen, label: 'Faculty Notebooks', isNotebook: true, roles: ['teacher'] },
-  { to: '/notes', icon: StickyNote, label: 'Faculty Notes', isStickyNotes: true, roles: ['teacher'] },
+  { to: '/notes', icon: BookOpen, label: 'Faculty Notes & Notebook', roles: ['teacher'] },
 
   // PhD Scholar-Only Tools
   { to: '/bookmarks', icon: Bookmark, label: 'Research Bookmarks', roles: ['phd'] },
   { to: '/ai-coach', icon: Sparkles, label: 'AI Research Coach', isAICoach: true, roles: ['phd'] },
-  { to: '/notebooks', icon: BookOpen, label: 'Research Notebooks', isNotebook: true, roles: ['phd'] },
-  { to: '/notes', icon: StickyNote, label: 'Research Notes', isStickyNotes: true, roles: ['phd'] },
+  { to: '/notes', icon: BookOpen, label: 'Research Notes & Notebook', roles: ['phd'] },
 ]
 
 export default function Sidebar({ user, onSignOut }) {
