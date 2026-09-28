@@ -3,7 +3,7 @@ import {
   ArrowLeft, Users, Play, Plus, Trash2, ArrowUp, ArrowDown,
   Maximize2, Minimize2, Download, Copy, Check, Hash, Send,
   FileText, Code2, CheckSquare, Sparkles, BookOpen, AlertCircle,
-  Lightbulb, ShieldAlert, Cpu, Eye, Edit3, Terminal
+  Lightbulb, ShieldAlert, Cpu, Eye, Edit3, Terminal, Printer
 } from 'lucide-react'
 import NotesMarkdownViewer from '@/components/notes/NotesMarkdownViewer'
 
@@ -133,7 +133,7 @@ export default function NotebookWorkspace({
   return (
     <div className="flex-1 flex flex-col h-full bg-surface overflow-hidden text-text-primary">
       {/* ── TOP NAV BAR ── */}
-      <div className="p-3.5 sm:p-4 border-b border-border-subtle bg-surface/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 flex-wrap">
+      <div className="p-3.5 sm:p-4 border-b border-border-subtle bg-surface/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button
             onClick={onBack}
@@ -149,11 +149,11 @@ export default function NotebookWorkspace({
             onChange={(e) => setEditingTitle(e.target.value)}
             onBlur={handleTitleBlur}
             onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-            className="text-sm sm:text-base font-bold text-text-primary bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-xs sm:max-w-md px-1"
+            className="text-sm sm:text-base font-bold text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-xs sm:max-w-md px-1"
             title="Click to rename notebook"
           />
 
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[10px] font-bold uppercase tracking-wider shrink-0">
+          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-accent/20 text-accent font-bold uppercase tracking-wider text-[11px] shrink-0 border border-accent/30">
             {notebook.subject || 'DSA'}
           </span>
         </div>
@@ -196,6 +196,15 @@ export default function NotebookWorkspace({
             )}
           </button>
 
+          {/* Print / Save PDF */}
+          <button
+            onClick={() => window.print()}
+            className="p-1.5 rounded-xl hover:bg-hover text-text-muted hover:text-text-primary transition-colors"
+            title="Print or Save as PDF"
+          >
+            <Printer className="h-4 w-4" />
+          </button>
+
           {/* Export Markdown */}
           <button
             onClick={handleExportMarkdown}
@@ -220,14 +229,14 @@ export default function NotebookWorkspace({
 
       {/* ── COLLABORATION STATUS BANNER ── */}
       {typingStatus && (
-        <div className="px-4 py-1.5 bg-accent/10 border-b border-accent/20 text-xs text-accent flex items-center gap-2 animate-in fade-in shrink-0">
+        <div className="px-4 py-1.5 bg-accent/10 border-b border-accent/20 text-xs text-accent flex items-center gap-2 animate-in fade-in shrink-0 print:hidden">
           <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
           <span className="font-semibold">{typingStatus.name}</span> is editing a section...
         </div>
       )}
 
       {/* ── PAGES / CHAPTERS TABS BAR ── */}
-      <div className="px-4 py-2 border-b border-border-subtle bg-surface/50 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0">
+      <div className="px-4 py-2 border-b border-border-subtle bg-surface/50 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0 print:hidden">
         {notebook.pages?.map((page, idx) => {
           const isActive = page.id === activePage?.id
           const isRenaming = renamingPageId === page.id
@@ -310,12 +319,23 @@ export default function NotebookWorkspace({
       {/* ── NOTEBOOK PAGE CANVAS ── */}
       <div className={`flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin ${currentTheme.class}`}>
         <div className="max-w-4xl mx-auto space-y-4">
+          {/* ── PRINT-ONLY CLEAN PLATFORM BRANDING HEADER ── */}
+          <div className="hidden print:flex items-center justify-between pb-3 mb-4 border-b-2 border-slate-900/10 text-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="font-black text-xl tracking-tight text-slate-900 uppercase">CampusGrid Notes</span>
+              <span className="text-xs text-slate-500 font-mono">by Placify</span>
+            </div>
+            <div className="text-right">
+              <span className="text-xs font-bold text-indigo-600 font-mono">placify.app/notes</span>
+            </div>
+          </div>
+
           {/* Page Title Header */}
           <div className="pb-2 border-b border-border-subtle/60 flex items-center justify-between">
-            <h1 className="text-xl sm:text-2xl font-black text-text-primary tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               {activePage?.title || 'Untitled Page'}
             </h1>
-            <span className="text-[11px] text-text-muted font-mono">
+            <span className="text-[11px] text-text-muted font-mono print:hidden">
               {activePage?.cells?.length || 0} interactive cells
             </span>
           </div>
@@ -330,7 +350,7 @@ export default function NotebookWorkspace({
                 className="group relative rounded-2xl border border-border-subtle bg-card/90 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
               >
                 {/* Cell Header & Toolbar */}
-                <div className="px-3.5 py-2 border-b border-border-subtle/60 bg-surface/40 flex items-center justify-between gap-2 text-xs">
+                <div className="px-3.5 py-2 border-b border-border-subtle/60 bg-surface/40 flex items-center justify-between gap-2 text-xs print:hidden">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-md bg-accent/10 text-accent font-mono text-[10px] font-bold uppercase">
                       {cell.type}

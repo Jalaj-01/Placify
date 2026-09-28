@@ -4,7 +4,7 @@ import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered, Link2,
   Undo, Redo, Check, Copy, Hash, Send, FileText, CheckSquare,
   Quote, Minus, Eraser, AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Highlighter, Palette, Download, Printer, StickyNote, Pin, Eye, Sparkles
+  Highlighter, Palette, Download, Printer, StickyNote, Pin, Eye, Sparkles, Share2
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNotebooks } from '@/hooks/useNotebooks'
@@ -73,6 +73,13 @@ export default function Notes() {
     emitTyping,
   } = useNotebooks(user)
 
+  // Dynamically compute subjects strictly from notebooks that exist
+  const availableSubjects = [
+    'ALL',
+    ...Array.from(new Set(notebooks.map((nb) => nb.subject?.trim()).filter(Boolean)))
+  ]
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('ALL')
+
   // Sticky Notes Hook
   const { notes, addNote, updateNote, deleteNote } = useStickyNotes(user?.uid)
 
@@ -83,10 +90,13 @@ export default function Notes() {
   const [showCollabModal, setShowCollabModal] = useState(false)
   const [showCreateNbModal, setShowCreateNbModal] = useState(false)
   const [showJoinNbModal, setShowJoinNbModal] = useState(false)
+  const [shareModalTarget, setShareModalTarget] = useState(null)
+  const [shareCopied, setShareCopied] = useState(false)
 
   // Create Notebook Form
   const [newNbTitle, setNewNbTitle] = useState('')
   const [newNbSubject, setNewNbSubject] = useState('DSA')
+  const [customSubject, setCustomSubject] = useState('')
   const [newNbStyle, setNewNbStyle] = useState('ruled')
   const [newNbCollab, setNewNbCollab] = useState(true)
 
@@ -100,6 +110,7 @@ export default function Notes() {
   const [inviteMsg, setInviteMsg] = useState('')
   const [isSendingInvite, setIsSendingInvite] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
+  const [copiedCardId, setCopiedCardId] = useState(null)
 
   // Sticky Notes Search & Filter
   const [stickySearch, setStickySearch] = useState('')
@@ -169,16 +180,33 @@ export default function Notes() {
     e.preventDefault()
     if (!newNbTitle.trim()) return
 
+    const finalSubject = newNbSubject === 'Other' ? (customSubject.trim() || 'General') : newNbSubject
+
     const nb = await createNotebook({
       title: newNbTitle.trim(),
-      subject: newNbSubject,
+      subject: finalSubject,
       paperStyle: newNbStyle,
       isCollaborative: newNbCollab,
     })
 
     setShowCreateNbModal(false)
     setNewNbTitle('')
+    setCustomSubject('')
+    setNewNbSubject('DSA')
     if (nb?.id) setActiveNotebookId(nb.id)
+  }
+
+  const handleShareClick = (e, nb) => {
+    e.stopPropagation()
+    const shareUrl = `${window.location.origin}/notes?room=${nb.collabRoomId}`
+    navigator.clipboard.writeText(shareUrl)
+    setCopiedCardId(nb.id)
+    setShareModalTarget(nb)
+    setShareCopied(true)
+    setTimeout(() => {
+      setCopiedCardId(null)
+      setShareCopied(false)
+    }, 2500)
   }
 
   const handleJoinNotebook = async (e) => {
@@ -239,9 +267,9 @@ export default function Notes() {
   const currentTheme = PAPER_THEMES.find((t) => t.id === (activeNotebook?.paperStyle || 'ruled')) || PAPER_THEMES[0]
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] min-h-[640px] rounded-3xl border border-border-subtle bg-surface/80 backdrop-blur-xl shadow-2xl overflow-hidden text-text-primary">
+    <div className="flex flex-col h-[calc(100vh-100px)] min-h-[640px] rounded-3xl border border-border-subtle bg-surface/80 backdrop-blur-xl shadow-2xl overflow-hidden text-text-primary print:border-none print:shadow-none print:bg-white print:h-auto print:overflow-visible">
       {/* ── TOP LEVEL NAVIGATION HEADER ── */}
-      <div className="px-5 py-3 border-b border-border-subtle bg-surface/90 flex items-center justify-between gap-3 shrink-0 flex-wrap">
+      <div className="px-5 py-3 border-b border-border-subtle bg-surface/90 flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-2xl bg-accent/20 text-accent flex items-center justify-center shadow-sm">
             <BookOpen className="h-5 w-5" />
@@ -289,9 +317,9 @@ export default function Notes() {
 
       {/* ── MAIN WORKSPACE CONTENT ── */}
       {activeMainTab === 'notebooks' ? (
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden print:overflow-visible">
           {/* ── LEFT NOTEBOOK SHELF & CHAPTER SELECTOR (320px) ── */}
-          <div className="w-72 lg:w-80 border-r border-border-subtle bg-surface/50 flex flex-col shrink-0 overflow-hidden">
+          <div className="w-72 lg:w-80 border-r border-border-subtle bg-surface/50 flex flex-col shrink-0 overflow-hidden print:hidden">
             {/* Shelf Header */}
             <div className="p-3.5 border-b border-border-subtle bg-surface/40 flex items-center justify-between shrink-0">
               <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">
@@ -316,57 +344,95 @@ export default function Notes() {
               </div>
             </div>
 
+            {/* Dynamic Subject Filter Pills (Only displays subjects of notebooks that actually exist) */}
+            <div className="px-3 pt-2.5 pb-1 flex items-center gap-1 overflow-x-auto scrollbar-none shrink-0">
+              {availableSubjects.map((sub) => (
+                <button
+                  key={sub}
+                  onClick={() => setSelectedSubjectFilter(sub)}
+                  className={cn(
+                    'px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all',
+                    selectedSubjectFilter === sub
+                      ? 'bg-accent text-white font-bold shadow-xs'
+                      : 'bg-card/70 text-text-muted hover:text-text-primary border border-border-subtle'
+                  )}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+
             {/* Notebooks List */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
-              {notebooks.map((nb) => {
-                const isSelected = nb.id === activeNotebook?.id
-                return (
-                  <div
-                    key={nb.id}
-                    onClick={() => setActiveNotebookId(nb.id)}
-                    className={cn(
-                      'group p-3 rounded-2xl border transition-all cursor-pointer relative overflow-hidden',
-                      isSelected
-                        ? 'border-accent bg-accent/10 shadow-sm'
-                        : 'border-border-subtle bg-card/60 hover:bg-card hover:border-border-subtle'
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-1.5">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="px-1.5 py-0.2 rounded-md bg-accent/15 text-accent text-[9px] font-bold uppercase">
-                            {nb.subject || 'DSA'}
-                          </span>
-                          {nb.isCollaborative && (
-                            <span className="text-[9px] text-semantic-green font-bold flex items-center gap-0.5">
-                              <span className="h-1.5 w-1.5 rounded-full bg-semantic-green animate-pulse" /> Live
+              {notebooks
+                .filter((nb) => {
+                  if (selectedSubjectFilter === 'ALL' || !availableSubjects.includes(selectedSubjectFilter)) return true
+                  return nb.subject === selectedSubjectFilter
+                })
+                .map((nb) => {
+                  const isSelected = nb.id === activeNotebook?.id
+                  return (
+                    <div
+                      key={nb.id}
+                      onClick={() => setActiveNotebookId(nb.id)}
+                      className={cn(
+                        'group p-3 rounded-2xl border transition-all cursor-pointer relative overflow-hidden',
+                        isSelected
+                          ? 'border-accent bg-accent/10 shadow-sm'
+                          : 'border-border-subtle bg-card/60 hover:bg-card hover:border-border-subtle'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-1.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="px-1.5 py-0.2 rounded-md bg-accent/15 text-accent text-[9px] font-bold uppercase">
+                              {nb.subject || 'DSA'}
                             </span>
-                          )}
+                            {nb.isCollaborative && (
+                              <span className="text-[9px] text-semantic-green font-bold flex items-center gap-0.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-semantic-green animate-pulse" /> Live
+                              </span>
+                            )}
+                          </div>
+                          <h4 className={cn('text-xs font-bold truncate mt-1', isSelected ? 'text-accent' : 'text-text-primary')}>
+                            {nb.title}
+                          </h4>
                         </div>
-                        <h4 className={cn('text-xs font-bold truncate mt-1', isSelected ? 'text-accent' : 'text-text-primary')}>
-                          {nb.title}
-                        </h4>
+
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          {nb.collabRoomId && (
+                            <button
+                              onClick={(e) => handleShareClick(e, nb)}
+                              className="p-1 rounded-lg text-accent hover:bg-accent/15 transition-colors"
+                              title="Share Collaborative Notebook Link"
+                            >
+                              {copiedCardId === nb.id ? (
+                                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                              ) : (
+                                <Share2 className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteNotebook(nb.id)
+                            }}
+                            className="p-1 rounded-lg text-text-muted hover:text-semantic-red opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete Notebook"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          deleteNotebook(nb.id)
-                        }}
-                        className="p-1 rounded-lg text-text-muted hover:text-semantic-red opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Delete Notebook"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center justify-between text-[10px] text-text-muted mt-2 pt-1 border-t border-border-subtle/50">
+                        <span>{nb.pages?.length || 1} {nb.pages?.length === 1 ? 'Page' : 'Pages'}</span>
+                        {nb.collabRoomId && <span className="font-mono opacity-70">#{nb.collabRoomId}</span>}
+                      </div>
                     </div>
-
-                    <div className="flex items-center justify-between text-[10px] text-text-muted mt-2 pt-1 border-t border-border-subtle/50">
-                      <span>{nb.pages?.length || 1} {nb.pages?.length === 1 ? 'Page' : 'Pages'}</span>
-                      {nb.collabRoomId && <span className="font-mono opacity-70">#{nb.collabRoomId}</span>}
-                    </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
             </div>
 
             {/* Pages & Chapters of Active Notebook */}
@@ -423,9 +489,9 @@ export default function Notes() {
           </div>
 
           {/* ── RIGHT MAIN DOCUMENT CANVAS ── */}
-          <div className="flex-1 flex flex-col h-full bg-base overflow-hidden">
+          <div className="flex-1 flex flex-col h-full bg-base overflow-hidden print:overflow-visible print:bg-white">
             {/* Document Header Controls */}
-            <div className="p-3.5 border-b border-border-subtle bg-surface/90 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 flex-wrap">
+            <div className="p-3.5 border-b border-border-subtle bg-surface/90 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <input
                   type="text"
@@ -436,7 +502,7 @@ export default function Notes() {
                       renamePage(activeNotebook.id, activePage.id, editingPageTitle.trim())
                     }
                   }}
-                  className="text-base sm:text-lg font-black text-text-primary bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-sm sm:max-w-md px-1"
+                  className="text-base sm:text-lg font-black text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-sm sm:max-w-md px-1"
                   placeholder="Page Title"
                   title="Click to rename this page"
                 />
@@ -490,7 +556,7 @@ export default function Notes() {
             </div>
 
             {/* ── RICH TEXT FORMATTING TOOLBAR (Google Docs / Word Style) ── */}
-            <div className="px-4 py-2 border-b border-border-subtle bg-surface/95 flex items-center gap-1 flex-wrap shrink-0 text-text-secondary shadow-xs">
+            <div className="px-4 py-2 border-b border-border-subtle bg-surface/95 flex items-center gap-1 flex-wrap shrink-0 text-text-secondary shadow-xs print:hidden">
               {/* Undo / Redo */}
               <button
                 type="button"
@@ -686,15 +752,34 @@ export default function Notes() {
 
             {/* Peer Typing Status Banner */}
             {typingStatus && (
-              <div className="px-5 py-1.5 bg-accent/10 border-b border-accent/20 text-xs text-accent font-semibold flex items-center gap-2 shrink-0 animate-in fade-in">
+              <div className="px-5 py-1.5 bg-accent/10 border-b border-accent/20 text-xs text-accent font-semibold flex items-center gap-2 shrink-0 animate-in fade-in print:hidden">
                 <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
                 <span>{typingStatus.name} is currently typing in this notebook...</span>
               </div>
             )}
 
             {/* ── THE NOTEBOOK PAPER DOCUMENT (Full-Width Clean Workspace) ── */}
-            <div className={cn('flex-1 overflow-y-auto p-4 sm:p-8 scrollbar-thin', currentTheme.class)}>
-              <div className="max-w-4xl mx-auto bg-surface/90 dark:bg-surface/95 border border-border-subtle rounded-3xl p-6 sm:p-12 shadow-xl min-h-[600px] flex flex-col">
+            <div className={cn('flex-1 overflow-y-auto p-4 sm:p-8 scrollbar-thin print:p-0 print:overflow-visible print:bg-white', currentTheme.class)}>
+              <div className="max-w-4xl mx-auto bg-surface/90 dark:bg-surface/95 border border-border-subtle rounded-3xl p-6 sm:p-12 shadow-xl min-h-[600px] flex flex-col print:border-none print:shadow-none print:p-0 print:bg-white print:min-h-0 printable-document-container">
+                {/* ── PRINT-ONLY CLEAN PLATFORM BRANDING HEADER ── */}
+                <div className="hidden print:flex items-center justify-between pb-3 mb-6 border-b-2 border-slate-900/10 text-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-2xl tracking-tight text-slate-900 uppercase">CampusGrid Notes</span>
+                    <span className="text-xs text-slate-500 font-mono">by Placify</span>
+                  </div>
+                  <div className="text-right flex flex-col items-end">
+                    <span className="text-sm font-bold text-indigo-600 font-mono">placify.app/notes</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{new Date().toLocaleDateString()}</span>
+                  </div>
+                </div>
+
+                {/* Print Title Block */}
+                <div className="hidden print:block mb-6">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{activeNotebook?.subject || 'Study Notes'}</span>
+                  <h1 className="text-2xl font-black text-slate-900 mt-1">{activeNotebook?.title}</h1>
+                  <h2 className="text-lg font-bold text-slate-700 mt-0.5">{activePage?.title}</h2>
+                </div>
+
                 <div
                   ref={editorRef}
                   contentEditable
@@ -721,7 +806,7 @@ export default function Notes() {
             </div>
 
             {/* ── BOTTOM STATS FOOTER ── */}
-            <div className="px-6 py-2.5 border-t border-border-subtle bg-surface/90 text-xs text-text-muted flex items-center justify-between shrink-0 font-medium">
+            <div className="px-6 py-2.5 border-t border-border-subtle bg-surface/90 text-xs text-text-muted flex items-center justify-between shrink-0 font-medium print:hidden">
               <div className="flex items-center gap-4">
                 <span>{stats.words} words</span>
                 <span>{stats.chars} characters</span>
@@ -928,7 +1013,22 @@ export default function Notes() {
                     <option value="Core CS">Core CS (OS/DBMS/CN)</option>
                     <option value="Web Dev">Web Development</option>
                     <option value="Interview Prep">Interview Prep</option>
+                    <option value="Other">Other (Custom Subject)</option>
                   </select>
+
+                  {newNbSubject === 'Other' && (
+                    <div className="mt-2 animate-in fade-in">
+                      <input
+                        type="text"
+                        placeholder="Type custom subject/domain..."
+                        value={customSubject}
+                        onChange={(e) => setCustomSubject(e.target.value)}
+                        className="w-full bg-card border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent font-semibold"
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1026,7 +1126,7 @@ export default function Notes() {
         </div>
       )}
 
-      {/* ── MODAL 3: SHARE & COLLABORATE POPUP ── */}
+      {/* ── MODAL 3: SHARE & COLLABORATE POPUP (HOST / ACTIVE NOTEBOOK) ── */}
       {showCollabModal && activeNotebook && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-surface border border-border-subtle rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
@@ -1043,28 +1143,39 @@ export default function Notes() {
               <button onClick={() => setShowCollabModal(false)} className="text-text-muted hover:text-text-primary">✕</button>
             </div>
 
-            {/* Room Code Box */}
+            {/* Direct Share Link Box */}
             <div className="p-3.5 rounded-2xl bg-card border border-border-subtle space-y-1.5">
               <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                Shareable Room Code
+                Direct Collaborative Link
               </label>
               <div className="flex items-center justify-between gap-2 bg-base px-3 py-2 rounded-xl border border-border-subtle">
-                <div className="flex items-center gap-2 font-mono text-xs font-bold text-accent">
-                  <Hash className="h-4 w-4" />
-                  <span>{activeNotebook.collabRoomId}</span>
-                </div>
+                <span className="text-xs font-mono text-accent truncate flex-1">
+                  {`${window.location.origin}/notes?room=${activeNotebook.collabRoomId}`}
+                </span>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(activeNotebook.collabRoomId)
+                    const link = `${window.location.origin}/notes?room=${activeNotebook.collabRoomId}`
+                    navigator.clipboard.writeText(link)
                     setCopiedCode(true)
                     setTimeout(() => setCopiedCode(false), 2000)
                   }}
-                  className="px-2 py-1 rounded-lg bg-accent/15 text-accent hover:bg-accent hover:text-white text-xs font-bold flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-accent text-white hover:bg-accent-light text-xs font-bold flex items-center gap-1 shrink-0 shadow-xs"
                 >
-                  {copiedCode ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                  <span>{copiedCode ? 'Copied' : 'Copy'}</span>
+                  {copiedCode ? <Check className="h-3 w-3 text-emerald-300" /> : <Copy className="h-3 w-3" />}
+                  <span>{copiedCode ? 'Copied Link!' : 'Copy Link'}</span>
                 </button>
               </div>
+            </div>
+
+            {/* How collaboration works */}
+            <div className="p-3 rounded-2xl bg-accent/10 border border-accent/20 space-y-1 text-xs text-text-secondary">
+              <div className="flex items-center gap-2 font-bold text-accent">
+                <Users className="h-3.5 w-3.5" />
+                <span>Peer Access:</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Registered users who open this link immediately enter and add this notebook to their collaborative shelf. New visitors will be prompted to sign up or log in.
+              </p>
             </div>
 
             {/* Active Members */}
@@ -1110,6 +1221,73 @@ export default function Notes() {
               </div>
               {inviteMsg && <p className="text-xs font-semibold text-semantic-green">{inviteMsg}</p>}
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 4: SHARE SPECIFIC NOTEBOOK CARD POPUP ── */}
+      {shareModalTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-surface border border-border-subtle rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-2xl bg-accent/20 text-accent flex items-center justify-center">
+                  <Share2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-text-primary">Share Collaborative Notebook</h3>
+                  <p className="text-[11px] text-text-muted">{shareModalTarget.title}</p>
+                </div>
+              </div>
+              <button onClick={() => setShareModalTarget(null)} className="text-text-muted hover:text-text-primary p-1 rounded-lg">✕</button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-card border border-border-subtle space-y-2">
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+                Direct Collaborative Link
+              </label>
+              <div className="flex items-center justify-between gap-2 bg-base px-3 py-2 rounded-xl border border-border-subtle">
+                <span className="text-xs font-mono text-accent truncate flex-1">
+                  {`${window.location.origin}/notes?room=${shareModalTarget.collabRoomId}`}
+                </span>
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}/notes?room=${shareModalTarget.collabRoomId}`
+                    navigator.clipboard.writeText(link)
+                    setShareCopied(true)
+                    setTimeout(() => setShareCopied(false), 2500)
+                  }}
+                  className="px-3 py-1 rounded-lg bg-accent text-white text-xs font-bold flex items-center gap-1 shrink-0 shadow-xs"
+                >
+                  {shareCopied ? <Check className="h-3 w-3 text-emerald-300" /> : <Copy className="h-3 w-3" />}
+                  <span>{shareCopied ? 'Copied!' : 'Copy Link'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-accent/10 border border-accent/20 space-y-1.5 text-xs text-text-secondary">
+              <div className="flex items-center gap-2 font-bold text-accent">
+                <Users className="h-4 w-4" />
+                <span>Instant Collaboration:</span>
+              </div>
+              <ul className="space-y-1 pl-5 list-disc text-[11px] text-text-muted leading-relaxed">
+                <li><strong className="text-text-primary">Registered users:</strong> Directly open and automatically add this notebook into their collaborative notes.</li>
+                <li><strong className="text-text-primary">New visitors:</strong> They land on Placify and are invited to sign in/register to automatically open this notebook.</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] font-mono text-text-muted">
+                Room ID: #{shareModalTarget.collabRoomId}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShareModalTarget(null)}
+                className="px-4 py-2 rounded-xl bg-card border border-border-subtle hover:bg-hover text-xs font-bold text-text-primary transition-all"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

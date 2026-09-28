@@ -85,6 +85,26 @@ function AppContent() {
     }
   }, [user, streakData, applications])
 
+  // Capture pending room invitation link for unauthenticated users
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const room = params.get('room') || params.get('join')
+    if (room) {
+      localStorage.setItem('placify_pending_notebook_room', room)
+    }
+  }, [])
+
+  // Auto-redirect to shared notebook once authenticated if pending room invite exists
+  useEffect(() => {
+    if (user) {
+      const pendingRoom = localStorage.getItem('placify_pending_notebook_room')
+      if (pendingRoom) {
+        localStorage.removeItem('placify_pending_notebook_room')
+        window.location.href = `/notes?room=${pendingRoom}`
+      }
+    }
+  }, [user])
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-base flex items-center justify-center">
@@ -119,16 +139,18 @@ function AppContent() {
 
   // Private routing for logged-in users
   return (
-    <div className="min-h-screen bg-base text-text-primary">
-      <Sidebar user={user} onSignOut={signOut} />
-      <BottomNav />
-      <AICoachDrawer />
-      <StickyNotesDrawer />
-      <MockTimerSetupModal />
-      <TopFloatingTimerCapsule />
-      <GroupStudyModal user={user} />
-      <GlobalInviteListener />
-      <InvitesDrawer />
+    <div className="min-h-screen bg-base text-text-primary print:bg-white print:text-slate-900 print:min-h-0">
+      <div className="print:hidden">
+        <Sidebar user={user} onSignOut={signOut} />
+        <BottomNav />
+        <AICoachDrawer />
+        <StickyNotesDrawer />
+        <MockTimerSetupModal />
+        <TopFloatingTimerCapsule />
+        <GroupStudyModal user={user} />
+        <GlobalInviteListener />
+        <InvitesDrawer />
+      </div>
       <Routes>
         {/* Redirect root to dashboard when authenticated */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

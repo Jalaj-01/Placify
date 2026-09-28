@@ -10,7 +10,7 @@ export default function TopBar({ title }) {
   const isAdmin = isSuperAdmin(user?.email) || profile?.role === 'admin'
 
   return (
-    <header className="lg:hidden sticky top-0 z-30 border-b border-border-subtle bg-base/95 backdrop-blur-md px-4 py-3">
+    <header className="lg:hidden sticky top-0 z-30 border-b border-border-subtle bg-base/95 backdrop-blur-md px-4 py-3 print:hidden">
       <div className="flex items-center justify-between">
         <h1 className="text-section font-semibold">{title}</h1>
         <div className="flex items-center gap-2">

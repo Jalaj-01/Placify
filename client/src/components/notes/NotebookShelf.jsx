@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import {
   BookOpen, Plus, Users, Search, Trash2, ArrowRight,
-  Sparkles, Hash, Copy, Check, Clock, FileText, Code2, CheckSquare
+  Sparkles, Hash, Copy, Check, Clock, FileText, Code2, CheckSquare, Share2, Link2
 } from 'lucide-react'
-
-const SUBJECT_OPTIONS = ['ALL', 'DSA', 'System Design', 'Core CS', 'Web Dev', 'Interview Prep']
 
 const COLOR_THEMES = [
   { id: 'indigo', name: 'Indigo', spine: 'bg-indigo-500', border: 'border-indigo-500/30', bg: 'bg-indigo-500/10 text-indigo-400' },
@@ -34,10 +32,19 @@ export default function NotebookShelf({
   const [selectedSubject, setSelectedSubject] = useState('ALL')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showJoinModal, setShowJoinModal] = useState(false)
+  const [shareModalTarget, setShareModalTarget] = useState(null)
+  const [shareCopied, setShareCopied] = useState(false)
+
+  // Dynamically compute subjects strictly from notebooks that exist
+  const availableSubjects = [
+    'ALL',
+    ...Array.from(new Set(notebooks.map((nb) => nb.subject?.trim()).filter(Boolean)))
+  ]
 
   // Form states for New Notebook
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('DSA')
+  const [customSubject, setCustomSubject] = useState('')
   const [paperStyle, setPaperStyle] = useState('ruled')
   const [colorTheme, setColorTheme] = useState('indigo')
   const [isCollaborative, setIsCollaborative] = useState(true)
@@ -53,9 +60,11 @@ export default function NotebookShelf({
     e.preventDefault()
     if (!title.trim()) return
 
+    const finalSubject = subject === 'Other' ? (customSubject.trim() || 'General') : subject
+
     const newNb = await onCreateNotebook({
       title: title.trim(),
-      subject,
+      subject: finalSubject,
       paperStyle,
       colorTheme,
       isCollaborative,
@@ -63,6 +72,8 @@ export default function NotebookShelf({
 
     setShowCreateModal(false)
     setTitle('')
+    setCustomSubject('')
+    setSubject('DSA')
     if (newNb?.id) {
       onSelectNotebook(newNb.id)
     }
@@ -88,11 +99,17 @@ export default function NotebookShelf({
     }
   }
 
-  const handleCopyCode = (e, code) => {
+  const handleShareClick = (e, nb) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(code)
-    setCopiedId(code)
-    setTimeout(() => setCopiedId(null), 2000)
+    const shareUrl = `${window.location.origin}/notes?room=${nb.collabRoomId}`
+    navigator.clipboard.writeText(shareUrl)
+    setCopiedId(nb.id)
+    setShareModalTarget(nb)
+    setShareCopied(true)
+    setTimeout(() => {
+      setCopiedId(null)
+      setShareCopied(false)
+    }, 2500)
   }
 
   const filteredNotebooks = notebooks.filter((nb) => {
@@ -102,7 +119,7 @@ export default function NotebookShelf({
       (nb.subject && nb.subject.toLowerCase().includes(q))
     if (!matchesSearch) return false
 
-    if (selectedSubject === 'ALL') return true
+    if (selectedSubject === 'ALL' || !availableSubjects.includes(selectedSubject)) return true
     return nb.subject === selectedSubject
   })
 
@@ -160,7 +177,7 @@ export default function NotebookShelf({
           </div>
 
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
-            {SUBJECT_OPTIONS.map((sub) => (
+            {availableSubjects.map((sub) => (
               <button
                 key={sub}
                 onClick={() => setSelectedSubject(sub)}
@@ -230,20 +247,20 @@ export default function NotebookShelf({
                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     {nb.collabRoomId && (
                       <button
-                        onClick={(e) => handleCopyCode(e, nb.collabRoomId)}
-                        className="p-1 rounded-lg text-text-muted hover:text-accent transition-colors"
-                        title="Copy Room ID"
+                        onClick={(e) => handleShareClick(e, nb)}
+                        className="p-1.5 rounded-lg text-accent hover:bg-accent/15 transition-colors flex items-center gap-1"
+                        title="Share Collaborative Notebook Link"
                       >
-                        {copiedId === nb.collabRoomId ? (
+                        {copiedId === nb.id ? (
                           <Check className="h-3.5 w-3.5 text-emerald-400" />
                         ) : (
-                          <Copy className="h-3.5 w-3.5" />
+                          <Share2 className="h-3.5 w-3.5" />
                         )}
                       </button>
                     )}
                     <button
                       onClick={() => onDeleteNotebook(nb.id)}
-                      className="p-1 rounded-lg text-text-muted hover:text-semantic-red transition-colors opacity-60 group-hover:opacity-100"
+                      className="p-1.5 rounded-lg text-text-muted hover:text-semantic-red transition-colors opacity-60 group-hover:opacity-100"
                       title="Delete Notebook"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -332,7 +349,22 @@ export default function NotebookShelf({
                     <option value="Web Dev">Web Development</option>
                     <option value="Interview Prep">Interview Prep</option>
                     <option value="Research">Research & Papers</option>
+                    <option value="Other">Other (Custom Subject)</option>
                   </select>
+
+                  {subject === 'Other' && (
+                    <div className="mt-2 animate-in fade-in">
+                      <input
+                        type="text"
+                        placeholder="Type custom subject name..."
+                        value={customSubject}
+                        onChange={(e) => setCustomSubject(e.target.value)}
+                        className="w-full bg-card border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent font-semibold"
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -460,6 +492,78 @@ export default function NotebookShelf({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── SHARE COLLABORATIVE NOTEBOOK MODAL ── */}
+      {shareModalTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-surface border border-border-subtle rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-2xl bg-accent/20 text-accent flex items-center justify-center">
+                  <Share2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-text-primary">Share Collaborative Notebook</h3>
+                  <p className="text-[11px] text-text-muted">{shareModalTarget.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShareModalTarget(null)}
+                className="text-text-muted hover:text-text-primary p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-card border border-border-subtle space-y-2">
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+                Direct Collaborative Link
+              </label>
+              <div className="flex items-center justify-between gap-2 bg-base px-3 py-2 rounded-xl border border-border-subtle">
+                <span className="text-xs font-mono text-accent truncate flex-1">
+                  {`${window.location.origin}/notes?room=${shareModalTarget.collabRoomId}`}
+                </span>
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}/notes?room=${shareModalTarget.collabRoomId}`
+                    navigator.clipboard.writeText(link)
+                    setShareCopied(true)
+                    setTimeout(() => setShareCopied(false), 2500)
+                  }}
+                  className="px-3 py-1 rounded-lg bg-accent text-white text-xs font-bold flex items-center gap-1 shrink-0 shadow-xs"
+                >
+                  {shareCopied ? <Check className="h-3 w-3 text-emerald-300" /> : <Copy className="h-3 w-3" />}
+                  <span>{shareCopied ? 'Copied!' : 'Copy Link'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-accent/10 border border-accent/20 space-y-1.5 text-xs text-text-secondary">
+              <div className="flex items-center gap-2 font-bold text-accent">
+                <Users className="h-4 w-4" />
+                <span>How collaboration works:</span>
+              </div>
+              <ul className="space-y-1 pl-5 list-disc text-[11px] text-text-muted leading-relaxed">
+                <li><strong className="text-text-primary">Registered users:</strong> Opening this link immediately opens the notebook and adds it to their collaborative notes list.</li>
+                <li><strong className="text-text-primary">New visitors:</strong> They will land on Placify and be prompted to sign up/login to automatically open this notebook.</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] font-mono text-text-muted">
+                Room ID: #{shareModalTarget.collabRoomId}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShareModalTarget(null)}
+                className="px-4 py-2 rounded-xl bg-card border border-border-subtle hover:bg-hover text-xs font-bold text-text-primary transition-all"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

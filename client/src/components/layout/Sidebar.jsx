@@ -166,7 +166,7 @@ export default function Sidebar({ user, onSignOut }) {
       onMouseLeave={() => setIsHovered(false)}
       animate={{ width: isExpanded ? 240 : 64 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
-      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-border-subtle bg-surface/95 backdrop-blur-xl z-40 shadow-xl overflow-hidden"
+      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-border-subtle bg-surface/95 backdrop-blur-xl z-40 shadow-xl overflow-hidden print:hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border-subtle shrink-0">

@@ -215,6 +215,20 @@ export function useNotebooks(user) {
     }
   }, [uid])
 
+  // Check URL query parameters for ?room= or ?join= to auto-join collaborative notebook
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const roomParam = params.get('room') || params.get('join')
+    if (roomParam) {
+      joinSharedNotebook(roomParam).then((res) => {
+        if (res?.success) {
+          const cleanUrl = window.location.pathname
+          window.history.replaceState({}, document.title, cleanUrl)
+        }
+      })
+    }
+  }, [])
+
   // Real-time socket & shared room subscription for active collaborative notebook
   useEffect(() => {
     if (!activeNotebook?.isCollaborative || !activeNotebook?.collabRoomId) {
@@ -358,15 +372,9 @@ export function useNotebooks(user) {
       pages: [
         {
           id: `page-${Date.now()}`,
-          title: 'Page 1: Overview & Notes',
-          htmlContent: `<h1>${data.title?.trim() || 'Study Notes'}</h1>
-<p>Start writing your study notes here. You can format with <strong>Bold</strong>, <em>Italic</em>, <u>Underline</u>, headings, and bullet points using the toolbar above.</p>
-<h2>Meeting Objectives &amp; Action Items</h2>
-<ul>
-  <li>Review core lecture concepts</li>
-  <li>Discuss practice problems with peer</li>
-  <li>Compile interview cheat-sheet</li>
-</ul>`,
+          title: 'Page 1',
+          htmlContent: '',
+          cells: [],
         },
       ],
     }
@@ -421,8 +429,8 @@ export function useNotebooks(user) {
     const newPage = {
       id: `page-${Date.now()}`,
       title: title.trim() || `Page ${nb.pages.length + 1}`,
-      htmlContent: `<h1>${title.trim() || 'New Topic Section'}</h1>
-<p>Write your detailed notes, bullet points, and key takeaways here...</p>`,
+      htmlContent: '',
+      cells: [],
     }
 
     const updatedNb = {

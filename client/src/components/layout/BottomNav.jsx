@@ -62,7 +62,7 @@ export default function BottomNav() {
   })
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border-subtle bg-surface/95 backdrop-blur-md">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border-subtle bg-surface/95 backdrop-blur-md print:hidden">
       <div className="flex items-center justify-around py-2 px-1">
         {items.map(({ to, icon: Icon, label }) => (
           <NavLink

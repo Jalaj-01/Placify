@@ -1,4 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { BookOpen, Users, ArrowRight } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import { Button } from '@/components/ui/button'
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import Metrics from '@/components/landing/Metrics'
@@ -139,6 +142,16 @@ function Canvas3DBackground() {
 }
 
 export default function Landing() {
+  const { signInWithGoogle } = useAuth()
+  const [pendingRoom] = useState(() => {
+    return (
+      new URLSearchParams(window.location.search).get('room') ||
+      new URLSearchParams(window.location.search).get('join') ||
+      localStorage.getItem('placify_pending_notebook_room') ||
+      null
+    )
+  })
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, [])
@@ -158,6 +171,24 @@ export default function Landing() {
 
       {/* 1. Header / Navigation Bar */}
       <Navbar />
+
+      {/* Collaborative Notebook Invite Banner */}
+      {pendingRoom && (
+        <div className="sticky top-20 z-40 bg-gradient-to-r from-accent via-indigo-600 to-cyan-500 text-white px-4 py-3 shadow-xl flex items-center justify-between gap-3 text-xs sm:text-sm font-bold border-b border-white/20 animate-in slide-in-from-top">
+          <div className="flex items-center gap-2.5 max-w-2xl">
+            <span className="p-1 rounded-lg bg-white/20 shrink-0"><Users className="h-4 w-4" /></span>
+            <span>You've been invited to collaborate on a Placify Notebook (#{pendingRoom})! Sign in or register to open and collaborate.</span>
+          </div>
+          <Button
+            size="sm"
+            onClick={signInWithGoogle}
+            className="bg-white text-slate-900 hover:bg-slate-100 font-black text-xs shrink-0 rounded-xl shadow-lg border border-white/40 flex items-center gap-1.5"
+          >
+            <span>Register / Sign In</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
 
       {/* 2. High-Impact Hero Section */}
       <Hero />
