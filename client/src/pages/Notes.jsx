@@ -369,70 +369,89 @@ export default function Notes() {
                   if (selectedSubjectFilter === 'ALL' || !availableSubjects.includes(selectedSubjectFilter)) return true
                   return nb.subject === selectedSubjectFilter
                 })
-                .map((nb) => {
-                  const isSelected = nb.id === activeNotebook?.id
-                  return (
-                    <div
-                      key={nb.id}
-                      onClick={() => setActiveNotebookId(nb.id)}
-                      className={cn(
-                        'group p-3 rounded-2xl border transition-all cursor-pointer relative overflow-hidden',
-                        isSelected
-                          ? 'border-accent bg-accent/10 shadow-sm'
-                          : 'border-border-subtle bg-card/60 hover:bg-card hover:border-border-subtle'
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-1.5">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="px-1.5 py-0.2 rounded-md bg-accent/15 text-accent text-[9px] font-bold uppercase">
-                              {nb.subject || 'DSA'}
-                            </span>
-                            {nb.isCollaborative && (
-                              <span className="text-[9px] text-semantic-green font-bold flex items-center gap-0.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-semantic-green animate-pulse" /> Live
+                .length === 0 ? (
+                <div className="h-48 flex flex-col items-center justify-center p-4 text-center text-text-muted">
+                  <BookOpen className="h-8 w-8 opacity-30 mb-2" />
+                  <p className="text-xs font-semibold">No notebooks available</p>
+                  <button
+                    onClick={() => setShowCreateNbModal(true)}
+                    className="mt-3 px-3 py-1.5 rounded-xl bg-accent/15 hover:bg-accent/25 text-accent text-xs font-bold flex items-center gap-1 transition-all"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Create One</span>
+                  </button>
+                </div>
+              ) : (
+                notebooks
+                  .filter((nb) => {
+                    if (selectedSubjectFilter === 'ALL' || !availableSubjects.includes(selectedSubjectFilter)) return true
+                    return nb.subject === selectedSubjectFilter
+                  })
+                  .map((nb) => {
+                    const isSelected = nb.id === activeNotebook?.id
+                    return (
+                      <div
+                        key={nb.id}
+                        onClick={() => setActiveNotebookId(nb.id)}
+                        className={cn(
+                          'group p-3 rounded-2xl border transition-all cursor-pointer relative overflow-hidden',
+                          isSelected
+                            ? 'border-accent bg-accent/10 shadow-sm'
+                            : 'border-border-subtle bg-card/60 hover:bg-card hover:border-border-subtle'
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-1.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="px-1.5 py-0.2 rounded-md bg-accent/15 text-accent text-[9px] font-bold uppercase">
+                                {nb.subject || 'DSA'}
                               </span>
-                            )}
-                          </div>
-                          <h4 className={cn('text-xs font-bold truncate mt-1', isSelected ? 'text-accent' : 'text-text-primary')}>
-                            {nb.title}
-                          </h4>
-                        </div>
-
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          {nb.collabRoomId && (
-                            <button
-                              onClick={(e) => handleShareClick(e, nb)}
-                              className="p-1 rounded-lg text-accent hover:bg-accent/15 transition-colors"
-                              title="Share Collaborative Notebook Link"
-                            >
-                              {copiedCardId === nb.id ? (
-                                <Check className="h-3.5 w-3.5 text-emerald-400" />
-                              ) : (
-                                <Share2 className="h-3.5 w-3.5" />
+                              {nb.isCollaborative && (
+                                <span className="text-[9px] text-semantic-green font-bold flex items-center gap-0.5">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-semantic-green animate-pulse" /> Live
+                                </span>
                               )}
+                            </div>
+                            <h4 className={cn('text-xs font-bold truncate mt-1', isSelected ? 'text-accent' : 'text-text-primary')}>
+                              {nb.title}
+                            </h4>
+                          </div>
+
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            {nb.collabRoomId && (
+                              <button
+                                onClick={(e) => handleShareClick(e, nb)}
+                                className="p-1 rounded-lg text-accent hover:bg-accent/15 transition-colors"
+                                title="Share Collaborative Notebook Link"
+                              >
+                                {copiedCardId === nb.id ? (
+                                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                ) : (
+                                  <Share2 className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteNotebook(nb.id)
+                              }}
+                              className="p-1 rounded-lg text-text-muted hover:text-semantic-red opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Delete Notebook"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              deleteNotebook(nb.id)
-                            }}
-                            className="p-1 rounded-lg text-text-muted hover:text-semantic-red opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Delete Notebook"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] text-text-muted mt-2 pt-1 border-t border-border-subtle/50">
+                          <span>{nb.pages?.length || 1} {nb.pages?.length === 1 ? 'Page' : 'Pages'}</span>
+                          {nb.collabRoomId && <span className="font-mono opacity-70">#{nb.collabRoomId}</span>}
                         </div>
                       </div>
-
-                      <div className="flex items-center justify-between text-[10px] text-text-muted mt-2 pt-1 border-t border-border-subtle/50">
-                        <span>{nb.pages?.length || 1} {nb.pages?.length === 1 ? 'Page' : 'Pages'}</span>
-                        {nb.collabRoomId && <span className="font-mono opacity-70">#{nb.collabRoomId}</span>}
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+              )}
             </div>
 
             {/* Pages & Chapters of Active Notebook */}
@@ -489,7 +508,8 @@ export default function Notes() {
           </div>
 
           {/* ── RIGHT MAIN DOCUMENT CANVAS ── */}
-          <div className="flex-1 flex flex-col h-full bg-base overflow-hidden print:overflow-visible print:bg-white">
+          {activeNotebook ? (
+            <div className="flex-1 flex flex-col h-full bg-base overflow-hidden print:overflow-visible print:bg-white">
             {/* Document Header Controls */}
             <div className="p-3.5 border-b border-border-subtle bg-surface/90 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -819,6 +839,33 @@ export default function Notes() {
               </div>
             </div>
           </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-base">
+              <div className="h-16 w-16 rounded-3xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4 text-accent shadow-lg shadow-accent/5">
+                <BookOpen className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-black text-text-primary mb-2">No Notebooks Found</h3>
+              <p className="text-sm text-text-muted max-w-md mb-6 leading-relaxed">
+                All notebooks have been deleted. Create a new notebook or join a collaborative workspace to start taking notes.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowCreateNbModal(true)}
+                  className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-light text-white font-bold text-sm flex items-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create Notebook</span>
+                </button>
+                <button
+                  onClick={() => setShowJoinNbModal(true)}
+                  className="px-5 py-2.5 rounded-xl border border-border-subtle hover:bg-hover text-text-primary font-bold text-sm flex items-center gap-2 transition-all active:scale-95"
+                >
+                  <Hash className="h-4 w-4 text-accent" />
+                  <span>Join with Code</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* ── TAB 2: STICKY NOTES WALL ── */

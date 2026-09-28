@@ -54,6 +54,14 @@ export default function NotebookWorkspace({
     setEditingTitle(notebook?.title || '')
   }, [notebook?.title])
 
+  if (!notebook) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-base">
+        <p className="text-text-muted text-sm font-semibold">No notebook selected</p>
+      </div>
+    )
+  }
+
   const handleTitleBlur = () => {
     if (editingTitle.trim() && editingTitle !== notebook?.title) {
       onUpdateNotebook(notebook.id, { title: editingTitle.trim() })

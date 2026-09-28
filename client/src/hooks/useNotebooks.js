@@ -124,21 +124,34 @@ const SEED_NOTEBOOKS = [
   },
 ]
 
+const LOCAL_SEEDED_KEY = 'placify_notebooks_seeded'
+
 const getLocalNotebooks = () => {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
-    if (raw) {
+    if (raw !== null) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed)) return parsed
+    }
+    const isSeeded = localStorage.getItem(LOCAL_SEEDED_KEY)
+    if (isSeeded === 'true') {
+      return []
     }
   } catch (err) {
     console.warn('Failed to parse local notebooks', err)
   }
+
+  // Initial first-time visit: seed sample notebooks
+  try {
+    localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(SEED_NOTEBOOKS))
+  } catch {}
   return SEED_NOTEBOOKS
 }
 
 const saveLocalNotebooks = (notebooks) => {
   try {
+    localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(notebooks))
     window.dispatchEvent(new Event('placify_notebooks_changed'))
   } catch (err) {
@@ -148,6 +161,7 @@ const saveLocalNotebooks = (notebooks) => {
 
 export function useNotebooks(user) {
   const uid = user?.uid
+  const userSeededKey = uid ? `placify_notebooks_seeded_${uid}` : LOCAL_SEEDED_KEY
   const socket = useSocket(uid)
 
   const [notebooks, setNotebooks] = useState(() => getLocalNotebooks())
@@ -195,16 +209,36 @@ export function useNotebooks(user) {
     }
 
     const unsub = subscribeNotebooks(uid, (firestoreNotebooks) => {
+      const isSeeded =
+        localStorage.getItem(LOCAL_SEEDED_KEY) === 'true' ||
+        localStorage.getItem(userSeededKey) === 'true'
+
       if (firestoreNotebooks && firestoreNotebooks.length > 0) {
+        localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
+        if (uid) localStorage.setItem(userSeededKey, 'true')
         setNotebooks(firestoreNotebooks)
-        saveLocalNotebooks(firestoreNotebooks)
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(firestoreNotebooks))
+        } catch {}
       } else {
-        // If Firestore is empty, seed initial notebooks so user has rich starting material
-        SEED_NOTEBOOKS.forEach((nb) => {
-          firestoreSaveNotebook(uid, nb).catch(() => {})
-        })
-        setNotebooks(SEED_NOTEBOOKS)
-        saveLocalNotebooks(SEED_NOTEBOOKS)
+        if (isSeeded) {
+          // User already seeded and deliberately deleted all notebooks. DO NOT re-seed!
+          setNotebooks([])
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]))
+          } catch {}
+        } else {
+          // Brand new user visiting Firestore for the first time
+          localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
+          if (uid) localStorage.setItem(userSeededKey, 'true')
+          SEED_NOTEBOOKS.forEach((nb) => {
+            firestoreSaveNotebook(uid, nb).catch(() => {})
+          })
+          setNotebooks(SEED_NOTEBOOKS)
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(SEED_NOTEBOOKS))
+          } catch {}
+        }
       }
       setLoading(false)
     })
@@ -213,7 +247,7 @@ export function useNotebooks(user) {
       unsub()
       window.removeEventListener('placify_notebooks_changed', handleLocalChange)
     }
-  }, [uid])
+  }, [uid, userSeededKey])
 
   // Check URL query parameters for ?room= or ?join= to auto-join collaborative notebook
   useEffect(() => {
@@ -407,6 +441,9 @@ export function useNotebooks(user) {
   }
 
   const deleteNotebook = async (notebookId) => {
+    localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
+    if (uid) localStorage.setItem(userSeededKey, 'true')
+
     const updatedList = notebooks.filter((n) => n.id !== notebookId)
     setNotebooks(updatedList)
     saveLocalNotebooks(updatedList)
