@@ -154,6 +154,26 @@ export default function Notes() {
     setStats({ words, chars, readingTime })
   }
 
+  // Synchronize print HTML content
+  const [printHtmlContent, setPrintHtmlContent] = useState('')
+
+  useEffect(() => {
+    if (activePage?.htmlContent) {
+      setPrintHtmlContent(activePage.htmlContent)
+    }
+  }, [activePage?.id, activePage?.htmlContent])
+
+  const handlePrint = () => {
+    const currentHtml = editorRef.current?.innerHTML || activePage?.htmlContent || ''
+    setPrintHtmlContent(currentHtml)
+    if (activeNotebook && activePage) {
+      updatePageContent(activeNotebook.id, activePage.id, currentHtml)
+    }
+    setTimeout(() => {
+      window.print()
+    }, 100)
+  }
+
   // Execute Rich Text Formatting via document.execCommand
   const execCmd = (command, value = null) => {
     if (!editorRef.current) return
@@ -332,7 +352,8 @@ export default function Notes() {
   const currentTheme = PAPER_THEMES.find((t) => t.id === (activeNotebook?.paperStyle || 'ruled')) || PAPER_THEMES[0]
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] min-h-[640px] rounded-3xl border border-border-subtle bg-surface/80 backdrop-blur-xl shadow-2xl overflow-hidden text-text-primary print:border-none print:shadow-none print:bg-white print:h-auto print:overflow-visible">
+    <>
+      <div className="notes-screen-workspace flex flex-col h-[calc(100vh-100px)] min-h-[640px] rounded-3xl border border-border-subtle bg-surface/80 backdrop-blur-xl shadow-2xl overflow-hidden text-text-primary print:hidden">
       {/* ── TOP LEVEL NAVIGATION HEADER ── */}
       <div className="px-5 py-3 border-b border-border-subtle bg-surface/90 flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
         <div className="flex items-center gap-3">
@@ -631,11 +652,12 @@ export default function Notes() {
 
                 {/* Print / Save PDF */}
                 <button
-                  onClick={() => window.print()}
-                  className="p-1.5 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary transition-colors"
-                  title="Print / Save as PDF"
+                  onClick={handlePrint}
+                  className="px-2.5 py-1.5 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5 text-xs font-bold shadow-xs active:scale-95"
+                  title="Print / Export as A4 PDF"
                 >
-                  <Printer className="h-4 w-4" />
+                  <Printer className="h-4 w-4 text-accent" />
+                  <span className="hidden sm:inline">Export PDF (A4)</span>
                 </button>
               </div>
             </div>
@@ -841,27 +863,8 @@ export default function Notes() {
             )}
 
             {/* ── THE NOTEBOOK PAPER DOCUMENT (Full-Width Clean Workspace) ── */}
-            <div className={cn('flex-1 overflow-y-auto p-4 sm:p-8 scrollbar-thin print:p-0 print:overflow-visible print:bg-white', currentTheme.class)}>
-              <div className="max-w-4xl mx-auto bg-surface/90 dark:bg-surface/95 border border-border-subtle rounded-3xl p-6 sm:p-12 shadow-xl min-h-[600px] flex flex-col print:border-none print:shadow-none print:p-0 print:bg-white print:min-h-0 printable-document-container">
-                {/* ── PRINT-ONLY CLEAN PLATFORM BRANDING HEADER ── */}
-                <div className="hidden print:flex items-center justify-between pb-3 mb-6 border-b-2 border-slate-900/10 text-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-2xl tracking-tight text-slate-900 uppercase">CampusGrid Notes</span>
-                    <span className="text-xs text-slate-500 font-mono">by Placify</span>
-                  </div>
-                  <div className="text-right flex flex-col items-end">
-                    <span className="text-sm font-bold text-indigo-600 font-mono">placify.app/notes</span>
-                    <span className="text-[10px] text-slate-400 font-mono">{new Date().toLocaleDateString()}</span>
-                  </div>
-                </div>
-
-                {/* Print Title Block */}
-                <div className="hidden print:block mb-6">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{activeNotebook?.subject || 'Study Notes'}</span>
-                  <h1 className="text-2xl font-black text-slate-900 mt-1">{activeNotebook?.title}</h1>
-                  <h2 className="text-lg font-bold text-slate-700 mt-0.5">{activePage?.title}</h2>
-                </div>
-
+            <div className={cn('flex-1 overflow-y-auto p-4 sm:p-8 scrollbar-thin', currentTheme.class)}>
+              <div className="max-w-4xl mx-auto bg-surface/90 dark:bg-surface/95 border border-border-subtle rounded-3xl p-6 sm:p-12 shadow-xl min-h-[600px] flex flex-col">
                 <div
                   ref={editorRef}
                   contentEditable
@@ -1480,5 +1483,85 @@ export default function Notes() {
         </div>
       )}
     </div>
+
+      {/* ── DEDICATED REDESIGNED A4 PRINT DOCUMENT (ONLY VISIBLE DURING PRINT) ── */}
+      <div id="placify-print-document" className="hidden print:block w-full bg-white text-slate-900 font-sans print:p-0">
+        {/* 1. Executive Platform Branding Header */}
+        <div className="pdf-header pb-4 mb-6 border-b-2 border-indigo-600 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm">
+              P
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-xl tracking-tight text-slate-900 uppercase">CampusGrid Notes</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase">
+                  {activeNotebook?.subject || 'STUDY NOTES'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">Placify • Placement &amp; Academic Intelligence Platform</p>
+            </div>
+          </div>
+          <div className="text-right flex flex-col items-end">
+            <span className="text-sm font-bold text-indigo-600 font-mono tracking-tight">placify.app/notes</span>
+            <span className="text-xs text-slate-400 font-mono mt-0.5">
+              {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+            </span>
+          </div>
+        </div>
+
+        {/* 2. Title & Document Meta Block */}
+        <div className="pdf-title-block mb-6 pb-4 border-b border-slate-200">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded bg-indigo-100/80 text-indigo-900 text-[11px] font-black uppercase tracking-wider">
+              {activeNotebook?.subject || 'DSA'}
+            </span>
+            {activeNotebook?.isCollaborative && (
+              <span className="px-2.5 py-0.5 rounded bg-emerald-100/80 text-emerald-900 text-[11px] font-black uppercase tracking-wider">
+                Live Collab Room #{activeNotebook.collabRoomId}
+              </span>
+            )}
+          </div>
+
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight mt-1">
+            {activeNotebook?.title || 'Untitled Notebook'}
+          </h1>
+
+          <div className="text-base font-bold text-slate-700 mt-1">
+            <span className="text-slate-500 font-semibold mr-1.5">Chapter / Topic:</span>
+            <span className="text-indigo-950 font-black">{activePage?.title || 'Page 1'}</span>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-slate-500 mt-3 pt-2.5 border-t border-slate-100">
+            <span>Author: {user?.displayName || 'CampusGrid Scholar'}</span>
+            <span>•</span>
+            <span>{stats.words} Words</span>
+            <span>•</span>
+            <span>{stats.readingTime}</span>
+            <span>•</span>
+            <span>A4 Document Edition</span>
+          </div>
+        </div>
+
+        {/* 3. Document Content Body */}
+        <div
+          className="pdf-body-content text-slate-800 leading-relaxed min-h-[400px]"
+          dangerouslySetInnerHTML={{
+            __html: printHtmlContent || editorRef.current?.innerHTML || activePage?.htmlContent || '<p>No content written in this page.</p>'
+          }}
+        />
+
+        {/* 4. Document Footer */}
+        <div className="pdf-footer mt-12 pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-600">Placify</span>
+            <span>— The All-in-One Placement &amp; Academic Ecosystem</span>
+          </div>
+          <div className="font-mono text-[11px] text-slate-400">
+            placify.app • Verified Study Material
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
