@@ -79,6 +79,22 @@ export async function getOrCreateProfile(user) {
     createdAt: serverTimestamp(),
   }
   await setDoc(ref, profile)
+
+  // Mirror to publicUsers collection for instant, zero-index email lookups across accounts
+  try {
+    if (cleanEmail) {
+      await setDoc(doc(db, 'publicUsers', cleanEmail), {
+        uid: user.uid,
+        email: cleanEmail,
+        displayName: user.displayName || cleanEmail.split('@')[0],
+        photoURL: user.photoURL || null,
+        updatedAt: serverTimestamp(),
+      }, { merge: true })
+    }
+  } catch (err) {
+    console.warn('Failed to mirror to publicUsers:', err)
+  }
+
   return profile
 }
 
@@ -592,27 +608,52 @@ export async function deleteBookmarkDoc(uid, bookmarkId) {
 
 // ─── Sharing ───────────────────────────────────────────────
 export async function findUserByEmail(email) {
-  const exactQ = query(
-    collectionGroup(db, 'profile'),
-    where('email', '==', email.trim())
-  )
-  let snap = await getDocs(exactQ)
-  
-  if (snap.empty) {
-    const lowerQ = query(
-      collectionGroup(db, 'profile'),
-      where('email', '==', email.toLowerCase().trim())
-    )
-    snap = await getDocs(lowerQ)
+  if (!email || !email.trim()) throw new Error('Email is required')
+  const cleanEmail = email.toLowerCase().trim()
+
+  // 1. Direct doc lookup in publicUsers (fast, zero index required, 100% reliable)
+  try {
+    const snap = await getDoc(doc(db, 'publicUsers', cleanEmail))
+    if (snap.exists()) {
+      const d = snap.data()
+      return { uid: d.uid, email: d.email, displayName: d.displayName }
+    }
+  } catch (e) {
+    console.warn('publicUsers lookup error:', e)
   }
 
-  if (snap.empty) {
-    throw new Error('User not found with this email')
+  // 2. CollectionGroup lookup on profile (with deployed index)
+  try {
+    const lowerQ = query(
+      collectionGroup(db, 'profile'),
+      where('email', '==', cleanEmail)
+    )
+    let snap = await getDocs(lowerQ)
+    if (snap.empty) {
+      const exactQ = query(
+        collectionGroup(db, 'profile'),
+        where('email', '==', email.trim())
+      )
+      snap = await getDocs(exactQ)
+    }
+
+    if (!snap.empty) {
+      const profileDoc = snap.docs[0]
+      const uid = profileDoc.ref.parent.parent.id
+      const data = profileDoc.data()
+      // Auto-cache in publicUsers for future instant resolution
+      setDoc(doc(db, 'publicUsers', cleanEmail), {
+        uid,
+        email: cleanEmail,
+        displayName: data.displayName || cleanEmail.split('@')[0],
+      }, { merge: true }).catch(() => {})
+      return { uid, email: data.email, displayName: data.displayName }
+    }
+  } catch (e) {
+    console.warn('profile collectionGroup lookup failed:', e)
   }
-  const profileDoc = snap.docs[0]
-  // profileDoc is at users/{uid}/profile/main, so its parent of parent is users/{uid}
-  const uid = profileDoc.ref.parent.parent.id
-  return { uid, email: profileDoc.data().email, displayName: profileDoc.data().displayName }
+
+  throw new Error(`User with email "${email}" not found. Please ensure they have a Placify account.`)
 }
 
 export async function shareItem(senderUid, senderEmail, receiverEmail, itemType, itemData) {
@@ -621,12 +662,13 @@ export async function shareItem(senderUid, senderEmail, receiverEmail, itemType,
     throw new Error('You cannot share items with yourself')
   }
 
+  const safeData = sanitizePayload(itemData)
   const ref = collection(db, 'users', receiver.uid, 'shares')
   const newShare = await addDoc(ref, {
     senderEmail,
     senderUid,
-    itemType, // 'course' | 'bookmark' | 'problem' | 'library' | 'playground'
-    itemData,
+    itemType, // 'course' | 'bookmark' | 'problem' | 'library' | 'playground' | 'notebook'
+    itemData: safeData,
     createdAt: serverTimestamp(),
   })
 
@@ -637,9 +679,10 @@ export async function shareItem(senderUid, senderEmail, receiverEmail, itemType,
       senderUid,
       senderEmail,
       senderName: senderEmail.split('@')[0],
-      type: 'share',
+      type: itemType === 'notebook' ? 'notebook' : 'share',
+      roomId: itemData?.collabRoomId || null,
       itemType,
-      itemData,
+      itemData: safeData,
       title: itemData?.name || itemData?.title || `Shared ${itemType}`,
       shareDocId: newShare.id,
       status: 'pending',
@@ -994,6 +1037,24 @@ export async function fetchSharedNotebook(roomId) {
     console.warn('fetchSharedNotebook communityPosts query error:', e)
   }
 
+  // 5. Query collectionGroup('notebooks') directly across all users in Firestore (now fully permitted)
+  try {
+    const targetCodes = [cleanId, altId, `#${cleanId}`, `#${altId}`]
+    const qGroup = query(
+      collectionGroup(db, 'notebooks'),
+      where('collabRoomId', 'in', targetCodes)
+    )
+    const snapGroup = await getDocs(qGroup)
+    if (!snapGroup.empty) {
+      const docData = snapGroup.docs[0].data()
+      const foundNb = { id: snapGroup.docs[0].id, ...docData }
+      saveSharedNotebook(cleanId, foundNb).catch(() => {})
+      return foundNb
+    }
+  } catch (e) {
+    console.warn('fetchSharedNotebook collectionGroup lookup error:', e)
+  }
+
   return null
 }
 
@@ -1131,7 +1192,8 @@ export async function sendUserInvite(senderUser, receiverEmail, inviteData) {
     throw new Error('You cannot invite yourself')
   }
 
-  const invitePayload = {
+  const safeItemData = sanitizePayload(inviteData.itemData)
+  const invitePayload = sanitizePayload({
     senderUid: senderUser?.uid || 'guest',
     senderName: senderUser?.displayName || senderUser?.email?.split('@')[0] || 'Peer',
     senderEmail: senderUser?.email || '',
@@ -1140,15 +1202,29 @@ export async function sendUserInvite(senderUser, receiverEmail, inviteData) {
     roomId: inviteData.roomId || null,
     title: inviteData.title || (inviteData.type === 'notebook' ? 'Collaborative Notebook' : 'Live Study Room'),
     itemType: inviteData.itemType || null,
-    itemData: inviteData.itemData || null,
+    itemData: safeItemData || null,
     status: 'pending',
-    createdAt: serverTimestamp(),
+  })
+
+  // 1. Direct delivery to recipient's invites collection (permitted by deployed firestore rules)
+  const ref = collection(db, 'users', receiver.uid, 'invites')
+  const newDoc = await addDoc(ref, { ...invitePayload, createdAt: serverTimestamp() })
+
+  // 2. Guaranteed secondary delivery to recipient's shares collection
+  try {
+    const sharesRef = collection(db, 'users', receiver.uid, 'shares')
+    await addDoc(sharesRef, {
+      senderEmail: senderUser?.email || '',
+      senderUid: senderUser?.uid || '',
+      itemType: inviteData.type === 'notebook' ? 'notebook' : (inviteData.itemType || 'share'),
+      itemData: safeItemData,
+      createdAt: serverTimestamp(),
+    })
+  } catch (e) {
+    console.warn('Secondary share delivery:', e)
   }
 
-  const ref = collection(db, 'users', receiver.uid, 'invites')
-  const newDoc = await addDoc(ref, invitePayload)
-
-  // Mirror into local storage for quick access & offline support
+  // 3. Mirror into local storage for quick access & offline support
   try {
     const key = `placify_invites_${receiver.uid}`
     const existing = JSON.parse(localStorage.getItem(key) || '[]')

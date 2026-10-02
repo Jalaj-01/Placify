@@ -737,21 +737,19 @@ export function useNotebooks(user) {
       // 1. Ensure the full notebook is saved in universal shared cloud storage
       await firestoreSaveSharedNotebook(cleanRoom, fullNotebookPayload).catch(() => {})
 
-      // 2. Deliver via /shares collection (100% permitted in Firestore rules: allow create: if isAuth())
-      await shareItem(uid, user?.email || '', email.trim(), 'notebook', fullNotebookPayload).catch((e) =>
-        console.warn('Could not share notebook via shares:', e)
-      )
-
-      // 3. Persist invite in Firestore invites collection
+      // 2. Deliver invite directly to recipient's invites collection
       await sendUserInvite(user, email.trim(), {
         type: 'notebook',
         roomId: cleanRoom,
         title: notebookTitle || currentNb?.title || 'Collaborative Notebook',
         itemType: 'notebook',
         itemData: fullNotebookPayload,
-      }).catch((e) => console.warn('Could not persist invite to Firestore:', e))
+      })
 
-      // 4. Realtime socket notification if peer is currently connected
+      // 3. Deliver via /shares collection
+      await shareItem(uid, user?.email || '', email.trim(), 'notebook', fullNotebookPayload).catch(() => {})
+
+      // 4. Realtime socket notification if peer is connected
       if (socket) {
         socket.emit('send-invite', {
           toUid: targetUser.uid,
@@ -764,7 +762,7 @@ export function useNotebooks(user) {
 
       return { success: true, targetUser }
     } catch (err) {
-      return { success: false, error: err.message || 'Failed to locate user' }
+      return { success: false, error: err.message || 'Failed to send invite' }
     }
   }
 

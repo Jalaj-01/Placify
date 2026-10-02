@@ -38,10 +38,26 @@ service cloud.firestore {
       allow read, write: if isOwner(userId) || isAdmin();
     }
 
-    // 4. Sharing
+    // 4. Sharing & Invites
     match /users/{userId}/shares/{shareId} {
       allow read, delete: if isOwner(userId) || isAdmin();
       allow create: if isAuth();
+    }
+
+    match /users/{userId}/invites/{inviteId} {
+      allow read, update, delete: if isOwner(userId) || isAdmin();
+      allow create: if isAuth();
+    }
+
+    // Explicit user notebooks access (allows reading shared/collaborative notebooks across users)
+    match /users/{userId}/notebooks/{notebookId} {
+      allow read: if isAuth();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Public directory for invite lookup without collection group index requirements
+    match /publicUsers/{email} {
+      allow read, write: if isAuth();
     }
 
     // ── ADMIN & WHITELIST COLLECTIONS ───────────────────────────

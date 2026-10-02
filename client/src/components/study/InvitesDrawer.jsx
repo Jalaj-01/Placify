@@ -171,6 +171,7 @@ export default function InvitesDrawer() {
             if (targetRoom) {
               localStorage.setItem(`placify_shared_nb_${targetRoom.toLowerCase()}`, JSON.stringify(finalNb))
             }
+            window.dispatchEvent(new Event('placify_notebooks_changed'))
           } catch {}
           if (user?.uid) {
             saveNotebook(user.uid, finalNb).catch(() => {})
