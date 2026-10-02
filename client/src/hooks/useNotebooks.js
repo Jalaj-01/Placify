@@ -8,6 +8,7 @@ import {
   saveSharedNotebook as firestoreSaveSharedNotebook,
   findUserByEmail,
   sendUserInvite,
+  shareItem,
 } from '@/services/firestoreService'
 
 const LOCAL_STORAGE_KEY = 'placify_notebooks'
@@ -217,17 +218,23 @@ export function useNotebooks(user) {
       if (firestoreNotebooks && firestoreNotebooks.length > 0) {
         localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
         if (uid) localStorage.setItem(userSeededKey, 'true')
-        setNotebooks(firestoreNotebooks)
-        try {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(firestoreNotebooks))
-        } catch {}
+        setNotebooks((current) => {
+          // Preserve any collaborative notebooks already in state
+          const collabNotebooks = current.filter(
+            (n) => n.isCollaborative && !firestoreNotebooks.some((fn) => fn.id === n.id || fn.collabRoomId === n.collabRoomId)
+          )
+          const merged = [...collabNotebooks, ...firestoreNotebooks]
+          saveLocalNotebooks(merged)
+          return merged
+        })
       } else {
         if (isSeeded) {
           // User already seeded and deliberately deleted all notebooks. DO NOT re-seed!
-          setNotebooks([])
-          try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]))
-          } catch {}
+          setNotebooks((current) => {
+            const collabNotebooks = current.filter((n) => n.isCollaborative)
+            saveLocalNotebooks(collabNotebooks)
+            return collabNotebooks
+          })
         } else {
           // Brand new user visiting Firestore for the first time
           localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
@@ -250,19 +257,12 @@ export function useNotebooks(user) {
     }
   }, [uid, userSeededKey])
 
-  // Check URL query parameters for ?room= or ?join= to auto-join collaborative notebook
+  // Automatically keep active notebook synced to cloud shared storage whenever it has a collabRoomId
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const roomParam = params.get('room') || params.get('join')
-    if (roomParam) {
-      joinSharedNotebook(roomParam).then((res) => {
-        if (res?.success) {
-          const cleanUrl = window.location.pathname
-          window.history.replaceState({}, document.title, cleanUrl)
-        }
-      })
+    if (activeNotebook?.collabRoomId) {
+      firestoreSaveSharedNotebook(activeNotebook.collabRoomId, activeNotebook).catch(() => {})
     }
-  }, [])
+  }, [activeNotebook?.id, activeNotebook?.updatedAt, activeNotebook?.collabRoomId])
 
   // Real-time socket & shared room subscription for active collaborative notebook
   useEffect(() => {
@@ -682,6 +682,9 @@ export function useNotebooks(user) {
 
   const sendPeerInvite = async (email, notebookTitle, roomId) => {
     if (!email?.trim()) return { success: false, error: 'Email is required' }
+    const currentNb = activeNotebook || notebooks.find(n => n.collabRoomId === roomId)
+    const rawRoom = (roomId || currentNb?.collabRoomId || '').trim().replace(/^#+/, '').toLowerCase()
+    const cleanRoom = rawRoom.startsWith('collab-') ? rawRoom : `collab-${rawRoom}`
 
     try {
       const targetUser = await findUserByEmail(email.trim())
@@ -693,21 +696,37 @@ export function useNotebooks(user) {
         return { success: false, error: 'You cannot invite yourself.' }
       }
 
-      // 1. Persist the invite in Firestore so it's always visible in their Invites drawer
+      const fullNotebookPayload = {
+        ...(currentNb || {}),
+        collabRoomId: cleanRoom,
+        isCollaborative: true,
+      }
+
+      // 1. Ensure the full notebook is saved in universal shared cloud storage
+      await firestoreSaveSharedNotebook(cleanRoom, fullNotebookPayload).catch(() => {})
+
+      // 2. Deliver via /shares collection (100% permitted in Firestore rules: allow create: if isAuth())
+      await shareItem(uid, user?.email || '', email.trim(), 'notebook', fullNotebookPayload).catch((e) =>
+        console.warn('Could not share notebook via shares:', e)
+      )
+
+      // 3. Persist invite in Firestore invites collection
       await sendUserInvite(user, email.trim(), {
         type: 'notebook',
-        roomId,
-        title: notebookTitle || 'Collaborative Notebook',
+        roomId: cleanRoom,
+        title: notebookTitle || currentNb?.title || 'Collaborative Notebook',
+        itemType: 'notebook',
+        itemData: fullNotebookPayload,
       }).catch((e) => console.warn('Could not persist invite to Firestore:', e))
 
-      // 2. Realtime socket notification if peer is currently connected
+      // 4. Realtime socket notification if peer is currently connected
       if (socket) {
         socket.emit('send-invite', {
           toUid: targetUser.uid,
-          fromName: user?.displayName || 'Teammate',
-          roomId,
+          fromName: user?.displayName || user?.email?.split('@')[0] || 'Teammate',
+          roomId: cleanRoom,
           type: 'notebook',
-          title: notebookTitle || 'Collaborative Notebook',
+          title: notebookTitle || currentNb?.title || 'Collaborative Notebook',
         })
       }
 

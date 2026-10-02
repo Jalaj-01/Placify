@@ -18,6 +18,7 @@ import {
   addProblem,
   savePlaygroundFile,
   importEntirePreparation,
+  saveNotebook,
 } from '@/services/firestoreService'
 import { cn } from '@/lib/utils'
 
@@ -104,12 +105,13 @@ export default function InvitesDrawer() {
           id: share.id,
           uniqueKey: shareKey,
           source: 'shares',
-          type: 'share',
+          type: share.itemType === 'notebook' ? 'notebook' : 'share',
+          roomId: share.itemData?.collabRoomId || null,
           senderEmail: share.senderEmail,
           senderName: share.senderEmail ? share.senderEmail.split('@')[0] : 'Peer',
           itemType: share.itemType,
           itemData: share.itemData,
-          title: share.itemData?.name || share.itemData?.title || `Shared ${share.itemType}`,
+          title: share.itemData?.title || share.itemData?.name || `Shared ${share.itemType}`,
           createdAt: share.createdAt,
         })
       }
@@ -151,9 +153,30 @@ export default function InvitesDrawer() {
     setActionMessage(null)
 
     try {
-      if (invite.type === 'notebook') {
-        const targetRoom = invite.roomId
-        // Dismiss invite from UI
+      if (invite.type === 'notebook' || invite.itemType === 'notebook') {
+        const rawRoom = (invite.roomId || invite.itemData?.collabRoomId || '').trim().replace(/^#+/, '')
+        const targetRoom = rawRoom.startsWith('collab-') ? rawRoom : (rawRoom ? `collab-${rawRoom}` : null)
+        const notebookData = invite.itemData
+
+        if (notebookData && notebookData.id) {
+          const finalNb = {
+            ...notebookData,
+            isCollaborative: true,
+            collabRoomId: targetRoom || notebookData.collabRoomId,
+          }
+          try {
+            const existing = JSON.parse(localStorage.getItem('placify_notebooks') || '[]')
+            const updated = [finalNb, ...existing.filter((n) => n.id !== finalNb.id && n.collabRoomId !== finalNb.collabRoomId)]
+            localStorage.setItem('placify_notebooks', JSON.stringify(updated))
+            if (targetRoom) {
+              localStorage.setItem(`placify_shared_nb_${targetRoom.toLowerCase()}`, JSON.stringify(finalNb))
+            }
+          } catch {}
+          if (user?.uid) {
+            saveNotebook(user.uid, finalNb).catch(() => {})
+          }
+        }
+
         await dismissInvite(invite)
         closeInvitesDrawer()
         if (targetRoom) {
@@ -161,6 +184,7 @@ export default function InvitesDrawer() {
         } else {
           openNotebooks()
         }
+        return
       } else if (invite.type === 'room' || (!invite.type && invite.roomId)) {
         const targetRoom = invite.roomId
         await dismissInvite(invite)

@@ -161,7 +161,16 @@ export default function Notes() {
     const roomParam = searchParams.get('room') || searchParams.get('join')
     if (roomParam) {
       joinSharedNotebook(roomParam).then((res) => {
-        if (res?.success) {
+        if (res?.success && res.notebook) {
+          if (res.notebook.id) setActiveNotebookId(res.notebook.id)
+          const firstPage = res.notebook.pages?.[0]
+          if (firstPage?.id) {
+            setActivePageId(firstPage.id)
+            if (editorRef.current) {
+              editorRef.current.innerHTML = firstPage.htmlContent || ''
+              updateStats(editorRef.current.innerText || '')
+            }
+          }
           const nextParams = new URLSearchParams(searchParams)
           nextParams.delete('room')
           nextParams.delete('join')
@@ -244,16 +253,19 @@ export default function Notes() {
   // Statistics
   const [stats, setStats] = useState({ words: 0, chars: 0, readingTime: '1 min' })
 
-  // Synchronize document editor when activePage changes
+  // Synchronize document editor when activeNotebook, activePage, or page content changes
   useEffect(() => {
     if (editorRef.current && activePage) {
       const pageHtml = activePage.htmlContent || ''
-      if (editorRef.current.innerHTML !== pageHtml) {
-        editorRef.current.innerHTML = pageHtml
+      const isFocused = document.activeElement === editorRef.current
+      if (!isFocused || !editorRef.current.innerHTML.trim()) {
+        if (editorRef.current.innerHTML !== pageHtml) {
+          editorRef.current.innerHTML = pageHtml
+        }
       }
       updateStats(editorRef.current.innerText || '')
     }
-  }, [activePage?.id])
+  }, [activeNotebook?.id, activePage?.id, activePage?.htmlContent])
 
   useEffect(() => {
     setEditingTitle(activeNotebook?.title || '')
@@ -543,7 +555,17 @@ export default function Notes() {
     if (res?.success) {
       setShowJoinNbModal(false)
       setJoinCodeInput('')
-      if (res.notebook?.id) setActiveNotebookId(res.notebook.id)
+      if (res.notebook?.id) {
+        setActiveNotebookId(res.notebook.id)
+        const firstPage = res.notebook.pages?.[0]
+        if (firstPage?.id) {
+          setActivePageId(firstPage.id)
+          if (editorRef.current) {
+            editorRef.current.innerHTML = firstPage.htmlContent || ''
+            updateStats(editorRef.current.innerText || '')
+          }
+        }
+      }
     } else {
       setJoinError(res?.error || 'Failed to join notebook room.')
     }

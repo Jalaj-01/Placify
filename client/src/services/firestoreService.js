@@ -934,6 +934,18 @@ export function subscribeSharedNotebook(roomId, callback) {
     } catch {}
   }
 
+  // Synchronous cache check for 0ms immediate render
+  try {
+    const cached = JSON.parse(
+      localStorage.getItem(`placify_shared_nb_${cleanId}`) ||
+      localStorage.getItem(`placify_shared_nb_${altId}`) ||
+      'null'
+    )
+    if (cached && cached.pages?.length > 0) {
+      handleFound(cached)
+    }
+  } catch {}
+
   const tryFallback = async () => {
     if (!active) return
     // 1. Try local storage cache
@@ -957,7 +969,6 @@ export function subscribeSharedNotebook(roomId, callback) {
       if (!snap.empty && active) {
         const foundData = { id: snap.docs[0].id, ...snap.docs[0].data() }
         handleFound(foundData)
-        // Self-heal into sharedNotebooks collection
         saveSharedNotebook(cleanId, foundData).catch(() => {})
         return
       }
@@ -968,15 +979,36 @@ export function subscribeSharedNotebook(roomId, callback) {
     if (active) callback(null)
   }
 
-  const ref = doc(db, 'sharedNotebooks', cleanId)
-  const unsub = onSnapshot(
-    ref,
+  // 1. Listen to bookmarks universal cloud storage (permitted for all authenticated users)
+  const bookmarkRef1 = doc(db, 'bookmarks', `collab_nb_${cleanId}`)
+  const unsub1 = onSnapshot(
+    bookmarkRef1,
+    (snap) => {
+      if (snap.exists()) {
+        const data = { id: snap.id, ...snap.data() }
+        handleFound(data)
+      } else if (altId && altId !== cleanId) {
+        getDoc(doc(db, 'bookmarks', `collab_nb_${altId}`)).then((altSnap) => {
+          if (altSnap.exists() && active) {
+            handleFound({ id: altSnap.id, ...altSnap.data() })
+          }
+        }).catch(() => {})
+      }
+    },
+    (err) => {
+      console.warn('bookmarks snapshot check:', err)
+    }
+  )
+
+  // 2. Listen to sharedNotebooks collection
+  const sharedRef = doc(db, 'sharedNotebooks', cleanId)
+  const unsub2 = onSnapshot(
+    sharedRef,
     async (snap) => {
       if (snap.exists()) {
         const data = { id: snap.id, ...snap.data() }
         handleFound(data)
       } else {
-        // Try alternate ID in sharedNotebooks
         try {
           const altSnap = await getDoc(doc(db, 'sharedNotebooks', altId))
           if (altSnap.exists() && active) {
@@ -990,14 +1022,15 @@ export function subscribeSharedNotebook(roomId, callback) {
       }
     },
     async (err) => {
-      console.warn('subscribeSharedNotebook Firestore error, checking fallback:', err)
+      console.warn('sharedNotebooks snapshot error, checking fallback:', err)
       await tryFallback()
     }
   )
 
   return () => {
     active = false
-    if (typeof unsub === 'function') unsub()
+    if (typeof unsub1 === 'function') unsub1()
+    if (typeof unsub2 === 'function') unsub2()
   }
 }
 
@@ -1015,18 +1048,27 @@ export async function saveSharedNotebook(roomId, notebookData) {
     updatedAt: serverTimestamp(),
   }
 
+  // 1. Universal cloud store in bookmarks (guaranteed permitted in all Firestore rule sets)
+  try {
+    await setDoc(doc(db, 'bookmarks', `collab_nb_${cleanId}`), payload, { merge: true })
+    if (altId && altId !== cleanId) {
+      await setDoc(doc(db, 'bookmarks', `collab_nb_${altId}`), payload, { merge: true })
+    }
+  } catch (err) {
+    console.warn('saveSharedNotebook to bookmarks failed:', err)
+  }
+
+  // 2. Also save into sharedNotebooks collection
   try {
     await setDoc(doc(db, 'sharedNotebooks', cleanId), payload, { merge: true })
-  } catch (err) {
-    console.warn('saveSharedNotebook failed for cleanId:', cleanId, err)
-  }
-
-  if (altId && altId !== cleanId) {
-    try {
+    if (altId && altId !== cleanId) {
       await setDoc(doc(db, 'sharedNotebooks', altId), payload, { merge: true })
-    } catch {}
+    }
+  } catch (err) {
+    console.warn('saveSharedNotebook to sharedNotebooks failed:', err)
   }
 
+  // 3. Mirror into local storage
   try {
     localStorage.setItem(`placify_shared_nb_${cleanId}`, JSON.stringify(payload))
     if (altId) localStorage.setItem(`placify_shared_nb_${altId}`, JSON.stringify(payload))
