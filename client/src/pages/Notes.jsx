@@ -235,11 +235,11 @@ export default function Notes() {
 
   useEffect(() => {
     setEditingTitle(activeNotebook?.title || '')
-  }, [activeNotebook?.title])
+  }, [activeNotebook?.id, activeNotebook?.title])
 
   useEffect(() => {
     setEditingPageTitle(activePage?.title || '')
-  }, [activePage?.title])
+  }, [activePage?.id, activePage?.title])
 
   const updateStats = (text) => {
     const cleanText = text.trim()
@@ -936,15 +936,16 @@ export default function Notes() {
 
                   <input
                     type="text"
-                    value={editingPageTitle}
+                    value={editingPageTitle !== '' ? editingPageTitle : (activePage?.title || '')}
                     onChange={(e) => setEditingPageTitle(e.target.value)}
                     onBlur={() => {
                       if (editingPageTitle.trim() && activeNotebook && activePage) {
                         renamePage(activeNotebook.id, activePage.id, editingPageTitle.trim())
                       }
                     }}
-                    className="text-sm sm:text-base font-bold text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-[130px] sm:max-w-xs md:max-w-sm px-1"
-                    placeholder="Page Title"
+                    className="text-sm sm:text-base font-bold text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-[130px] sm:max-w-xs md:max-w-sm px-1 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                    style={{ color: 'var(--text-primary)' }}
+                    placeholder={activePage?.title || 'Page Title'}
                     title="Click to rename this page"
                   />
                 </div>

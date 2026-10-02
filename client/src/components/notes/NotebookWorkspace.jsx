@@ -157,7 +157,8 @@ export default function NotebookWorkspace({
             onChange={(e) => setEditingTitle(e.target.value)}
             onBlur={handleTitleBlur}
             onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-            className="text-sm sm:text-base font-bold text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-xs sm:max-w-md px-1"
+            className="text-sm sm:text-base font-bold text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-xs sm:max-w-md px-1 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            style={{ color: 'var(--text-primary)' }}
             title="Click to rename notebook"
           />
 
@@ -340,7 +341,10 @@ export default function NotebookWorkspace({
 
           {/* Page Title Header */}
           <div className="pb-2 border-b border-border-subtle/60 flex items-center justify-between">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1
+              className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
               {activePage?.title || 'Untitled Page'}
             </h1>
             <span className="text-[11px] text-text-muted font-mono print:hidden">

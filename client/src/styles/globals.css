@@ -243,18 +243,58 @@
     padding: 0.1rem 0.25rem;
     border-radius: 0.25rem;
   }
+
+  /* ── Form Inputs Base Contrast (Light & Dark) ────────────────── */
+  input,
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="search"],
+  input[type="password"],
+  textarea {
+    color: var(--text-primary) !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  html.dark input,
   html.dark input[type="text"],
   html.dark input[type="email"],
+  html.dark input[type="number"],
+  html.dark input[type="search"],
+  html.dark input[type="password"],
   html.dark textarea {
-    color: #f8fafc;
+    color: #f8fafc !important;
   }
+
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: #94a3b8;
+  }
+
+  /* ── Notebook Document Headings High-Contrast ───────────────── */
+  .notebook-document h1,
+  .notebook-document h1 *,
+  .notebook-document h2,
+  .notebook-document h2 *,
+  .notebook-document h3,
+  .notebook-document h3 * {
+    color: var(--text-primary) !important;
+  }
+
   html.dark .notebook-document {
     color: #f8fafc;
   }
   html.dark .notebook-document h1,
+  html.dark .notebook-document h1 *,
   html.dark .notebook-document h2,
-  html.dark .notebook-document h3 {
-    color: #ffffff;
+  html.dark .notebook-document h2 *,
+  html.dark .notebook-document h3,
+  html.dark .notebook-document h3 * {
+    color: #ffffff !important;
   }
 }
 
