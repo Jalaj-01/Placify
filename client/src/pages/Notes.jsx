@@ -7,7 +7,7 @@ import {
   Quote, Minus, Eraser, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Highlighter, Palette, Download, Printer, StickyNote, Pin, Eye, Sparkles, Share2,
   PanelLeftClose, PanelLeftOpen, GripVertical, ZoomIn, ZoomOut, Maximize2, Minimize2,
-  ChevronUp, ChevronDown, PenTool, Pencil
+  ChevronUp, ChevronDown, PenTool, Pencil, AlertCircle, Loader2
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNotebooks } from '@/hooks/useNotebooks'
@@ -155,13 +155,27 @@ export default function Notes() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [sharingToCommunity, setSharingToCommunity] = useState(false)
   const [communitySharedSuccess, setCommunitySharedSuccess] = useState(false)
+  const [joiningRoomCode, setJoiningRoomCode] = useState(null)
+  const [joinFeedback, setJoinFeedback] = useState(null)
 
   // Listen to ?room= query param to join room immediately and cleanly remove param
   useEffect(() => {
     const roomParam = searchParams.get('room') || searchParams.get('join')
     if (roomParam) {
-      joinSharedNotebook(roomParam).then((res) => {
+      const clean = roomParam.trim().replace(/^#+/, '')
+      setJoiningRoomCode(clean)
+      setJoinFeedback({
+        type: 'info',
+        message: `Connecting to collaborative notebook #${clean}...`,
+      })
+
+      joinSharedNotebook(clean).then((res) => {
+        setJoiningRoomCode(null)
         if (res?.success && res.notebook) {
+          setJoinFeedback({
+            type: 'success',
+            message: `Connected to "${res.notebook.title}" (${res.notebook.pages?.length || 1} pages)!`,
+          })
           if (res.notebook.id) setActiveNotebookId(res.notebook.id)
           const firstPage = res.notebook.pages?.[0]
           if (firstPage?.id) {
@@ -171,11 +185,25 @@ export default function Notes() {
               updateStats(editorRef.current.innerText || '')
             }
           }
+          setTimeout(() => {
+            setJoinFeedback((curr) => curr?.type === 'success' ? null : curr)
+          }, 4500)
           const nextParams = new URLSearchParams(searchParams)
           nextParams.delete('room')
           nextParams.delete('join')
           setSearchParams(nextParams, { replace: true })
+        } else {
+          setJoinFeedback({
+            type: 'error',
+            message: res?.error || `Could not find collaborative notebook #${clean}. The host may need to open the notebook to sync.`,
+          })
         }
+      }).catch((err) => {
+        setJoiningRoomCode(null)
+        setJoinFeedback({
+          type: 'error',
+          message: err?.message || 'Error connecting to collaborative notebook room.',
+        })
       })
     }
   }, [searchParams])
@@ -665,6 +693,79 @@ export default function Notes() {
               title="Minimize Banner (More vertical space)"
             >
               <ChevronUp className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── COLLABORATIVE JOIN STATUS FEEDBACK BANNER ── */}
+      {joinFeedback && (
+        <div
+          className={cn(
+            'px-4 py-2 flex items-center justify-between gap-3 text-xs sm:text-sm font-semibold shrink-0 transition-all border-b animate-in slide-in-from-top-2 print:hidden',
+            joinFeedback.type === 'info'
+              ? 'bg-accent/15 text-accent border-accent/30'
+              : joinFeedback.type === 'success'
+              ? 'bg-semantic-green/15 text-semantic-green border-semantic-green/30'
+              : 'bg-semantic-red/15 text-semantic-red border-semantic-red/30'
+          )}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {joinFeedback.type === 'info' ? (
+              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+            ) : joinFeedback.type === 'success' ? (
+              <Check className="h-4 w-4 shrink-0 text-semantic-green" />
+            ) : (
+              <AlertCircle className="h-4 w-4 shrink-0 text-semantic-red" />
+            )}
+            <span className="truncate">{joinFeedback.message}</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {joinFeedback.type === 'error' && (
+              <button
+                type="button"
+                onClick={() => {
+                  const roomToRetry = searchParams.get('room') || searchParams.get('join') || 'collab-koocxf'
+                  const clean = roomToRetry.trim().replace(/^#+/, '')
+                  setJoiningRoomCode(clean)
+                  setJoinFeedback({ type: 'info', message: `Retrying connection to #${clean}...` })
+                  joinSharedNotebook(clean).then((res) => {
+                    setJoiningRoomCode(null)
+                    if (res?.success && res.notebook) {
+                      setJoinFeedback({
+                        type: 'success',
+                        message: `Connected to "${res.notebook.title}" (${res.notebook.pages?.length || 1} pages)!`,
+                      })
+                      if (res.notebook.id) setActiveNotebookId(res.notebook.id)
+                      const firstPage = res.notebook.pages?.[0]
+                      if (firstPage?.id) {
+                        setActivePageId(firstPage.id)
+                        if (editorRef.current) {
+                          editorRef.current.innerHTML = firstPage.htmlContent || ''
+                          updateStats(editorRef.current.innerText || '')
+                        }
+                      }
+                      setTimeout(() => setJoinFeedback(null), 4500)
+                    } else {
+                      setJoinFeedback({
+                        type: 'error',
+                        message: res?.error || `Could not find collaborative notebook #${clean}.`,
+                      })
+                    }
+                  })
+                }}
+                className="px-2.5 py-0.5 rounded-lg bg-surface border border-border-subtle hover:bg-hover text-text-primary text-xs font-bold shadow-xs cursor-pointer"
+              >
+                Retry
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setJoinFeedback(null)}
+              className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 opacity-70 hover:opacity-100 cursor-pointer"
+              title="Dismiss"
+            >
+              ✕
             </button>
           </div>
         </div>
@@ -1396,6 +1497,17 @@ export default function Notes() {
               </div>
             )}
           </div>
+          ) : joiningRoomCode ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-base animate-in fade-in">
+              <div className="h-16 w-16 rounded-3xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4 text-accent shadow-lg shadow-accent/5">
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+              </div>
+              <h3 className="text-xl font-bold text-text-primary mb-2">Connecting to Collaborative Workspace</h3>
+              <p className="text-sm text-text-muted max-w-md mb-2 leading-relaxed">
+                Loading collaborative notebook <span className="font-mono text-accent font-bold">#{joiningRoomCode}</span>...
+              </p>
+              <p className="text-xs text-text-muted/70">Synchronizing chapters and live peer state</p>
+            </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-base">
               <div className="h-16 w-16 rounded-3xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4 text-accent shadow-lg shadow-accent/5">

@@ -5,6 +5,7 @@ import {
   saveNotebook as firestoreSaveNotebook,
   deleteNotebook as firestoreDeleteNotebook,
   subscribeSharedNotebook,
+  fetchSharedNotebook,
   saveSharedNotebook as firestoreSaveSharedNotebook,
   findUserByEmail,
   sendUserInvite,
@@ -257,7 +258,17 @@ export function useNotebooks(user) {
     }
   }, [uid, userSeededKey])
 
-  // Automatically keep active notebook synced to cloud shared storage whenever it has a collabRoomId
+  // Automatically keep all collaborative notebooks synced to cloud shared storage whenever notebooks change
+  useEffect(() => {
+    if (!notebooks || notebooks.length === 0) return
+    notebooks.forEach((nb) => {
+      if (nb.collabRoomId) {
+        firestoreSaveSharedNotebook(nb.collabRoomId, nb).catch(() => {})
+      }
+    })
+  }, [notebooks])
+
+  // Also ensure active notebook updates are immediately pushed
   useEffect(() => {
     if (activeNotebook?.collabRoomId) {
       firestoreSaveSharedNotebook(activeNotebook.collabRoomId, activeNotebook).catch(() => {})
@@ -579,7 +590,7 @@ export function useNotebooks(user) {
       : `collab-${cleanCodeLower}`
     const canonicalRoomId = cleanCodeLower.startsWith('collab-') ? cleanCodeLower : `collab-${cleanCodeLower}`
 
-    // 1. Check if notebook already in local state (case-insensitive)
+    // 1. Check if notebook already in local state (case-insensitive) WITH REAL CONTENT
     const existing = notebooks.find((n) => {
       const rId = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
       const nId = n.id?.toLowerCase()
@@ -590,7 +601,12 @@ export function useNotebooks(user) {
         nId === altCodeLower
       )
     })
-    if (existing) {
+    const hasMeaningfulContent = existing && (
+      (existing.pages?.length > 1) ||
+      (existing.pages?.[0]?.htmlContent && existing.pages[0].htmlContent.trim().length > 10)
+    ) && !existing.title?.startsWith('Shared Collab (Room')
+
+    if (existing && hasMeaningfulContent) {
       setActiveNotebookId(existing.id)
       if (existing.pages?.[0]?.id) setActivePageId(existing.pages[0].id)
       return { success: true, notebook: existing }
@@ -609,7 +625,7 @@ export function useNotebooks(user) {
     }
 
     // 3. Fetch shared notebook from Firestore or Socket with safety timeout
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       let resolved = false
       let unsubFirestore = () => {}
 
@@ -645,6 +661,16 @@ export function useNotebooks(user) {
         resolve({ success: true, notebook: finalNb })
       }
 
+      // 3a. Check immediate fetch from universal Firestore cloud storage
+      try {
+        const instantNb = await fetchSharedNotebook(canonicalRoomId)
+        if (instantNb && instantNb.pages && (instantNb.pages.length > 1 || instantNb.pages[0]?.htmlContent?.trim()?.length > 0)) {
+          return finalizeJoin(instantNb)
+        }
+      } catch (err) {
+        console.warn('instant fetchSharedNotebook error:', err)
+      }
+
       const handleSocketUpdate = ({ notebook: socketNb }) => {
         if (!socketNb) return
         const sRoom = socketNb.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
@@ -663,15 +689,21 @@ export function useNotebooks(user) {
           resolved = true
           if (typeof unsubFirestore === 'function') unsubFirestore()
           if (socket) socket.off('notebook-updated', handleSocketUpdate)
-          resolve({
-            success: false,
-            error: `Could not find notebook for room code "${roomCode}". Make sure the notebook host has shared it or verify the code.`,
-          })
+          if (existing) {
+            setActiveNotebookId(existing.id)
+            if (existing.pages?.[0]?.id) setActivePageId(existing.pages[0].id)
+            resolve({ success: true, notebook: existing })
+          } else {
+            resolve({
+              success: false,
+              error: `Could not find notebook for room code "${roomCode}". Make sure the notebook host has opened Placify or verify the code.`,
+            })
+          }
         }
       }, 7000)
 
       unsubFirestore = subscribeSharedNotebook(cleanCodeLower, async (sharedData) => {
-        if (sharedData) {
+        if (sharedData && sharedData.pages) {
           finalizeJoin(sharedData)
         }
       })

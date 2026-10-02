@@ -3,6 +3,7 @@ import {
   BookOpen, Plus, Users, Search, Trash2, ArrowRight,
   Sparkles, Hash, Copy, Check, Clock, FileText, Code2, CheckSquare, Share2, Link2
 } from 'lucide-react'
+import { saveSharedNotebook } from '@/services/firestoreService'
 
 const COLOR_THEMES = [
   { id: 'indigo', name: 'Indigo', spine: 'bg-indigo-500', border: 'border-indigo-500/30', bg: 'bg-indigo-500/10 text-indigo-400' },
@@ -99,12 +100,15 @@ export default function NotebookShelf({
     }
   }
 
-  const handleShareClick = (e, nb) => {
+  const handleShareClick = async (e, nb) => {
     e.stopPropagation()
-    const shareUrl = `${window.location.origin}/notes?room=${nb.collabRoomId}`
+    const roomId = (nb.collabRoomId || `collab-${Math.random().toString(36).substring(2, 8)}`).trim().replace(/^#+/, '')
+    const fullNb = { ...nb, collabRoomId: roomId, isCollaborative: true }
+    await saveSharedNotebook(roomId, fullNb).catch(() => {})
+    const shareUrl = `${window.location.origin}/notes?room=${roomId}`
     navigator.clipboard.writeText(shareUrl)
     setCopiedId(nb.id)
-    setShareModalTarget(nb)
+    setShareModalTarget(fullNb)
     setShareCopied(true)
     setTimeout(() => {
       setCopiedId(null)

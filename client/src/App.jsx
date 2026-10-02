@@ -89,10 +89,17 @@ function AppContent() {
 
   // Safely redirect to pending notebook room when authenticated (without full-page reloads)
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const urlRoom = searchParams.get('room') || searchParams.get('join')
+    if (urlRoom) {
+      localStorage.setItem('placify_pending_notebook_room', urlRoom)
+    }
+
     const pendingRoom = localStorage.getItem('placify_pending_notebook_room')
     if (pendingRoom && user) {
-      localStorage.removeItem('placify_pending_notebook_room')
-      if (!window.location.pathname.startsWith('/notes')) {
+      const currentRoom = searchParams.get('room') || searchParams.get('join')
+      if (currentRoom !== pendingRoom) {
+        localStorage.removeItem('placify_pending_notebook_room')
         navigate(`/notes?room=${encodeURIComponent(pendingRoom)}`, { replace: true })
       }
     }

@@ -144,12 +144,15 @@ function Canvas3DBackground() {
 export default function Landing() {
   const { signInWithGoogle } = useAuth()
   const [pendingRoom] = useState(() => {
-    return (
+    const code =
       new URLSearchParams(window.location.search).get('room') ||
       new URLSearchParams(window.location.search).get('join') ||
       localStorage.getItem('placify_pending_notebook_room') ||
       null
-    )
+    if (code) {
+      localStorage.setItem('placify_pending_notebook_room', code)
+    }
+    return code
   })
 
   useEffect(() => {

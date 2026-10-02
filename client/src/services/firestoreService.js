@@ -916,6 +916,87 @@ export async function deleteNotebook(uid, notebookId) {
   await deleteDoc(doc(db, 'users', uid, 'notebooks', notebookId))
 }
 
+export function sanitizePayload(data) {
+  if (data === null || data === undefined) return null
+  return JSON.parse(
+    JSON.stringify(data, (key, value) => {
+      if (value === undefined) return null
+      return value
+    })
+  )
+}
+
+export async function fetchSharedNotebook(roomId) {
+  if (!roomId) return null
+  const cleanId = roomId.trim().replace(/^#+/, '').toLowerCase()
+  const altId = cleanId.startsWith('collab-')
+    ? cleanId.replace(/^collab-/, '')
+    : `collab-${cleanId}`
+
+  // 1. Check local storage cache
+  try {
+    const raw = localStorage.getItem(`placify_shared_nb_${cleanId}`) ||
+      localStorage.getItem(`placify_shared_nb_${altId}`)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed && (parsed.pages?.length > 1 || parsed.pages?.[0]?.htmlContent?.trim()?.length > 10)) {
+        return parsed
+      }
+    }
+  } catch {}
+
+  // 2. Check bookmarks collection (collab_nb_cleanId and collab_nb_altId)
+  try {
+    const snap1 = await getDoc(doc(db, 'bookmarks', `collab_nb_${cleanId}`))
+    if (snap1.exists()) {
+      return { id: snap1.id, ...snap1.data() }
+    }
+    if (altId && altId !== cleanId) {
+      const snapAlt = await getDoc(doc(db, 'bookmarks', `collab_nb_${altId}`))
+      if (snapAlt.exists()) {
+        return { id: snapAlt.id, ...snapAlt.data() }
+      }
+    }
+  } catch (e) {
+    console.warn('fetchSharedNotebook bookmarks lookup error:', e)
+  }
+
+  // 3. Check sharedNotebooks collection
+  try {
+    const snapShared = await getDoc(doc(db, 'sharedNotebooks', cleanId))
+    if (snapShared.exists()) {
+      return { id: snapShared.id, ...snapShared.data() }
+    }
+    if (altId && altId !== cleanId) {
+      const snapSharedAlt = await getDoc(doc(db, 'sharedNotebooks', altId))
+      if (snapSharedAlt.exists()) {
+        return { id: snapSharedAlt.id, ...snapSharedAlt.data() }
+      }
+    }
+  } catch (e) {
+    console.warn('fetchSharedNotebook sharedNotebooks lookup error:', e)
+  }
+
+  // 4. Check communityPosts collection
+  try {
+    const q1 = query(
+      collection(db, 'communityPosts'),
+      where('itemData.collabRoomId', 'in', [cleanId, altId, `#${cleanId}`, `#${altId}`])
+    )
+    const snapComm = await getDocs(q1)
+    if (!snapComm.empty) {
+      const post = snapComm.docs[0].data()
+      if (post.itemData) {
+        return post.itemData
+      }
+    }
+  } catch (e) {
+    console.warn('fetchSharedNotebook communityPosts query error:', e)
+  }
+
+  return null
+}
+
 export function subscribeSharedNotebook(roomId, callback) {
   if (!roomId) return () => {}
   const cleanId = roomId.trim().replace(/^#+/, '').toLowerCase()
@@ -934,59 +1015,18 @@ export function subscribeSharedNotebook(roomId, callback) {
     } catch {}
   }
 
-  // Synchronous cache check for 0ms immediate render
-  try {
-    const cached = JSON.parse(
-      localStorage.getItem(`placify_shared_nb_${cleanId}`) ||
-      localStorage.getItem(`placify_shared_nb_${altId}`) ||
-      'null'
-    )
-    if (cached && cached.pages?.length > 0) {
-      handleFound(cached)
-    }
-  } catch {}
+  // 1. Immediate active fetch
+  fetchSharedNotebook(roomId).then((nb) => {
+    if (nb && active) handleFound(nb)
+  }).catch(() => {})
 
-  const tryFallback = async () => {
-    if (!active) return
-    // 1. Try local storage cache
-    try {
-      const cached = JSON.parse(
-        localStorage.getItem(`placify_shared_nb_${cleanId}`) ||
-        localStorage.getItem(`placify_shared_nb_${altId}`) ||
-        'null'
-      )
-      if (cached) {
-        handleFound(cached)
-        return
-      }
-    } catch {}
-
-    // 2. Try collectionGroup fallback query across all notebooks
-    try {
-      const targetCodes = [cleanId, altId, `#${cleanId}`, `#${altId}`]
-      const q = query(collectionGroup(db, 'notebooks'), where('collabRoomId', 'in', targetCodes))
-      const snap = await getDocs(q)
-      if (!snap.empty && active) {
-        const foundData = { id: snap.docs[0].id, ...snap.docs[0].data() }
-        handleFound(foundData)
-        saveSharedNotebook(cleanId, foundData).catch(() => {})
-        return
-      }
-    } catch (e) {
-      console.warn('collectionGroup fallback lookup error:', e)
-    }
-
-    if (active) callback(null)
-  }
-
-  // 1. Listen to bookmarks universal cloud storage (permitted for all authenticated users)
+  // 2. Real-time snapshot on bookmarks (guaranteed permitted for authenticated users)
   const bookmarkRef1 = doc(db, 'bookmarks', `collab_nb_${cleanId}`)
   const unsub1 = onSnapshot(
     bookmarkRef1,
     (snap) => {
-      if (snap.exists()) {
-        const data = { id: snap.id, ...snap.data() }
-        handleFound(data)
+      if (snap.exists() && active) {
+        handleFound({ id: snap.id, ...snap.data() })
       } else if (altId && altId !== cleanId) {
         getDoc(doc(db, 'bookmarks', `collab_nb_${altId}`)).then((altSnap) => {
           if (altSnap.exists() && active) {
@@ -995,36 +1035,26 @@ export function subscribeSharedNotebook(roomId, callback) {
         }).catch(() => {})
       }
     },
-    (err) => {
-      console.warn('bookmarks snapshot check:', err)
-    }
+    (err) => console.warn('bookmarks snapshot check:', err)
   )
 
-  // 2. Listen to sharedNotebooks collection
+  // 3. Real-time snapshot on sharedNotebooks
   const sharedRef = doc(db, 'sharedNotebooks', cleanId)
   const unsub2 = onSnapshot(
     sharedRef,
     async (snap) => {
-      if (snap.exists()) {
-        const data = { id: snap.id, ...snap.data() }
-        handleFound(data)
-      } else {
+      if (snap.exists() && active) {
+        handleFound({ id: snap.id, ...snap.data() })
+      } else if (altId && altId !== cleanId) {
         try {
           const altSnap = await getDoc(doc(db, 'sharedNotebooks', altId))
           if (altSnap.exists() && active) {
-            const altData = { id: altSnap.id, ...altSnap.data() }
-            handleFound(altData)
-            return
+            handleFound({ id: altSnap.id, ...altSnap.data() })
           }
         } catch {}
-
-        await tryFallback()
       }
     },
-    async (err) => {
-      console.warn('sharedNotebooks snapshot error, checking fallback:', err)
-      await tryFallback()
-    }
+    (err) => console.warn('sharedNotebooks snapshot check:', err)
   )
 
   return () => {
@@ -1041,18 +1071,30 @@ export async function saveSharedNotebook(roomId, notebookData) {
     ? cleanId.replace(/^collab-/, '')
     : `collab-${cleanId}`
 
-  const payload = {
-    ...notebookData,
+  const safeData = sanitizePayload(notebookData) || {}
+  const nowIso = new Date().toISOString()
+
+  // Clean payload for Firestore (uses serverTimestamp)
+  const firestorePayload = {
+    ...safeData,
     collabRoomId: cleanId,
     isCollaborative: true,
     updatedAt: serverTimestamp(),
   }
 
+  // Clean payload for LocalStorage (pure JSON)
+  const localPayload = {
+    ...safeData,
+    collabRoomId: cleanId,
+    isCollaborative: true,
+    updatedAt: nowIso,
+  }
+
   // 1. Universal cloud store in bookmarks (guaranteed permitted in all Firestore rule sets)
   try {
-    await setDoc(doc(db, 'bookmarks', `collab_nb_${cleanId}`), payload, { merge: true })
+    await setDoc(doc(db, 'bookmarks', `collab_nb_${cleanId}`), firestorePayload, { merge: true })
     if (altId && altId !== cleanId) {
-      await setDoc(doc(db, 'bookmarks', `collab_nb_${altId}`), payload, { merge: true })
+      await setDoc(doc(db, 'bookmarks', `collab_nb_${altId}`), firestorePayload, { merge: true })
     }
   } catch (err) {
     console.warn('saveSharedNotebook to bookmarks failed:', err)
@@ -1060,9 +1102,9 @@ export async function saveSharedNotebook(roomId, notebookData) {
 
   // 2. Also save into sharedNotebooks collection
   try {
-    await setDoc(doc(db, 'sharedNotebooks', cleanId), payload, { merge: true })
+    await setDoc(doc(db, 'sharedNotebooks', cleanId), firestorePayload, { merge: true })
     if (altId && altId !== cleanId) {
-      await setDoc(doc(db, 'sharedNotebooks', altId), payload, { merge: true })
+      await setDoc(doc(db, 'sharedNotebooks', altId), firestorePayload, { merge: true })
     }
   } catch (err) {
     console.warn('saveSharedNotebook to sharedNotebooks failed:', err)
@@ -1070,8 +1112,8 @@ export async function saveSharedNotebook(roomId, notebookData) {
 
   // 3. Mirror into local storage
   try {
-    localStorage.setItem(`placify_shared_nb_${cleanId}`, JSON.stringify(payload))
-    if (altId) localStorage.setItem(`placify_shared_nb_${altId}`, JSON.stringify(payload))
+    localStorage.setItem(`placify_shared_nb_${cleanId}`, JSON.stringify(localPayload))
+    if (altId) localStorage.setItem(`placify_shared_nb_${altId}`, JSON.stringify(localPayload))
   } catch {}
 }
 
