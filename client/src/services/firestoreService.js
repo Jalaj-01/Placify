@@ -918,53 +918,118 @@ export async function deleteNotebook(uid, notebookId) {
 
 export function subscribeSharedNotebook(roomId, callback) {
   if (!roomId) return () => {}
-  const normalizedId = roomId.trim()
-  const ref = doc(db, 'sharedNotebooks', normalizedId)
-  return onSnapshot(
+  const cleanId = roomId.trim().replace(/^#+/, '').toLowerCase()
+  const altId = cleanId.startsWith('collab-')
+    ? cleanId.replace(/^collab-/, '')
+    : `collab-${cleanId}`
+
+  let active = true
+
+  const handleFound = (data) => {
+    if (!active || !data) return
+    callback(data)
+    try {
+      localStorage.setItem(`placify_shared_nb_${cleanId}`, JSON.stringify(data))
+      if (altId) localStorage.setItem(`placify_shared_nb_${altId}`, JSON.stringify(data))
+    } catch {}
+  }
+
+  const tryFallback = async () => {
+    if (!active) return
+    // 1. Try local storage cache
+    try {
+      const cached = JSON.parse(
+        localStorage.getItem(`placify_shared_nb_${cleanId}`) ||
+        localStorage.getItem(`placify_shared_nb_${altId}`) ||
+        'null'
+      )
+      if (cached) {
+        handleFound(cached)
+        return
+      }
+    } catch {}
+
+    // 2. Try collectionGroup fallback query across all notebooks
+    try {
+      const targetCodes = [cleanId, altId, `#${cleanId}`, `#${altId}`]
+      const q = query(collectionGroup(db, 'notebooks'), where('collabRoomId', 'in', targetCodes))
+      const snap = await getDocs(q)
+      if (!snap.empty && active) {
+        const foundData = { id: snap.docs[0].id, ...snap.docs[0].data() }
+        handleFound(foundData)
+        // Self-heal into sharedNotebooks collection
+        saveSharedNotebook(cleanId, foundData).catch(() => {})
+        return
+      }
+    } catch (e) {
+      console.warn('collectionGroup fallback lookup error:', e)
+    }
+
+    if (active) callback(null)
+  }
+
+  const ref = doc(db, 'sharedNotebooks', cleanId)
+  const unsub = onSnapshot(
     ref,
-    (snap) => {
+    async (snap) => {
       if (snap.exists()) {
         const data = { id: snap.id, ...snap.data() }
-        callback(data)
-        try {
-          localStorage.setItem(`placify_shared_nb_${normalizedId.toLowerCase()}`, JSON.stringify(data))
-        } catch {}
+        handleFound(data)
       } else {
-        // Check case variation or local storage fallback
-        const lowerKey = `placify_shared_nb_${normalizedId.toLowerCase()}`
+        // Try alternate ID in sharedNotebooks
         try {
-          const cached = JSON.parse(localStorage.getItem(lowerKey) || 'null')
-          if (cached) {
-            callback(cached)
+          const altSnap = await getDoc(doc(db, 'sharedNotebooks', altId))
+          if (altSnap.exists() && active) {
+            const altData = { id: altSnap.id, ...altSnap.data() }
+            handleFound(altData)
             return
           }
         } catch {}
-        callback(null)
+
+        await tryFallback()
       }
     },
-    (err) => {
+    async (err) => {
       console.warn('subscribeSharedNotebook Firestore error, checking fallback:', err)
-      try {
-        const cached = JSON.parse(localStorage.getItem(`placify_shared_nb_${normalizedId.toLowerCase()}`) || 'null')
-        callback(cached)
-      } catch {
-        callback(null)
-      }
+      await tryFallback()
     }
   )
+
+  return () => {
+    active = false
+    if (typeof unsub === 'function') unsub()
+  }
 }
 
 export async function saveSharedNotebook(roomId, notebookData) {
-  if (!roomId) return
-  const cleanId = roomId.trim()
-  const ref = doc(db, 'sharedNotebooks', cleanId)
-  await setDoc(ref, {
+  if (!roomId || !notebookData) return
+  const cleanId = roomId.trim().replace(/^#+/, '').toLowerCase()
+  const altId = cleanId.startsWith('collab-')
+    ? cleanId.replace(/^collab-/, '')
+    : `collab-${cleanId}`
+
+  const payload = {
     ...notebookData,
+    collabRoomId: cleanId,
+    isCollaborative: true,
     updatedAt: serverTimestamp(),
-  }, { merge: true })
+  }
 
   try {
-    localStorage.setItem(`placify_shared_nb_${cleanId.toLowerCase()}`, JSON.stringify(notebookData))
+    await setDoc(doc(db, 'sharedNotebooks', cleanId), payload, { merge: true })
+  } catch (err) {
+    console.warn('saveSharedNotebook failed for cleanId:', cleanId, err)
+  }
+
+  if (altId && altId !== cleanId) {
+    try {
+      await setDoc(doc(db, 'sharedNotebooks', altId), payload, { merge: true })
+    } catch {}
+  }
+
+  try {
+    localStorage.setItem(`placify_shared_nb_${cleanId}`, JSON.stringify(payload))
+    if (altId) localStorage.setItem(`placify_shared_nb_${altId}`, JSON.stringify(payload))
   } catch {}
 }
 

@@ -110,5 +110,25 @@ service cloud.firestore {
     match /bookmarks/{bookmarkId} {
       allow read, write: if isAuth();
     }
+
+    // 10. Shared Collaborative Notebooks (open read/write for live peer collaboration by room code)
+    match /sharedNotebooks/{notebookId} {
+      allow read, write: if true;
+    }
+
+    // 11. Notebooks Collection Group (allows resolving notebooks by collabRoomId across users)
+    match /{path=**}/notebooks/{notebookId} {
+      allow read: if true;
+      allow write: if isAuth();
+    }
+
+    // 12. Community Posts
+    match /communityPosts/{postId} {
+      allow read: if true;
+      allow write: if isAuth();
+      match /{allSubcollections=**} {
+        allow read, write: if isAuth();
+      }
+    }
   }
 }

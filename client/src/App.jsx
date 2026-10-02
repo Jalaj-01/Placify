@@ -310,7 +310,7 @@ function AppContent() {
           path="/community"
           element={
             <PageWrapper>
-              <TopBar title="Campus Community" />
+              <TopBar title="Community" />
               <Community />
             </PageWrapper>
           }

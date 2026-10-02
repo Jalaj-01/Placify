@@ -40,7 +40,7 @@ const allNavItems = [
   { to: '/timer', icon: Timer, label: 'Mock Timer', isTimer: true, roles: ['student'] },
   { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student'] },
   { to: '/invites', icon: MailOpen, label: 'Invites', isInvites: true, roles: ['student', 'teacher', 'phd'] },
-  { to: '/community', icon: Users, label: 'Campus Community', roles: ['student', 'teacher', 'phd'] },
+  { to: '/community', icon: Users, label: 'Community', roles: ['student', 'teacher', 'phd'] },
   { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student'] },
   { to: '/notes', icon: BookOpen, label: 'Notes & Notebook', roles: ['student'] },
 

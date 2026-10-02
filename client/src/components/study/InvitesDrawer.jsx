@@ -235,10 +235,10 @@ export default function InvitesDrawer() {
   const handleManualJoin = (e) => {
     e.preventDefault()
     if (!manualRoomCode.trim()) return
-    const code = manualRoomCode.trim()
+    const code = manualRoomCode.trim().replace(/^#+/, '')
     setManualRoomCode('')
     closeInvitesDrawer()
-    if (code.toLowerCase().startsWith('collab-') || code.toLowerCase().startsWith('nb-')) {
+    if (code.toLowerCase().startsWith('collab-') || code.toLowerCase().startsWith('nb-') || code.toLowerCase().includes('collab')) {
       navigate(`/notes?room=${encodeURIComponent(code)}`)
     } else {
       openGroupStudy(code)

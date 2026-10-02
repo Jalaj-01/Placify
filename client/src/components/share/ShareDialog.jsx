@@ -67,14 +67,14 @@ export default function ShareDialog({ open, onOpenChange, itemType, itemData, se
         { uid: senderUid, email: senderEmail },
         {
           title,
-          description: communityDesc.trim() || `Shared from ${getItemTypeName()} for campus peers.`,
+          description: communityDesc.trim() || `Shared from ${getItemTypeName()} for community peers.`,
           category,
-          tags: communityTags || ['Study', 'Campus', itemType],
+          tags: communityTags || ['Study', 'Community', itemType],
           itemData: cleanData,
         }
       )
 
-      setSuccess('Successfully published to Campus Community Hub!')
+      setSuccess('Successfully published to Community Hub!')
       setTimeout(() => {
         onOpenChange(false)
         setSuccess('')
@@ -130,7 +130,7 @@ export default function ShareDialog({ open, onOpenChange, itemType, itemData, se
             )}
           >
             <Users className="h-3.5 w-3.5" />
-            <span>Campus Community</span>
+            <span>Community</span>
           </button>
         </div>
 
@@ -193,13 +193,13 @@ export default function ShareDialog({ open, onOpenChange, itemType, itemData, se
           </form>
         )}
 
-        {/* MODE 2: PUBLISH TO CAMPUS COMMUNITY */}
+        {/* MODE 2: PUBLISH TO COMMUNITY */}
         {shareMode === 'community' && (
           <form onSubmit={handlePublishCommunity} className="space-y-4">
             <div className="space-y-3">
               <div>
                 <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider block mb-1">
-                  Description / Note for Campus Peers
+                  Description / Note for Peers
                 </label>
                 <textarea
                   rows={2}

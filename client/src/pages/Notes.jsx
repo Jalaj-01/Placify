@@ -139,6 +139,7 @@ export default function Notes() {
     joinSharedNotebook,
     sendPeerInvite,
     emitTyping,
+    shareNotebook,
   } = useNotebooks(user)
 
   // Dynamically compute subjects strictly from notebooks that exist
@@ -508,17 +509,26 @@ export default function Notes() {
     if (nb?.id) setActiveNotebookId(nb.id)
   }
 
-  const handleShareClick = (e, nb) => {
+  const handleShareClick = async (e, nb) => {
     e.stopPropagation()
-    const shareUrl = `${window.location.origin}/notes?room=${nb.collabRoomId}`
+    const shared = await shareNotebook(nb.id)
+    const effectiveNb = shared || nb
+    const shareUrl = `${window.location.origin}/notes?room=${effectiveNb.collabRoomId}`
     navigator.clipboard.writeText(shareUrl)
-    setCopiedCardId(nb.id)
-    setShareModalTarget(nb)
+    setCopiedCardId(effectiveNb.id)
+    setShareModalTarget(effectiveNb)
     setShareCopied(true)
     setTimeout(() => {
       setCopiedCardId(null)
       setShareCopied(false)
     }, 2500)
+  }
+
+  const handleOpenCollabModal = async () => {
+    if (activeNotebook) {
+      await shareNotebook(activeNotebook.id)
+    }
+    setShowCollabModal(true)
   }
 
   const handleJoinNotebook = async (e) => {
@@ -1014,7 +1024,7 @@ export default function Notes() {
 
                   {/* Collaborate Live Button */}
                   <button
-                    onClick={() => setShowCollabModal(true)}
+                    onClick={handleOpenCollabModal}
                     className={cn(
                       'px-2 sm:px-2.5 py-1 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 shadow-xs',
                       activeNotebook?.isCollaborative
@@ -2134,7 +2144,7 @@ export default function Notes() {
 
             <div className="p-3.5 rounded-2xl bg-base border border-border-subtle flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-bold text-text-primary">Publish to Campus Community</p>
+                <p className="text-xs font-bold text-text-primary">Publish to Community</p>
                 <p className="text-[11px] text-text-muted">Allow peers and faculty to discover and clone this notebook.</p>
               </div>
               <button

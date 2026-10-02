@@ -62,6 +62,8 @@ const io = new Server(httpServer, {
 
 // Store user socket mapping for invites
 const userSockets = new Map()
+// Store active collaborative notebook states in memory
+const notebookCache = new Map()
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id)
@@ -130,17 +132,43 @@ io.on('connection', (socket) => {
 
   // ─── Collaborative Notebook Real-time Events ───────────────
   socket.on('notebook-join', ({ roomId, user }) => {
-    const roomName = `notebook-${roomId}`
+    const cleanRoom = (roomId || '').trim().replace(/^#+/, '').toLowerCase()
+    const roomName = `notebook-${cleanRoom}`
     socket.join(roomName)
     console.log(`Socket ${socket.id} joined notebook room ${roomName}`)
+
+    // If server has cached notebook, emit immediately to the new joiner
+    const cached = notebookCache.get(cleanRoom) ||
+      notebookCache.get(`collab-${cleanRoom}`) ||
+      notebookCache.get(cleanRoom.replace(/^collab-/, ''))
+    if (cached) {
+      socket.emit('notebook-updated', { notebook: cached, sender: 'server-cache' })
+    }
+
+    // Request fresh state from peers in room
+    socket.to(roomName).emit('notebook-request-state', { requesterId: socket.id })
+
     socket.to(roomName).emit('notebook-user-joined', {
       user: user || { uid: socket.uid || socket.id, name: 'Collaborator' },
       socketId: socket.id,
     })
   })
 
+  socket.on('notebook-request-state', ({ roomId }) => {
+    const cleanRoom = (roomId || '').trim().replace(/^#+/, '').toLowerCase()
+    const roomName = `notebook-${cleanRoom}`
+    const cached = notebookCache.get(cleanRoom) ||
+      notebookCache.get(`collab-${cleanRoom}`) ||
+      notebookCache.get(cleanRoom.replace(/^collab-/, ''))
+    if (cached) {
+      socket.emit('notebook-updated', { notebook: cached, sender: 'server-cache' })
+    }
+    socket.to(roomName).emit('notebook-request-state', { requesterId: socket.id })
+  })
+
   socket.on('notebook-leave', ({ roomId, user }) => {
-    const roomName = `notebook-${roomId}`
+    const cleanRoom = (roomId || '').trim().replace(/^#+/, '').toLowerCase()
+    const roomName = `notebook-${cleanRoom}`
     socket.leave(roomName)
     socket.to(roomName).emit('notebook-user-left', {
       uid: user?.uid || socket.uid || socket.id,
@@ -148,27 +176,40 @@ io.on('connection', (socket) => {
   })
 
   socket.on('notebook-sync', ({ roomId, notebook, sender }) => {
-    const roomName = `notebook-${roomId}`
+    const cleanRoom = (roomId || '').trim().replace(/^#+/, '').toLowerCase()
+    if (cleanRoom && notebook) {
+      notebookCache.set(cleanRoom, notebook)
+      if (cleanRoom.startsWith('collab-')) {
+        notebookCache.set(cleanRoom.replace(/^collab-/, ''), notebook)
+      } else {
+        notebookCache.set(`collab-${cleanRoom}`, notebook)
+      }
+    }
+    const roomName = `notebook-${cleanRoom}`
     socket.to(roomName).emit('notebook-updated', { notebook, sender })
   })
 
   socket.on('notebook-cell-update', ({ roomId, pageId, cellId, updates, sender }) => {
-    const roomName = `notebook-${roomId}`
+    const cleanRoom = (roomId || '').trim().replace(/^#+/, '').toLowerCase()
+    const roomName = `notebook-${cleanRoom}`
     socket.to(roomName).emit('notebook-cell-updated', { pageId, cellId, updates, sender })
   })
 
   socket.on('notebook-page-update', ({ roomId, pageId, htmlContent, sender }) => {
-    const roomName = `notebook-${roomId}`
+    const cleanRoom = (roomId || '').trim().replace(/^#+/, '').toLowerCase()
+    const roomName = `notebook-${cleanRoom}`
     socket.to(roomName).emit('notebook-page-updated', { pageId, htmlContent, sender })
   })
 
   socket.on('notebook-code-run', ({ roomId, cellId, output, sender }) => {
-    const roomName = `notebook-${roomId}`
+    const cleanRoom = (roomId || '').trim().replace(/^#+/, '').toLowerCase()
+    const roomName = `notebook-${cleanRoom}`
     socket.to(roomName).emit('notebook-code-result', { cellId, output, sender })
   })
 
   socket.on('notebook-typing', ({ roomId, user, cellId, isTyping }) => {
-    const roomName = `notebook-${roomId}`
+    const cleanRoom = (roomId || '').trim().replace(/^#+/, '').toLowerCase()
+    const roomName = `notebook-${cleanRoom}`
     socket.to(roomName).emit('notebook-typing-status', { user, cellId, isTyping })
   })
 

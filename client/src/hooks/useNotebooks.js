@@ -266,12 +266,13 @@ export function useNotebooks(user) {
 
   // Real-time socket & shared room subscription for active collaborative notebook
   useEffect(() => {
-    if (!activeNotebook?.isCollaborative || !activeNotebook?.collabRoomId) {
+    if (!activeNotebook?.collabRoomId) {
       setActiveCollaborators([])
       return
     }
 
-    const roomId = activeNotebook.collabRoomId
+    const rawRoom = activeNotebook.collabRoomId.trim().replace(/^#+/, '').toLowerCase()
+    const roomId = rawRoom.startsWith('collab-') ? rawRoom : `collab-${rawRoom}`
 
     // 1. Join Socket.io room for instant sub-millisecond collaboration
     if (socket) {
@@ -291,6 +292,24 @@ export function useNotebooks(user) {
           if (!exists) return [...prev, peerUser]
           return prev
         })
+        // Host immediately syncs full notebook state to newly joined peer
+        if (activeNotebook) {
+          socket.emit('notebook-sync', {
+            roomId,
+            notebook: activeNotebook,
+            sender: uid,
+          })
+        }
+      }
+
+      const handleRequestState = () => {
+        if (activeNotebook) {
+          socket.emit('notebook-sync', {
+            roomId,
+            notebook: activeNotebook,
+            sender: uid,
+          })
+        }
       }
 
       const handleUserLeft = ({ uid: peerUid }) => {
@@ -298,7 +317,7 @@ export function useNotebooks(user) {
       }
 
       const handleNotebookUpdated = ({ notebook: remoteNb, sender }) => {
-        if (sender === uid) return
+        if (sender === uid || !remoteNb) return
         setNotebooks((prev) => {
           const updated = prev.map((n) => (n.id === remoteNb.id ? remoteNb : n))
           saveLocalNotebooks(updated)
@@ -335,6 +354,7 @@ export function useNotebooks(user) {
       }
 
       socket.on('notebook-user-joined', handleUserJoined)
+      socket.on('notebook-request-state', handleRequestState)
       socket.on('notebook-user-left', handleUserLeft)
       socket.on('notebook-updated', handleNotebookUpdated)
       socket.on('notebook-page-updated', handlePageUpdated)
@@ -343,6 +363,7 @@ export function useNotebooks(user) {
       return () => {
         socket.emit('notebook-leave', { roomId, user })
         socket.off('notebook-user-joined', handleUserJoined)
+        socket.off('notebook-request-state', handleRequestState)
         socket.off('notebook-user-left', handleUserLeft)
         socket.off('notebook-updated', handleNotebookUpdated)
         socket.off('notebook-page-updated', handlePageUpdated)
@@ -350,7 +371,7 @@ export function useNotebooks(user) {
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
       }
     }
-  }, [socket, activeNotebook?.id, activeNotebook?.isCollaborative, activeNotebook?.collabRoomId, uid, user])
+  }, [socket, activeNotebook?.id, activeNotebook?.collabRoomId, uid, user])
 
   // Save notebook helper
   const persistNotebook = useCallback(
@@ -368,17 +389,18 @@ export function useNotebooks(user) {
         }
       }
 
-      // Sync shared document & socket broadcast if collaborative
-      if (updatedNb.isCollaborative && updatedNb.collabRoomId) {
+      // Sync shared document & socket broadcast if collabRoomId exists
+      if (updatedNb.collabRoomId) {
+        const cleanRoom = updatedNb.collabRoomId.trim().replace(/^#+/, '').toLowerCase()
         try {
-          await firestoreSaveSharedNotebook(updatedNb.collabRoomId, updatedNb)
+          await firestoreSaveSharedNotebook(cleanRoom, updatedNb)
         } catch (err) {
           console.warn('Failed saving shared notebook document', err)
         }
 
         if (socket) {
           socket.emit('notebook-sync', {
-            roomId: updatedNb.collabRoomId,
+            roomId: cleanRoom,
             notebook: updatedNb,
             sender: uid,
           })
@@ -550,72 +572,107 @@ export function useNotebooks(user) {
 
   const joinSharedNotebook = async (roomCode) => {
     if (!roomCode?.trim()) return { success: false, error: 'Please enter a valid Room Code' }
-    const cleanCode = roomCode.trim()
+    const cleanCode = roomCode.trim().replace(/^#+/, '')
     const cleanCodeLower = cleanCode.toLowerCase()
+    const altCodeLower = cleanCodeLower.startsWith('collab-')
+      ? cleanCodeLower.replace(/^collab-/, '')
+      : `collab-${cleanCodeLower}`
+    const canonicalRoomId = cleanCodeLower.startsWith('collab-') ? cleanCodeLower : `collab-${cleanCodeLower}`
 
     // 1. Check if notebook already in local state (case-insensitive)
-    const existing = notebooks.find((n) => 
-      n.collabRoomId?.toLowerCase() === cleanCodeLower ||
-      n.id?.toLowerCase() === cleanCodeLower
-    )
+    const existing = notebooks.find((n) => {
+      const rId = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
+      const nId = n.id?.toLowerCase()
+      return (
+        rId === cleanCodeLower ||
+        rId === altCodeLower ||
+        nId === cleanCodeLower ||
+        nId === altCodeLower
+      )
+    })
     if (existing) {
       setActiveNotebookId(existing.id)
+      if (existing.pages?.[0]?.id) setActivePageId(existing.pages[0].id)
       return { success: true, notebook: existing }
     }
 
-    // 2. Fetch shared notebook from Firestore or local storage cache with safety timeout
+    // 2. Connect to Socket room and request active peer notebook state
+    if (socket) {
+      socket.emit('notebook-join', {
+        roomId: canonicalRoomId,
+        user: {
+          uid: user?.uid || 'guest',
+          name: user?.displayName || 'Teammate',
+        },
+      })
+      socket.emit('notebook-request-state', { roomId: canonicalRoomId })
+    }
+
+    // 3. Fetch shared notebook from Firestore or Socket with safety timeout
     return new Promise((resolve) => {
       let resolved = false
+      let unsubFirestore = () => {}
 
-      let unsub = () => {}
-
-      const timeoutId = setTimeout(async () => {
-        if (!resolved) {
-          resolved = true
-          if (typeof unsub === 'function') unsub()
-          const freshNotebook = await createNotebook({
-            title: `Shared Collab #${cleanCode}`,
-            subject: 'DSA',
-            isCollaborative: true,
-            collabRoomId: cleanCode,
-          })
-          resolve({ success: true, notebook: freshNotebook })
-        }
-      }, 2000)
-
-      unsub = subscribeSharedNotebook(cleanCode, async (sharedData) => {
-        if (resolved) return
+      const finalizeJoin = async (realNb) => {
+        if (resolved || !realNb) return
         resolved = true
         clearTimeout(timeoutId)
-        if (typeof unsub === 'function') unsub()
+        if (typeof unsubFirestore === 'function') unsubFirestore()
+        if (socket) socket.off('notebook-updated', handleSocketUpdate)
 
-        if (sharedData) {
-          const joinedNotebook = {
-            ...sharedData,
-            id: sharedData.id || `nb-joined-${Date.now()}`,
-            isCollaborative: true,
-            collabRoomId: cleanCode,
-          }
+        const finalNb = {
+          ...realNb,
+          id: realNb.id || `nb-joined-${Date.now()}`,
+          isCollaborative: true,
+          collabRoomId: canonicalRoomId,
+        }
 
-          const updatedList = [joinedNotebook, ...notebooks.filter((n) => n.id !== joinedNotebook.id)]
-          setNotebooks(updatedList)
-          saveLocalNotebooks(updatedList)
-          setActiveNotebookId(joinedNotebook.id)
+        const updatedList = [finalNb, ...notebooks.filter((n) => {
+          const r = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
+          return n.id !== finalNb.id && r !== cleanCodeLower && r !== altCodeLower
+        })]
+        setNotebooks(updatedList)
+        saveLocalNotebooks(updatedList)
+        setActiveNotebookId(finalNb.id)
+        if (finalNb.pages?.[0]?.id) {
+          setActivePageId(finalNb.pages[0].id)
+        }
 
-          if (uid) {
-            await firestoreSaveNotebook(uid, joinedNotebook).catch(() => {})
-          }
+        if (uid) {
+          await firestoreSaveNotebook(uid, finalNb).catch(() => {})
+        }
 
-          resolve({ success: true, notebook: joinedNotebook })
-        } else {
-          // If no shared document yet, create a fresh collaborative room with this ID
-          const freshNotebook = await createNotebook({
-            title: `Shared Collab #${cleanCode}`,
-            subject: 'DSA',
-            isCollaborative: true,
-            collabRoomId: cleanCode,
+        resolve({ success: true, notebook: finalNb })
+      }
+
+      const handleSocketUpdate = ({ notebook: socketNb }) => {
+        if (!socketNb) return
+        const sRoom = socketNb.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
+        if (sRoom === cleanCodeLower || sRoom === altCodeLower || socketNb.id === cleanCodeLower) {
+          finalizeJoin(socketNb)
+        }
+      }
+
+      if (socket) {
+        socket.on('notebook-updated', handleSocketUpdate)
+      }
+
+      // Safety timeout: 7 seconds to allow network & Firestore connection
+      const timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          if (typeof unsubFirestore === 'function') unsubFirestore()
+          if (socket) socket.off('notebook-updated', handleSocketUpdate)
+          resolve({
+            success: false,
+            error: `Could not find notebook for room code "${roomCode}". Make sure the notebook host has shared it or verify the code.`,
           })
-          resolve({ success: true, notebook: freshNotebook })
+        }
+      }, 7000)
+
+      unsubFirestore = subscribeSharedNotebook(cleanCodeLower, async (sharedData) => {
+        if (sharedData) {
+          finalizeJoin(sharedData)
         }
       })
     })
@@ -672,6 +729,30 @@ export function useNotebooks(user) {
     })
   }
 
+  // ── Explicit Share & Collab sync helper ──
+  const shareNotebook = async (notebookId) => {
+    const target = notebooks.find((n) => n.id === notebookId) || activeNotebook
+    if (!target) return null
+    const rawRoom = (target.collabRoomId || `collab-${Math.random().toString(36).substring(2, 8)}`).trim().replace(/^#+/, '').toLowerCase()
+    const roomId = rawRoom.startsWith('collab-') ? rawRoom : `collab-${rawRoom}`
+    const updated = {
+      ...target,
+      collabRoomId: roomId,
+      isCollaborative: true,
+      updatedAt: new Date().toISOString(),
+    }
+    await persistNotebook(updated)
+    await firestoreSaveSharedNotebook(roomId, updated).catch(() => {})
+    if (socket) {
+      socket.emit('notebook-sync', {
+        roomId,
+        notebook: updated,
+        sender: uid,
+      })
+    }
+    return updated
+  }
+
   return {
     notebooks,
     loading,
@@ -694,5 +775,7 @@ export function useNotebooks(user) {
     joinSharedNotebook,
     sendPeerInvite,
     emitTyping,
+    shareNotebook,
+    socket,
   }
 }

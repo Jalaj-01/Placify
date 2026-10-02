@@ -297,7 +297,7 @@ export default function Community() {
               <span>Campus Resource Exchange</span>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-text-primary tracking-tight">
-              Campus Community Hub
+              Community Hub
             </h1>
             <p className="text-sm text-text-muted max-w-2xl leading-relaxed">
               Discover and share top lecture videos from Course Vault, collaborative study notebooks,
@@ -694,7 +694,7 @@ export default function Community() {
             <div className="flex items-center justify-between pb-4 border-b border-border-subtle">
               <div>
                 <h2 className="text-lg font-black text-text-primary tracking-tight">
-                  Share with Campus Community
+                  Share with Community
                 </h2>
                 <p className="text-xs text-text-muted mt-0.5">
                   Share lectures, notebooks, cheat sheets or algorithms for everyone to learn from
