@@ -435,7 +435,7 @@ export default function Notes() {
 
   return (
     <>
-      <div className="notes-screen-workspace flex flex-col h-[calc(100vh-75px)] min-h-[620px] rounded-3xl border border-border-subtle bg-surface/80 backdrop-blur-xl shadow-2xl overflow-hidden text-text-primary print:hidden">
+      <div className="notes-screen-workspace flex flex-col h-full w-full flex-1 bg-base overflow-hidden text-text-primary print:hidden">
       {/* ── TOP LEVEL NAVIGATION HEADER ── */}
       <div className="px-5 py-3 border-b border-border-subtle bg-surface/90 flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
         <div className="flex items-center gap-3">
@@ -1058,16 +1058,16 @@ export default function Notes() {
               </div>
             )}
 
-            {/* ── THE NOTEBOOK PAPER DOCUMENT (Full-Width Clean Workspace) ── */}
-            <div className={cn('flex-1 overflow-y-auto p-2 sm:p-4 lg:p-6 scrollbar-thin', currentTheme.class)}>
+            {/* ── THE NOTEBOOK PAPER DOCUMENT (Edge-to-Edge Clean Workspace) ── */}
+            <div className={cn('flex-1 overflow-y-auto scrollbar-thin', currentTheme.class)}>
               <div
                 className={cn(
-                  'mx-auto bg-surface/90 dark:bg-surface/95 border border-border-subtle rounded-3xl p-5 sm:p-8 lg:p-10 shadow-xl min-h-[680px] flex flex-col transition-all',
+                  'mx-auto min-h-full flex flex-col transition-all',
                   editorWidthMode === 'wide'
-                    ? 'max-w-5xl lg:max-w-6xl w-full'
+                    ? 'max-w-6xl w-full px-6 sm:px-12 lg:px-16 py-8'
                     : editorWidthMode === 'full'
-                    ? 'w-full max-w-none'
-                    : 'max-w-4xl w-full'
+                    ? 'w-full max-w-none px-6 sm:px-12 lg:px-20 py-8'
+                    : 'max-w-4xl w-full px-4 sm:px-8 py-8'
                 )}
                 style={{ zoom: `${editorZoom}%` }}
               >
@@ -1094,7 +1094,7 @@ export default function Notes() {
                       }
                     }
                   }}
-                  className="notebook-document flex-1"
+                  className="notebook-document flex-1 w-full"
                 />
               </div>
             </div>
