@@ -7,6 +7,7 @@ import {
   subscribeSharedNotebook,
   saveSharedNotebook as firestoreSaveSharedNotebook,
   findUserByEmail,
+  sendUserInvite,
 } from '@/services/firestoreService'
 
 const LOCAL_STORAGE_KEY = 'placify_notebooks'
@@ -550,15 +551,19 @@ export function useNotebooks(user) {
   const joinSharedNotebook = async (roomCode) => {
     if (!roomCode?.trim()) return { success: false, error: 'Please enter a valid Room Code' }
     const cleanCode = roomCode.trim()
+    const cleanCodeLower = cleanCode.toLowerCase()
 
-    // 1. Check if notebook already in local state
-    const existing = notebooks.find((n) => n.collabRoomId === cleanCode)
+    // 1. Check if notebook already in local state (case-insensitive)
+    const existing = notebooks.find((n) => 
+      n.collabRoomId?.toLowerCase() === cleanCodeLower ||
+      n.id?.toLowerCase() === cleanCodeLower
+    )
     if (existing) {
       setActiveNotebookId(existing.id)
       return { success: true, notebook: existing }
     }
 
-    // 2. Fetch shared notebook from Firestore
+    // 2. Fetch shared notebook from Firestore or local storage cache
     return new Promise((resolve) => {
       const unsub = subscribeSharedNotebook(cleanCode, async (sharedData) => {
         unsub()
@@ -597,7 +602,7 @@ export function useNotebooks(user) {
   // ── Send Peer Invite ──
 
   const sendPeerInvite = async (email, notebookTitle, roomId) => {
-    if (!email?.trim() || !socket) return { success: false, error: 'Email and socket required' }
+    if (!email?.trim()) return { success: false, error: 'Email is required' }
 
     try {
       const targetUser = await findUserByEmail(email.trim())
@@ -609,13 +614,23 @@ export function useNotebooks(user) {
         return { success: false, error: 'You cannot invite yourself.' }
       }
 
-      socket.emit('send-invite', {
-        toUid: targetUser.uid,
-        fromName: user?.displayName || 'Teammate',
-        roomId,
+      // 1. Persist the invite in Firestore so it's always visible in their Invites drawer
+      await sendUserInvite(user, email.trim(), {
         type: 'notebook',
+        roomId,
         title: notebookTitle || 'Collaborative Notebook',
-      })
+      }).catch((e) => console.warn('Could not persist invite to Firestore:', e))
+
+      // 2. Realtime socket notification if peer is currently connected
+      if (socket) {
+        socket.emit('send-invite', {
+          toUid: targetUser.uid,
+          fromName: user?.displayName || 'Teammate',
+          roomId,
+          type: 'notebook',
+          title: notebookTitle || 'Collaborative Notebook',
+        })
+      }
 
       return { success: true, targetUser }
     } catch (err) {

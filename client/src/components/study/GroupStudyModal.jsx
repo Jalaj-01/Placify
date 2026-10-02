@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { useSocket } from '@/hooks/useSocket'
 import { useAppStore } from '@/store/useAppStore'
-import { findUserByEmail, savePlaygroundFile } from '@/services/firestoreService'
+import { findUserByEmail, savePlaygroundFile, sendUserInvite } from '@/services/firestoreService'
 import { useStickyNotes } from '@/hooks/useStickyNotes'
 import { cn } from '@/lib/utils'
 
@@ -338,11 +338,23 @@ export default function GroupStudyModal({ user }) {
         return
       }
 
-      socket.emit('send-invite', {
-        toUid: targetUser.uid,
-        fromName: user.displayName,
-        roomId: roomId
-      })
+      // 1. Persist to Firestore invites
+      await sendUserInvite(user, emailToUse, {
+        type: 'room',
+        roomId: roomId,
+        title: 'Live Study Room',
+      }).catch((e) => console.warn('Could not persist room invite:', e))
+
+      // 2. Realtime socket notification
+      if (socket) {
+        socket.emit('send-invite', {
+          toUid: targetUser.uid,
+          fromName: user.displayName || user.email?.split('@')[0] || 'Peer',
+          roomId: roomId,
+          type: 'room',
+          title: 'Live Study Room',
+        })
+      }
       
       setInviteStatus(`Invite sent to ${targetUser.displayName || emailToUse}!`)
       setInviteEmail('')

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
 import { isSuperAdmin } from '@/config/adminConfig'
+import { subscribeInvites } from '@/services/firestoreService'
 
 const SIMULATION_ROLES = [
   { id: 'admin', label: 'Admin', icon: Shield },
@@ -38,7 +39,8 @@ const allNavItems = [
   { to: '/applications', icon: Briefcase, label: 'Applications', roles: ['student'] },
   { to: '/timer', icon: Timer, label: 'Mock Timer', isTimer: true, roles: ['student'] },
   { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student'] },
-  { to: '/invites', icon: MailOpen, label: 'Room Invites', isInvites: true, roles: ['student'] },
+  { to: '/invites', icon: MailOpen, label: 'Invites', isInvites: true, roles: ['student', 'teacher', 'phd'] },
+  { to: '/community', icon: Users, label: 'Campus Community', roles: ['student', 'teacher', 'phd'] },
   { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student'] },
   { to: '/notes', icon: BookOpen, label: 'Notes & Notebook', roles: ['student'] },
 
@@ -129,6 +131,19 @@ export default function Sidebar({ user, onSignOut }) {
     invitesDrawerOpen, toggleInvitesDrawer, pendingInvites
   } = useAppStore()
   const [isHovered, setIsHovered] = useState(false)
+  const [firestoreInvitesCount, setFirestoreInvitesCount] = useState(0)
+
+  useEffect(() => {
+    if (!user?.uid) return
+    const unsub = subscribeInvites(user.uid, (invs) => {
+      setFirestoreInvitesCount(invs?.length || 0)
+    })
+    return () => {
+      if (typeof unsub === 'function') unsub()
+    }
+  }, [user?.uid])
+
+  const totalPendingInvitesCount = Math.max(pendingInvites.length, firestoreInvitesCount)
 
   // Sidebar is visually expanded if manually uncollapsed OR hovered over
   const isExpanded = !sidebarCollapsed || isHovered
@@ -253,9 +268,9 @@ export default function Sidebar({ user, onSignOut }) {
               {isStickyNotes && isActiveStickyNotes && (
                 <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
               )}
-              {isInvites && pendingInvites.length > 0 && (
+              {isInvites && totalPendingInvitesCount > 0 && (
                 <span className="ml-auto bg-semantic-red text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">
-                  {pendingInvites.length}
+                  {totalPendingInvitesCount}
                 </span>
               )}
             </NavLink>

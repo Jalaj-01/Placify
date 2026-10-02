@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   BookOpen, Plus, Users, Search, Trash2, ArrowLeft, Save,
   Bold, Italic, Underline, Strikethrough, List, ListOrdered, Link2,
@@ -13,6 +14,7 @@ import { useNotebooks } from '@/hooks/useNotebooks'
 import { useStickyNotes } from '@/hooks/useStickyNotes'
 import { cn } from '@/lib/utils'
 import { formatAcademicDocument } from '@/lib/academicDocFormatter'
+import { createCommunityPost } from '@/services/firestoreService'
 
 const PAPER_THEMES = [
   { id: 'ruled', name: 'Ruled Lines', class: 'paper-ruled' },
@@ -148,6 +150,25 @@ export default function Notes() {
 
   // Sticky Notes Hook
   const { notes, addNote, updateNote, deleteNote } = useStickyNotes(user?.uid)
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [sharingToCommunity, setSharingToCommunity] = useState(false)
+  const [communitySharedSuccess, setCommunitySharedSuccess] = useState(false)
+
+  // Listen to ?room= query param to join room immediately and cleanly remove param
+  useEffect(() => {
+    const roomParam = searchParams.get('room') || searchParams.get('join')
+    if (roomParam) {
+      joinSharedNotebook(roomParam).then((res) => {
+        if (res?.success) {
+          const nextParams = new URLSearchParams(searchParams)
+          nextParams.delete('room')
+          nextParams.delete('join')
+          setSearchParams(nextParams, { replace: true })
+        }
+      })
+    }
+  }, [searchParams])
 
   // Document Editor State
   const editorRef = useRef(null)
@@ -2109,6 +2130,53 @@ export default function Notes() {
                 <li><strong className="text-text-primary">Registered users:</strong> Directly open and automatically add this notebook into their collaborative notes.</li>
                 <li><strong className="text-text-primary">New visitors:</strong> They land on Placify and are invited to sign in/register to automatically open this notebook.</li>
               </ul>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-base border border-border-subtle flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-text-primary">Publish to Campus Community</p>
+                <p className="text-[11px] text-text-muted">Allow peers and faculty to discover and clone this notebook.</p>
+              </div>
+              <button
+                type="button"
+                disabled={sharingToCommunity || communitySharedSuccess}
+                onClick={async () => {
+                  setSharingToCommunity(true)
+                  try {
+                    await createCommunityPost(user, {
+                      title: shareModalTarget.title || 'Collaborative Notebook',
+                      description: `Collaborative study notebook with ${shareModalTarget.pages?.length || 1} pages on ${shareModalTarget.subject || 'DSA'}.`,
+                      category: 'notebook',
+                      tags: [shareModalTarget.subject || 'DSA', 'Notes', 'Placify'],
+                      itemData: shareModalTarget,
+                    })
+                    setCommunitySharedSuccess(true)
+                    setTimeout(() => setCommunitySharedSuccess(false), 3000)
+                  } catch (e) {
+                    console.error('Failed to share to community:', e)
+                  } finally {
+                    setSharingToCommunity(false)
+                  }
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0",
+                  communitySharedSuccess
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    : "bg-accent hover:bg-accent-light text-white shadow-xs"
+                )}
+              >
+                {communitySharedSuccess ? (
+                  <>
+                    <Check className="h-3 w-3" />
+                    <span>Published!</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3 w-3" />
+                    <span>{sharingToCommunity ? 'Publishing...' : 'Publish to Hub'}</span>
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="flex items-center justify-between pt-1">

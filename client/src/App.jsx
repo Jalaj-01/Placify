@@ -28,6 +28,7 @@ import ClassroomVault from '@/pages/ClassroomVault'
 import Bookmarks from '@/pages/Bookmarks'
 import Shares from '@/pages/Shares'
 import Notes from '@/pages/Notes'
+import Community from '@/pages/Community'
 import Landing from '@/pages/Landing'
 import Admin from '@/pages/Admin'
 import AdminGuard from '@/components/auth/AdminGuard'
@@ -85,14 +86,16 @@ function AppContent() {
     }
   }, [user, streakData, applications])
 
-  // Capture pending room invitation link for unauthenticated users
+  // Capture pending room invitation link ONLY for unauthenticated users
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const room = params.get('room') || params.get('join')
-    if (room) {
-      localStorage.setItem('placify_pending_notebook_room', room)
+    if (!user) {
+      const params = new URLSearchParams(window.location.search)
+      const room = params.get('room') || params.get('join')
+      if (room) {
+        localStorage.setItem('placify_pending_notebook_room', room)
+      }
     }
-  }, [])
+  }, [user])
 
   // Auto-redirect to shared notebook once authenticated if pending room invite exists
   useEffect(() => {
@@ -100,7 +103,12 @@ function AppContent() {
       const pendingRoom = localStorage.getItem('placify_pending_notebook_room')
       if (pendingRoom) {
         localStorage.removeItem('placify_pending_notebook_room')
-        window.location.href = `/notes?room=${pendingRoom}`
+        const currentPath = window.location.pathname
+        const currentSearch = window.location.search
+        // Only redirect if NOT already on /notes with that room param
+        if (currentPath !== '/notes' || !currentSearch.includes(pendingRoom)) {
+          window.location.replace(`/notes?room=${encodeURIComponent(pendingRoom)}`)
+        }
       }
     }
   }, [user])
@@ -309,6 +317,15 @@ function AppContent() {
             <PageWrapper>
               <TopBar title="Notes & Collaborative Notebook" />
               <Notes />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/community"
+          element={
+            <PageWrapper>
+              <TopBar title="Campus Community" />
+              <Community />
             </PageWrapper>
           }
         />

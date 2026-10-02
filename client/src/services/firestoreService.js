@@ -622,14 +622,34 @@ export async function shareItem(senderUid, senderEmail, receiverEmail, itemType,
   }
 
   const ref = collection(db, 'users', receiver.uid, 'shares')
-  await addDoc(ref, {
+  const newShare = await addDoc(ref, {
     senderEmail,
     senderUid,
-    itemType, // 'course' | 'bookmark' | 'problem' | 'library'
+    itemType, // 'course' | 'bookmark' | 'problem' | 'library' | 'playground'
     itemData,
     createdAt: serverTimestamp(),
   })
+
+  // Mirror into user's universal invites collection so it surfaces in Invites drawer
+  try {
+    const invitesRef = collection(db, 'users', receiver.uid, 'invites')
+    await addDoc(invitesRef, {
+      senderUid,
+      senderEmail,
+      senderName: senderEmail.split('@')[0],
+      type: 'share',
+      itemType,
+      itemData,
+      title: itemData?.name || itemData?.title || `Shared ${itemType}`,
+      shareDocId: newShare.id,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    })
+  } catch (e) {
+    console.warn('Failed to mirror share into invites:', e)
+  }
 }
+
 
 export function subscribeShares(uid, callback) {
   const q = query(userPath(uid, 'shares'), orderBy('createdAt', 'desc'))
@@ -898,31 +918,404 @@ export async function deleteNotebook(uid, notebookId) {
 
 export function subscribeSharedNotebook(roomId, callback) {
   if (!roomId) return () => {}
-  const ref = doc(db, 'sharedNotebooks', roomId)
+  const normalizedId = roomId.trim()
+  const ref = doc(db, 'sharedNotebooks', normalizedId)
   return onSnapshot(
     ref,
     (snap) => {
       if (snap.exists()) {
-        callback({ id: snap.id, ...snap.data() })
+        const data = { id: snap.id, ...snap.data() }
+        callback(data)
+        try {
+          localStorage.setItem(`placify_shared_nb_${normalizedId.toLowerCase()}`, JSON.stringify(data))
+        } catch {}
       } else {
+        // Check case variation or local storage fallback
+        const lowerKey = `placify_shared_nb_${normalizedId.toLowerCase()}`
+        try {
+          const cached = JSON.parse(localStorage.getItem(lowerKey) || 'null')
+          if (cached) {
+            callback(cached)
+            return
+          }
+        } catch {}
         callback(null)
       }
     },
     (err) => {
-      console.warn('subscribeSharedNotebook Firestore error:', err)
-      callback(null)
+      console.warn('subscribeSharedNotebook Firestore error, checking fallback:', err)
+      try {
+        const cached = JSON.parse(localStorage.getItem(`placify_shared_nb_${normalizedId.toLowerCase()}`) || 'null')
+        callback(cached)
+      } catch {
+        callback(null)
+      }
     }
   )
 }
 
 export async function saveSharedNotebook(roomId, notebookData) {
   if (!roomId) return
-  const ref = doc(db, 'sharedNotebooks', roomId)
+  const cleanId = roomId.trim()
+  const ref = doc(db, 'sharedNotebooks', cleanId)
   await setDoc(ref, {
     ...notebookData,
     updatedAt: serverTimestamp(),
   }, { merge: true })
+
+  try {
+    localStorage.setItem(`placify_shared_nb_${cleanId.toLowerCase()}`, JSON.stringify(notebookData))
+  } catch {}
 }
+
+// ─── Invites (All Collaboration, Rooms & Shared Materials) ─────────
+export async function sendUserInvite(senderUser, receiverEmail, inviteData) {
+  if (!receiverEmail?.trim()) {
+    throw new Error('Receiver email is required')
+  }
+  const cleanEmail = receiverEmail.trim().toLowerCase()
+  const receiver = await findUserByEmail(cleanEmail)
+  if (!receiver || !receiver.uid) {
+    throw new Error('User not found with this email. Make sure they have a Placify account.')
+  }
+  if (receiver.uid === senderUser?.uid) {
+    throw new Error('You cannot invite yourself')
+  }
+
+  const invitePayload = {
+    senderUid: senderUser?.uid || 'guest',
+    senderName: senderUser?.displayName || senderUser?.email?.split('@')[0] || 'Peer',
+    senderEmail: senderUser?.email || '',
+    senderPhoto: senderUser?.photoURL || null,
+    type: inviteData.type || 'room', // 'notebook' | 'room' | 'share'
+    roomId: inviteData.roomId || null,
+    title: inviteData.title || (inviteData.type === 'notebook' ? 'Collaborative Notebook' : 'Live Study Room'),
+    itemType: inviteData.itemType || null,
+    itemData: inviteData.itemData || null,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+  }
+
+  const ref = collection(db, 'users', receiver.uid, 'invites')
+  const newDoc = await addDoc(ref, invitePayload)
+
+  // Mirror into local storage for quick access & offline support
+  try {
+    const key = `placify_invites_${receiver.uid}`
+    const existing = JSON.parse(localStorage.getItem(key) || '[]')
+    const item = { ...invitePayload, id: newDoc.id, createdAt: new Date().toISOString() }
+    localStorage.setItem(key, JSON.stringify([item, ...existing]))
+  } catch {}
+
+  return { success: true, targetUser: receiver, inviteId: newDoc.id }
+}
+
+export function subscribeInvites(uid, callback) {
+  if (!uid) return () => {}
+  const q = query(collection(db, 'users', uid, 'invites'), orderBy('createdAt', 'desc'))
+  return onSnapshot(
+    q,
+    (snap) => {
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      callback(items)
+      try {
+        localStorage.setItem(`placify_invites_${uid}`, JSON.stringify(items))
+      } catch {}
+    },
+    (err) => {
+      console.warn('subscribeInvites Firestore error, using fallback:', err)
+      try {
+        const cached = JSON.parse(localStorage.getItem(`placify_invites_${uid}`) || '[]')
+        callback(cached)
+      } catch {
+        callback([])
+      }
+    }
+  )
+}
+
+export async function deleteInviteDoc(uid, inviteId) {
+  if (!uid || !inviteId) return
+  try {
+    await deleteDoc(doc(db, 'users', uid, 'invites', inviteId))
+  } catch (err) {
+    console.warn('Failed to delete invite from Firestore:', err)
+  }
+  try {
+    const key = `placify_invites_${uid}`
+    const cached = JSON.parse(localStorage.getItem(key) || '[]')
+    localStorage.setItem(key, JSON.stringify(cached.filter((i) => i.id !== inviteId && i.roomId !== inviteId)))
+  } catch {}
+}
+
+// ─── Community Posts & Hub ──────────────────────────────────
+export const SEED_COMMUNITY_POSTS = [
+  {
+    id: 'comm-seed-1',
+    authorUid: 'placify-lead',
+    authorName: 'Aryan Verma (Placement Lead)',
+    authorEmail: 'aryan@campus.edu',
+    authorRole: 'Student Lead',
+    authorPhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    title: 'Complete Striver A2Z DSA Lecture Series & Video Roadmap',
+    description: 'Comprehensive 450+ question DSA course covering Arrays, Dynamic Programming, Graphs, and Trees with step-by-step video solutions and patterns.',
+    category: 'course',
+    tags: ['DSA', 'LeetCode', 'Striver', 'Interviews'],
+    itemData: {
+      name: "Striver's A2Z DSA Sheet - Masterclass Video",
+      url: 'https://www.youtube.com/watch?v=0bHoB35fCmg',
+      embedId: '0bHoB35fCmg',
+      isPlaylist: false,
+    },
+    likes: ['user-1', 'user-2', 'user-3', 'user-4', 'user-5'],
+    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+  },
+  {
+    id: 'comm-seed-2',
+    authorUid: 'placify-mentor',
+    authorName: 'Prof. Rajesh K. (System Architect)',
+    authorEmail: 'rajesh@cs.ac.in',
+    authorRole: 'Faculty',
+    authorPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    title: 'High-Level System Design: Microservices, Caching & CAP Theorem',
+    description: 'Collaborative revision notebook for scalable distributed systems. Includes Redis cache-aside patterns, Kafka event streaming, and horizontal database sharding diagrams.',
+    category: 'notebook',
+    tags: ['System Design', 'HLD', 'Redis', 'Kafka'],
+    itemData: {
+      id: 'nb-sys-design-comm',
+      title: 'High-Level System Design & Architecture',
+      subject: 'System Design',
+      collabRoomId: 'collab-sysdesign',
+      pages: [
+        {
+          id: 'p-1',
+          title: 'Distributed Caching Strategies',
+          htmlContent: '<h1>Distributed Caching (Redis &amp; Memcached)</h1><p>Cache-aside vs Write-through vs Write-back caching strategies with latency and consistency trade-offs.</p>',
+        }
+      ]
+    },
+    likes: ['user-1', 'user-3', 'user-6'],
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+  },
+  {
+    id: 'comm-seed-3',
+    authorUid: 'placify-scholar',
+    authorName: 'Sneha Patel (PhD Scholar)',
+    authorEmail: 'sneha@research.edu',
+    authorRole: 'PhD Scholar',
+    authorPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+    title: 'Top 100 SDE Interview Cheat Sheet & Behavioral Guide (PDF)',
+    description: 'Handcrafted concise revision cheat sheet summarizing behavioral STAR questions, OS concurrency primitives, DBMS indexing, and computer networking key metrics.',
+    category: 'resource',
+    tags: ['Cheat Sheet', 'SDE-1', 'STAR Method', 'OS/DBMS'],
+    itemData: {
+      name: 'Ultimate_SDE_Interview_CheatSheet.pdf',
+      url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+      type: 'pdf',
+      size: '2.4 MB',
+    },
+    likes: ['user-2', 'user-5', 'user-7', 'user-8'],
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+  {
+    id: 'comm-seed-4',
+    authorUid: 'placify-coder',
+    authorName: 'Vikram Joshi (Full-Stack Dev)',
+    authorEmail: 'vikram@campus.edu',
+    authorRole: 'Student',
+    authorPhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    title: 'LRU Cache (Least Recently Used) in O(1) Time - JS Implementation',
+    description: 'Clean and production-ready implementation of LRU Cache with a Doubly Linked List and Hash Map. Includes unit test execution harness for Code Playground.',
+    category: 'code',
+    tags: ['JavaScript', 'Algorithms', 'Data Structures', 'Playground'],
+    itemData: {
+      name: 'lru-cache-optimal.js',
+      language: 'javascript',
+      code: `class Node {
+  constructor(key, val) {
+    this.key = key;
+    this.val = val;
+    this.prev = null;
+    this.next = null;
+  }
+}
+
+class LRUCache {
+  constructor(capacity) {
+    this.capacity = capacity;
+    this.map = new Map();
+    this.head = new Node(0, 0);
+    this.tail = new Node(0, 0);
+    this.head.next = this.tail;
+    this.tail.prev = this.head;
+  }
+
+  _remove(node) {
+    node.prev.next = node.next;
+    node.next.prev = node.prev;
+  }
+
+  _insert(node) {
+    node.next = this.head.next;
+    node.next.prev = node;
+    this.head.next = node;
+    node.prev = this.head;
+  }
+
+  get(key) {
+    if (!this.map.has(key)) return -1;
+    const node = this.map.get(key);
+    this._remove(node);
+    this._insert(node);
+    return node.val;
+  }
+
+  put(key, val) {
+    if (this.map.has(key)) {
+      this._remove(this.map.get(key));
+    }
+    const newNode = new Node(key, val);
+    this._insert(newNode);
+    this.map.set(key, newNode);
+
+    if (this.map.size > this.capacity) {
+      const lru = this.tail.prev;
+      this._remove(lru);
+      this.map.delete(lru.key);
+    }
+  }
+}
+
+// Test Run
+const cache = new LRUCache(2);
+cache.put(1, 100);
+cache.put(2, 200);
+console.log("Get 1:", cache.get(1)); // 100
+cache.put(3, 300); // evicts key 2
+console.log("Get 2 (evicted):", cache.get(2)); // -1
+console.log("Get 3:", cache.get(3)); // 300
+`,
+    },
+    likes: ['user-1', 'user-4', 'user-6'],
+    createdAt: new Date(Date.now() - 3600000 * 36).toISOString(),
+  }
+]
+
+export function subscribeCommunityPosts(callback) {
+  const q = query(collection(db, 'communityPosts'), orderBy('createdAt', 'desc'))
+  return onSnapshot(
+    q,
+    (snap) => {
+      if (!snap.empty) {
+        const posts = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        callback(posts)
+        try {
+          localStorage.setItem('placify_community_posts', JSON.stringify(posts))
+        } catch {}
+      } else {
+        const cached = JSON.parse(localStorage.getItem('placify_community_posts') || 'null')
+        if (cached && cached.length > 0) {
+          callback(cached)
+        } else {
+          localStorage.setItem('placify_community_posts', JSON.stringify(SEED_COMMUNITY_POSTS))
+          callback(SEED_COMMUNITY_POSTS)
+        }
+      }
+    },
+    (err) => {
+      console.warn('subscribeCommunityPosts error, using fallback:', err)
+      const cached = JSON.parse(localStorage.getItem('placify_community_posts') || 'null')
+      callback(cached || SEED_COMMUNITY_POSTS)
+    }
+  )
+}
+
+export async function createCommunityPost(user, postData) {
+  const newPost = {
+    authorUid: user?.uid || 'anonymous',
+    authorName: user?.displayName || user?.email?.split('@')[0] || 'Community Member',
+    authorEmail: user?.email || '',
+    authorRole: user?.role || 'Student',
+    authorPhoto: user?.photoURL || null,
+    title: postData.title?.trim() || 'Untitled Community Post',
+    description: postData.description?.trim() || '',
+    category: postData.category || 'resource',
+    tags: Array.isArray(postData.tags) ? postData.tags : (postData.tags || '').split(',').map((t) => t.trim()).filter(Boolean),
+    itemData: postData.itemData || {},
+    likes: [],
+    createdAt: serverTimestamp(),
+  }
+
+  let docId = `post-${Date.now()}`
+  try {
+    const docRef = await addDoc(collection(db, 'communityPosts'), newPost)
+    docId = docRef.id
+  } catch (err) {
+    console.warn('Firestore createCommunityPost error, saving locally:', err)
+  }
+
+  try {
+    const current = JSON.parse(localStorage.getItem('placify_community_posts') || '[]')
+    const fullPost = {
+      ...newPost,
+      id: docId,
+      createdAt: new Date().toISOString(),
+    }
+    localStorage.setItem('placify_community_posts', JSON.stringify([fullPost, ...current]))
+  } catch {}
+
+  return docId
+}
+
+export async function toggleCommunityPostLike(uid, postId) {
+  if (!uid || !postId) return
+  try {
+    const ref = doc(db, 'communityPosts', postId)
+    const snap = await getDoc(ref)
+    if (snap.exists()) {
+      const data = snap.data()
+      const likes = data.likes || []
+      const hasLiked = likes.includes(uid)
+      const updatedLikes = hasLiked ? likes.filter((id) => id !== uid) : [...likes, uid]
+      await updateDoc(ref, { likes: updatedLikes })
+    }
+  } catch (err) {
+    console.warn('Firestore toggleCommunityPostLike error:', err)
+  }
+
+  try {
+    const current = JSON.parse(localStorage.getItem('placify_community_posts') || '[]')
+    const updated = current.map((p) => {
+      if (p.id === postId) {
+        const likes = p.likes || []
+        const hasLiked = likes.includes(uid)
+        return {
+          ...p,
+          likes: hasLiked ? likes.filter((id) => id !== uid) : [...likes, uid],
+        }
+      }
+      return p
+    })
+    localStorage.setItem('placify_community_posts', JSON.stringify(updated))
+  } catch {}
+}
+
+export async function deleteCommunityPost(postId) {
+  if (!postId) return
+  try {
+    await deleteDoc(doc(db, 'communityPosts', postId))
+  } catch (err) {
+    console.warn('Firestore deleteCommunityPost error:', err)
+  }
+  try {
+    const current = JSON.parse(localStorage.getItem('placify_community_posts') || '[]')
+    localStorage.setItem(
+      'placify_community_posts',
+      JSON.stringify(current.filter((p) => p.id !== postId))
+    )
+  } catch {}
+}
+
 
 
 
