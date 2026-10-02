@@ -4,7 +4,8 @@ import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered, Link2,
   Undo, Redo, Check, Copy, Hash, Send, FileText, CheckSquare,
   Quote, Minus, Eraser, AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Highlighter, Palette, Download, Printer, StickyNote, Pin, Eye, Sparkles, Share2
+  Highlighter, Palette, Download, Printer, StickyNote, Pin, Eye, Sparkles, Share2,
+  PanelLeftClose, PanelLeftOpen, GripVertical, ZoomIn, ZoomOut, Maximize2
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNotebooks } from '@/hooks/useNotebooks'
@@ -67,6 +68,7 @@ export default function Notes() {
     addPage,
     deletePage,
     renamePage,
+    reorderPages,
     updatePageContent,
     joinSharedNotebook,
     sendPeerInvite,
@@ -154,24 +156,104 @@ export default function Notes() {
     setStats({ words, chars, readingTime })
   }
 
-  // Synchronize print HTML content
-  const [printHtmlContent, setPrintHtmlContent] = useState('')
+  // Sidebar Collapse State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
-  useEffect(() => {
-    if (activePage?.htmlContent) {
-      setPrintHtmlContent(activePage.htmlContent)
-    }
-  }, [activePage?.id, activePage?.htmlContent])
+  // Drag and Drop Page Reordering States
+  const [draggedPageIndex, setDraggedPageIndex] = useState(null)
+  const [dragOverPageIndex, setDragOverPageIndex] = useState(null)
 
-  const handlePrint = () => {
+  // Document Editor View Sizing & Zoom
+  const [editorZoom, setEditorZoom] = useState(100)
+  const [editorWidthMode, setEditorWidthMode] = useState('wide') // 'standard' | 'wide' | 'full'
+
+  // PDF Export States (Whole Notebook vs Specific Page)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportScope, setExportScope] = useState('notebook') // 'notebook' | 'single'
+  const [exportSelectedPageNumber, setExportSelectedPageNumber] = useState(1)
+  const [exportPagesToPrint, setExportPagesToPrint] = useState([])
+
+  const handleOpenExportModal = () => {
+    const currentIdx = activeNotebook?.pages?.findIndex((p) => p.id === activePage?.id)
+    setExportSelectedPageNumber(currentIdx >= 0 ? currentIdx + 1 : 1)
+    setExportScope('notebook')
+    setShowExportModal(true)
+  }
+
+  const handleConfirmExport = () => {
+    if (!activeNotebook || !activeNotebook.pages?.length) return
+
+    // Synchronize latest content from editor
     const currentHtml = editorRef.current?.innerHTML || activePage?.htmlContent || ''
-    setPrintHtmlContent(currentHtml)
-    if (activeNotebook && activePage) {
+    if (activePage) {
       updatePageContent(activeNotebook.id, activePage.id, currentHtml)
     }
+
+    let pagesData = []
+    if (exportScope === 'single') {
+      const pageIndex = Math.max(0, Math.min(activeNotebook.pages.length - 1, exportSelectedPageNumber - 1))
+      const targetPage = activeNotebook.pages[pageIndex]
+      if (targetPage) {
+        pagesData = [
+          {
+            ...targetPage,
+            pageNumber: pageIndex + 1,
+            totalCount: 1,
+            htmlToRender: targetPage.id === activePage?.id ? currentHtml : targetPage.htmlContent,
+          },
+        ]
+      }
+    } else {
+      // Entire notebook
+      pagesData = activeNotebook.pages.map((p, idx) => ({
+        ...p,
+        pageNumber: idx + 1,
+        totalCount: activeNotebook.pages.length,
+        htmlToRender: p.id === activePage?.id ? currentHtml : p.htmlContent,
+      }))
+    }
+
+    setExportPagesToPrint(pagesData)
+    setShowExportModal(false)
+
     setTimeout(() => {
       window.print()
-    }, 100)
+    }, 150)
+  }
+
+  // Drag and Drop Handlers for Page Sequence Reordering
+  const handleDragStart = (e, index) => {
+    setDraggedPageIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', index.toString())
+  }
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverPageIndex !== index) {
+      setDragOverPageIndex(index)
+    }
+  }
+
+  const handleDrop = (e, targetIndex) => {
+    e.preventDefault()
+    if (draggedPageIndex === null || draggedPageIndex === targetIndex || !activeNotebook) {
+      setDraggedPageIndex(null)
+      setDragOverPageIndex(null)
+      return
+    }
+    const updatedPages = [...activeNotebook.pages]
+    const [moved] = updatedPages.splice(draggedPageIndex, 1)
+    updatedPages.splice(targetIndex, 0, moved)
+    reorderPages(activeNotebook.id, updatedPages)
+    setDraggedPageIndex(null)
+    setDragOverPageIndex(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedPageIndex(null)
+    setDragOverPageIndex(null)
   }
 
   // Execute Rich Text Formatting via document.execCommand
@@ -353,7 +435,7 @@ export default function Notes() {
 
   return (
     <>
-      <div className="notes-screen-workspace flex flex-col h-[calc(100vh-100px)] min-h-[640px] rounded-3xl border border-border-subtle bg-surface/80 backdrop-blur-xl shadow-2xl overflow-hidden text-text-primary print:hidden">
+      <div className="notes-screen-workspace flex flex-col h-[calc(100vh-75px)] min-h-[620px] rounded-3xl border border-border-subtle bg-surface/80 backdrop-blur-xl shadow-2xl overflow-hidden text-text-primary print:hidden">
       {/* ── TOP LEVEL NAVIGATION HEADER ── */}
       <div className="px-5 py-3 border-b border-border-subtle bg-surface/90 flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
         <div className="flex items-center gap-3">
@@ -404,14 +486,19 @@ export default function Notes() {
       {/* ── MAIN WORKSPACE CONTENT ── */}
       {activeMainTab === 'notebooks' ? (
         <div className="flex-1 flex overflow-hidden print:overflow-visible">
-          {/* ── LEFT NOTEBOOK SHELF & CHAPTER SELECTOR (320px) ── */}
-          <div className="w-72 lg:w-80 border-r border-border-subtle bg-surface/50 flex flex-col shrink-0 overflow-hidden print:hidden">
+          {/* ── LEFT NOTEBOOK SHELF & CHAPTER SELECTOR ── */}
+          <div
+            className={cn(
+              'border-r border-border-subtle bg-surface/50 flex flex-col shrink-0 overflow-hidden print:hidden transition-all duration-300 ease-in-out',
+              isSidebarOpen ? 'w-72 lg:w-80 opacity-100' : 'w-0 border-r-0 opacity-0 pointer-events-none'
+            )}
+          >
             {/* Shelf Header */}
             <div className="p-3.5 border-b border-border-subtle bg-surface/40 flex items-center justify-between shrink-0">
-              <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+              <span className="text-xs font-bold text-text-secondary uppercase tracking-wider truncate">
                 My Notebooks ({notebooks.length})
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={() => setShowJoinNbModal(true)}
                   className="p-1.5 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary text-xs font-bold flex items-center gap-1"
@@ -426,6 +513,13 @@ export default function Notes() {
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>New</span>
+                </button>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-1.5 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary text-xs font-bold flex items-center transition-colors"
+                  title="Collapse Sidebar"
+                >
+                  <PanelLeftClose className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -542,14 +636,19 @@ export default function Notes() {
 
             {/* Pages & Chapters of Active Notebook */}
             {activeNotebook && (
-              <div className="p-3 border-t border-border-subtle bg-surface/70 space-y-2 shrink-0 max-h-56 overflow-y-auto scrollbar-thin">
+              <div className="p-3 border-t border-border-subtle bg-surface/70 space-y-2 shrink-0 max-h-60 overflow-y-auto scrollbar-thin">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                    Chapters / Pages
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                      Chapters / Pages
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded-full bg-accent/15 text-accent text-[10px] font-bold">
+                      {activeNotebook.pages?.length || 0}
+                    </span>
+                  </div>
                   <button
                     onClick={() => addPage(activeNotebook.id)}
-                    className="text-xs text-accent hover:text-accent-light font-bold flex items-center gap-1"
+                    className="text-xs text-accent hover:text-accent-light font-bold flex items-center gap-1 px-1.5 py-0.5 rounded-lg hover:bg-accent/10 transition-colors"
                   >
                     <Plus className="h-3 w-3" /> Add Page
                   </button>
@@ -558,18 +657,63 @@ export default function Notes() {
                 <div className="space-y-1">
                   {activeNotebook.pages?.map((page, idx) => {
                     const isPageActive = page.id === activePage?.id
+                    const isDragging = draggedPageIndex === idx
+                    const isDragOver = dragOverPageIndex === idx
+
                     return (
                       <div
                         key={page.id}
+                        draggable={activeNotebook.pages.length > 1}
+                        onDragStart={(e) => handleDragStart(e, idx)}
+                        onDragOver={(e) => handleDragOver(e, idx)}
+                        onDragLeave={() => {
+                          if (dragOverPageIndex === idx) setDragOverPageIndex(null)
+                        }}
+                        onDragEnd={handleDragEnd}
+                        onDrop={(e) => handleDrop(e, idx)}
                         onClick={() => setActivePageId(page.id)}
                         className={cn(
-                          'flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-colors',
+                          'group flex items-center gap-1.5 px-2 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all select-none border',
                           isPageActive
-                            ? 'bg-accent text-white font-bold shadow-xs'
-                            : 'text-text-secondary hover:bg-hover hover:text-text-primary'
+                            ? 'bg-accent text-white font-bold shadow-xs border-accent'
+                            : 'text-text-secondary hover:bg-hover hover:text-text-primary border-transparent',
+                          isDragging && 'opacity-40 border-dashed border-accent',
+                          isDragOver && !isDragging && 'ring-2 ring-accent border-accent bg-accent/15 scale-[1.01]'
                         )}
+                        title="Click to select. Drag grip to reorder sequence."
                       >
-                        <span className="truncate flex-1">{page.title || `Page ${idx + 1}`}</span>
+                        {/* Drag Handle */}
+                        {activeNotebook.pages.length > 1 && (
+                          <div
+                            className={cn(
+                              'cursor-grab active:cursor-grabbing p-0.5 rounded transition-opacity shrink-0',
+                              isPageActive ? 'text-white/70 hover:text-white' : 'text-text-muted/60 group-hover:text-text-primary'
+                            )}
+                            title="Drag to change page sequence"
+                          >
+                            <GripVertical className="h-3.5 w-3.5" />
+                          </div>
+                        )}
+
+                        {/* Sequential Page Number Badge (1, 2, 3...) */}
+                        <span
+                          className={cn(
+                            'h-5 w-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors',
+                            isPageActive
+                              ? 'bg-white/25 text-white border border-white/30'
+                              : 'bg-card border border-border-subtle text-text-muted group-hover:text-text-primary'
+                          )}
+                          title={`Page ${idx + 1}`}
+                        >
+                          {idx + 1}
+                        </span>
+
+                        {/* Page Title */}
+                        <span className="truncate flex-1 font-medium">
+                          {page.title || `Page ${idx + 1}`}
+                        </span>
+
+                        {/* Delete Page Button */}
                         {activeNotebook.pages.length > 1 && (
                           <button
                             onClick={(e) => {
@@ -577,7 +721,7 @@ export default function Notes() {
                               deletePage(activeNotebook.id, page.id)
                             }}
                             className={cn(
-                              'p-0.5 rounded ml-1',
+                              'p-0.5 rounded ml-1 opacity-0 group-hover:opacity-100 transition-opacity',
                               isPageActive ? 'text-white/80 hover:text-white' : 'text-text-muted hover:text-semantic-red'
                             )}
                             title="Delete Page"
@@ -597,8 +741,25 @@ export default function Notes() {
           {activeNotebook ? (
             <div className="flex-1 flex flex-col h-full bg-base overflow-hidden print:overflow-visible print:bg-white">
             {/* Document Header Controls */}
-            <div className="p-3.5 border-b border-border-subtle bg-surface/90 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
+            <div className="p-3 border-b border-border-subtle bg-surface/90 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
               <div className="flex items-center gap-2 flex-1 min-w-0">
+                {/* Sidebar Expand / Collapse Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen((prev) => !prev)}
+                  className="p-1.5 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary transition-all flex items-center gap-1.5 text-xs font-medium shrink-0"
+                  title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
+                >
+                  {isSidebarOpen ? (
+                    <PanelLeftClose className="h-4 w-4" />
+                  ) : (
+                    <>
+                      <PanelLeftOpen className="h-4 w-4 text-accent" />
+                      <span className="hidden sm:inline font-bold text-accent">Sidebar</span>
+                    </>
+                  )}
+                </button>
+
                 <input
                   type="text"
                   value={editingPageTitle}
@@ -650,14 +811,14 @@ export default function Notes() {
                   )}
                 </button>
 
-                {/* Print / Save PDF */}
+                {/* Print / Save PDF Export */}
                 <button
-                  onClick={handlePrint}
+                  onClick={handleOpenExportModal}
                   className="px-2.5 py-1.5 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5 text-xs font-bold shadow-xs active:scale-95"
-                  title="Print / Export as A4 PDF"
+                  title="Export PDF"
                 >
                   <Printer className="h-4 w-4 text-accent" />
-                  <span className="hidden sm:inline">Export PDF (A4)</span>
+                  <span>Export</span>
                 </button>
               </div>
             </div>
@@ -852,6 +1013,41 @@ export default function Notes() {
               >
                 <Eraser className="h-3.5 w-3.5" />
               </button>
+
+              {/* Document Zoom and Canvas Width Controls */}
+              <div className="flex items-center gap-1 ml-auto shrink-0 pl-1 border-l border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setEditorZoom((z) => Math.max(70, z - 10))}
+                  className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary text-text-muted transition-colors text-xs"
+                  title="Zoom Out (Ctrl -)"
+                >
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </button>
+                <span className="text-[11px] font-mono font-bold text-text-muted w-9 text-center select-none">
+                  {editorZoom}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setEditorZoom((z) => Math.min(130, z + 10))}
+                  className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary text-text-muted transition-colors text-xs"
+                  title="Zoom In (Ctrl +)"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorWidthMode((m) => (m === 'wide' ? 'full' : m === 'full' ? 'standard' : 'wide'))}
+                  className={cn(
+                    'p-1.5 rounded-lg hover:bg-hover transition-colors text-xs flex items-center gap-1',
+                    editorWidthMode !== 'standard' ? 'text-accent font-bold bg-accent/10' : 'text-text-muted hover:text-text-primary'
+                  )}
+                  title={`Canvas Width: ${editorWidthMode.toUpperCase()} (Click to toggle Wide / Full / Standard)`}
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline text-[10px] uppercase font-semibold">{editorWidthMode}</span>
+                </button>
+              </div>
             </div>
 
             {/* Peer Typing Status Banner */}
@@ -863,8 +1059,18 @@ export default function Notes() {
             )}
 
             {/* ── THE NOTEBOOK PAPER DOCUMENT (Full-Width Clean Workspace) ── */}
-            <div className={cn('flex-1 overflow-y-auto p-4 sm:p-8 scrollbar-thin', currentTheme.class)}>
-              <div className="max-w-4xl mx-auto bg-surface/90 dark:bg-surface/95 border border-border-subtle rounded-3xl p-6 sm:p-12 shadow-xl min-h-[600px] flex flex-col">
+            <div className={cn('flex-1 overflow-y-auto p-2 sm:p-4 lg:p-6 scrollbar-thin', currentTheme.class)}>
+              <div
+                className={cn(
+                  'mx-auto bg-surface/90 dark:bg-surface/95 border border-border-subtle rounded-3xl p-5 sm:p-8 lg:p-10 shadow-xl min-h-[680px] flex flex-col transition-all',
+                  editorWidthMode === 'wide'
+                    ? 'max-w-5xl lg:max-w-6xl w-full'
+                    : editorWidthMode === 'full'
+                    ? 'w-full max-w-none'
+                    : 'max-w-4xl w-full'
+                )}
+                style={{ zoom: `${editorZoom}%` }}
+              >
                 <div
                   ref={editorRef}
                   contentEditable
@@ -1482,85 +1688,262 @@ export default function Notes() {
           </div>
         </div>
       )}
+      {/* ── MODAL 6: EXPORT PDF SELECTION (WHOLE NOTEBOOK vs PARTICULAR PAGE) ── */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-surface border border-border-subtle rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-2xl bg-accent/15 text-accent flex items-center justify-center">
+                  <Printer className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-text-primary">Export Notes</h3>
+                  <p className="text-[11px] text-text-muted truncate max-w-[260px]">
+                    {activeNotebook?.title}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowExportModal(false)}
+                className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-hover transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-muted block">
+                Choose Export Scope
+              </label>
+
+              {/* Option 1: Whole Notebook */}
+              <div
+                onClick={() => setExportScope('notebook')}
+                className={cn(
+                  'p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3',
+                  exportScope === 'notebook'
+                    ? 'border-accent bg-accent/10 shadow-xs ring-1 ring-accent/30'
+                    : 'border-border-subtle bg-card hover:bg-hover'
+                )}
+              >
+                <input
+                  type="radio"
+                  name="exportScopeChoice"
+                  checked={exportScope === 'notebook'}
+                  onChange={() => setExportScope('notebook')}
+                  className="mt-1 accent-accent"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-text-primary">Whole Notebook</span>
+                    <span className="px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[10px] font-bold">
+                      {activeNotebook?.pages?.length || 1} {activeNotebook?.pages?.length === 1 ? 'Page' : 'Pages'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-text-muted mt-0.5">
+                    Export the entire notebook including all chapters with sequential page numbers.
+                  </p>
+                </div>
+              </div>
+
+              {/* Option 2: Particular Page */}
+              <div
+                onClick={() => setExportScope('single')}
+                className={cn(
+                  'p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3',
+                  exportScope === 'single'
+                    ? 'border-accent bg-accent/10 shadow-xs ring-1 ring-accent/30'
+                    : 'border-border-subtle bg-card hover:bg-hover'
+                )}
+              >
+                <input
+                  type="radio"
+                  name="exportScopeChoice"
+                  checked={exportScope === 'single'}
+                  onChange={() => setExportScope('single')}
+                  className="mt-1 accent-accent"
+                />
+                <div className="flex-1">
+                  <span className="text-xs font-bold text-text-primary">Particular Page</span>
+                  <p className="text-[11px] text-text-muted mt-0.5">
+                    Export a single specific page from this notebook.
+                  </p>
+                </div>
+              </div>
+
+              {/* Particular Page Selection Details */}
+              {exportScope === 'single' && (
+                <div className="p-3.5 rounded-2xl bg-card border border-border-subtle space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-text-primary">
+                      Select Page Number:
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-text-muted">Page #</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={activeNotebook?.pages?.length || 1}
+                        value={exportSelectedPageNumber}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10)
+                          if (!isNaN(val)) {
+                            setExportSelectedPageNumber(
+                              Math.max(1, Math.min(activeNotebook?.pages?.length || 1, val))
+                            )
+                          }
+                        }}
+                        className="w-14 px-2 py-1 rounded-lg border border-border-subtle bg-base text-xs font-bold text-center text-text-primary focus:outline-none focus:border-accent"
+                      />
+                      <span className="text-xs text-text-muted">of {activeNotebook?.pages?.length || 1}</span>
+                    </div>
+                  </div>
+
+                  {/* Pick by Page Title */}
+                  <div>
+                    <label className="text-[10px] font-semibold text-text-muted block mb-1">
+                      Choose by page name:
+                    </label>
+                    <select
+                      value={exportSelectedPageNumber}
+                      onChange={(e) => setExportSelectedPageNumber(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-base text-xs text-text-primary focus:outline-none focus:border-accent font-medium"
+                    >
+                      {activeNotebook?.pages?.map((p, idx) => (
+                        <option key={p.id} value={idx + 1}>
+                          Page {idx + 1}: {p.title || `Page ${idx + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border-subtle">
+              <button
+                type="button"
+                onClick={() => setShowExportModal(false)}
+                className="px-4 py-2 rounded-xl border border-border-subtle hover:bg-hover text-xs font-bold text-text-secondary transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmExport}
+                className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-light text-white font-bold text-xs shadow-md shadow-accent/20 flex items-center gap-1.5 transition-all active:scale-95"
+              >
+                <Printer className="h-4 w-4" />
+                <span>
+                  Export {exportScope === 'notebook' ? `All (${activeNotebook?.pages?.length || 1} Pages)` : `Page ${exportSelectedPageNumber}`}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
 
-      {/* ── DEDICATED REDESIGNED A4 PRINT DOCUMENT (ONLY VISIBLE DURING PRINT) ── */}
+      {/* ── DEDICATED REDESIGNED PRINT DOCUMENT (ONLY VISIBLE DURING PRINT) ── */}
       <div id="placify-print-document" className="hidden print:block w-full bg-white text-slate-900 font-sans print:p-0">
-        {/* 1. Executive Platform Branding Header */}
-        <div className="pdf-header pb-4 mb-6 border-b-2 border-indigo-600 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm">
-              P
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-xl tracking-tight text-slate-900 uppercase">CampusGrid Notes</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase">
-                  {activeNotebook?.subject || 'STUDY NOTES'}
+        {(exportPagesToPrint.length > 0
+          ? exportPagesToPrint
+          : [
+              {
+                id: activePage?.id,
+                title: activePage?.title,
+                pageNumber: 1,
+                totalCount: 1,
+                htmlToRender: editorRef.current?.innerHTML || activePage?.htmlContent || '',
+              },
+            ]
+        ).map((pageItem, pIdx, arr) => (
+          <div
+            key={pageItem.id || pIdx}
+            className={cn('pdf-page-container', pIdx < arr.length - 1 && 'pdf-page-break')}
+          >
+            {/* 1. Platform Branding Header */}
+            <div className="pdf-header pb-4 mb-6 border-b-2 border-indigo-600 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm">
+                  P
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-xl tracking-tight text-slate-900 uppercase">CampusGrid Notes</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase">
+                      {activeNotebook?.subject || 'STUDY NOTES'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium">Placify • Placement &amp; Academic Intelligence Platform</p>
+                </div>
+              </div>
+              <div className="text-right flex flex-col items-end">
+                <span className="text-sm font-bold text-indigo-600 font-mono tracking-tight">placify.app/notes</span>
+                <span className="text-xs text-slate-400 font-mono mt-0.5">
+                  {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Placify • Placement &amp; Academic Intelligence Platform</p>
+            </div>
+
+            {/* 2. Title & Document Meta Block */}
+            <div className="pdf-title-block mb-6 pb-4 border-b border-slate-200">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded bg-indigo-100/80 text-indigo-900 text-[11px] font-black uppercase tracking-wider">
+                    {activeNotebook?.subject || 'DSA'}
+                  </span>
+                  {activeNotebook?.isCollaborative && (
+                    <span className="px-2.5 py-0.5 rounded bg-emerald-100/80 text-emerald-900 text-[11px] font-black uppercase tracking-wider">
+                      Live Collab Room #{activeNotebook.collabRoomId}
+                    </span>
+                  )}
+                </div>
+                <span className="px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-black">
+                  Page {pageItem.pageNumber} of {pageItem.totalCount}
+                </span>
+              </div>
+
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight mt-1">
+                {activeNotebook?.title || 'Untitled Notebook'}
+              </h1>
+
+              <div className="text-base font-bold text-slate-700 mt-1">
+                <span className="text-slate-500 font-semibold mr-1.5">Chapter / Topic:</span>
+                <span className="text-indigo-950 font-black">{pageItem.title || `Page ${pageItem.pageNumber}`}</span>
+              </div>
+
+              <div className="flex items-center gap-3 text-xs text-slate-500 mt-3 pt-2.5 border-t border-slate-100">
+                <span>Author: {user?.displayName || 'CampusGrid Scholar'}</span>
+                <span>•</span>
+                <span>Page {pageItem.pageNumber} of {pageItem.totalCount}</span>
+                <span>•</span>
+                <span>Placify Document Edition</span>
+              </div>
+            </div>
+
+            {/* 3. Document Content Body */}
+            <div
+              className="pdf-body-content text-slate-800 leading-relaxed min-h-[400px]"
+              dangerouslySetInnerHTML={{
+                __html: pageItem.htmlToRender || '<p>No content written in this page.</p>',
+              }}
+            />
+
+            {/* 4. Document Footer */}
+            <div className="pdf-footer mt-12 pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-600">Placify</span>
+                <span>— The All-in-One Placement &amp; Academic Ecosystem</span>
+              </div>
+              <div className="font-mono text-[11px] text-slate-400">
+                Page {pageItem.pageNumber} of {pageItem.totalCount} • placify.app
+              </div>
             </div>
           </div>
-          <div className="text-right flex flex-col items-end">
-            <span className="text-sm font-bold text-indigo-600 font-mono tracking-tight">placify.app/notes</span>
-            <span className="text-xs text-slate-400 font-mono mt-0.5">
-              {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-            </span>
-          </div>
-        </div>
-
-        {/* 2. Title & Document Meta Block */}
-        <div className="pdf-title-block mb-6 pb-4 border-b border-slate-200">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded bg-indigo-100/80 text-indigo-900 text-[11px] font-black uppercase tracking-wider">
-              {activeNotebook?.subject || 'DSA'}
-            </span>
-            {activeNotebook?.isCollaborative && (
-              <span className="px-2.5 py-0.5 rounded bg-emerald-100/80 text-emerald-900 text-[11px] font-black uppercase tracking-wider">
-                Live Collab Room #{activeNotebook.collabRoomId}
-              </span>
-            )}
-          </div>
-
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight mt-1">
-            {activeNotebook?.title || 'Untitled Notebook'}
-          </h1>
-
-          <div className="text-base font-bold text-slate-700 mt-1">
-            <span className="text-slate-500 font-semibold mr-1.5">Chapter / Topic:</span>
-            <span className="text-indigo-950 font-black">{activePage?.title || 'Page 1'}</span>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs text-slate-500 mt-3 pt-2.5 border-t border-slate-100">
-            <span>Author: {user?.displayName || 'CampusGrid Scholar'}</span>
-            <span>•</span>
-            <span>{stats.words} Words</span>
-            <span>•</span>
-            <span>{stats.readingTime}</span>
-            <span>•</span>
-            <span>A4 Document Edition</span>
-          </div>
-        </div>
-
-        {/* 3. Document Content Body */}
-        <div
-          className="pdf-body-content text-slate-800 leading-relaxed min-h-[400px]"
-          dangerouslySetInnerHTML={{
-            __html: printHtmlContent || editorRef.current?.innerHTML || activePage?.htmlContent || '<p>No content written in this page.</p>'
-          }}
-        />
-
-        {/* 4. Document Footer */}
-        <div className="pdf-footer mt-12 pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-600">Placify</span>
-            <span>— The All-in-One Placement &amp; Academic Ecosystem</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400">
-            placify.app • Verified Study Material
-          </div>
-        </div>
+        ))}
       </div>
     </>
   )

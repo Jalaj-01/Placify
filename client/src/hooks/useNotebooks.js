@@ -459,20 +459,23 @@ export function useNotebooks(user) {
 
   // ── Page Operations ──
 
-  const addPage = async (notebookId, title = 'New Page') => {
+  const addPage = async (notebookId, title = '') => {
     const nb = notebooks.find((n) => n.id === notebookId)
     if (!nb) return
 
+    const nextNumber = (nb.pages?.length || 0) + 1
+    const pageTitle = (!title || title === 'New Page') ? `Page ${nextNumber}` : title.trim()
+
     const newPage = {
       id: `page-${Date.now()}`,
-      title: title.trim() || `Page ${nb.pages.length + 1}`,
+      title: pageTitle,
       htmlContent: '',
       cells: [],
     }
 
     const updatedNb = {
       ...nb,
-      pages: [...nb.pages, newPage],
+      pages: [...(nb.pages || []), newPage],
       updatedAt: new Date().toISOString(),
     }
 
@@ -503,6 +506,18 @@ export function useNotebooks(user) {
 
     const updatedPages = nb.pages.map((p) => (p.id === pageId ? { ...p, title: newTitle } : p))
     const updatedNb = { ...nb, pages: updatedPages, updatedAt: new Date().toISOString() }
+    await persistNotebook(updatedNb)
+  }
+
+  const reorderPages = async (notebookId, reorderedPages) => {
+    const nb = notebooks.find((n) => n.id === notebookId)
+    if (!nb) return
+
+    const updatedNb = {
+      ...nb,
+      pages: reorderedPages,
+      updatedAt: new Date().toISOString(),
+    }
     await persistNotebook(updatedNb)
   }
 
@@ -637,6 +652,7 @@ export function useNotebooks(user) {
     addPage,
     deletePage,
     renamePage,
+    reorderPages,
     updatePageContent,
     joinSharedNotebook,
     sendPeerInvite,
