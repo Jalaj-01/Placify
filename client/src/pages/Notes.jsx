@@ -5,7 +5,8 @@ import {
   Undo, Redo, Check, Copy, Hash, Send, FileText, CheckSquare,
   Quote, Minus, Eraser, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Highlighter, Palette, Download, Printer, StickyNote, Pin, Eye, Sparkles, Share2,
-  PanelLeftClose, PanelLeftOpen, GripVertical, ZoomIn, ZoomOut, Maximize2
+  PanelLeftClose, PanelLeftOpen, GripVertical, ZoomIn, ZoomOut, Maximize2, Minimize2,
+  ChevronUp, ChevronDown, PenTool
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNotebooks } from '@/hooks/useNotebooks'
@@ -156,8 +157,11 @@ export default function Notes() {
     setStats({ words, chars, readingTime })
   }
 
-  // Sidebar Collapse State
+  // Sidebar, Header & Toolbar Collapse States
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isTopHeaderOpen, setIsTopHeaderOpen] = useState(false)
+  const [isToolbarOpen, setIsToolbarOpen] = useState(true)
+  const [isFocusMode, setIsFocusMode] = useState(false)
 
   // Drag and Drop Page Reordering States
   const [draggedPageIndex, setDraggedPageIndex] = useState(null)
@@ -166,6 +170,34 @@ export default function Notes() {
   // Document Editor View Sizing & Zoom
   const [editorZoom, setEditorZoom] = useState(100)
   const [editorWidthMode, setEditorWidthMode] = useState('wide') // 'standard' | 'wide' | 'full'
+
+  const toggleFocusMode = () => {
+    setIsFocusMode((prev) => {
+      const next = !prev
+      if (next) {
+        setIsSidebarOpen(false)
+        setIsTopHeaderOpen(false)
+        setIsToolbarOpen(false)
+      } else {
+        setIsSidebarOpen(true)
+        setIsToolbarOpen(true)
+      }
+      return next
+    })
+  }
+
+  // Exit Zen Focus Mode on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isFocusMode) {
+        setIsFocusMode(false)
+        setIsSidebarOpen(true)
+        setIsToolbarOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isFocusMode])
 
   // PDF Export States (Whole Notebook vs Specific Page)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -436,52 +468,62 @@ export default function Notes() {
   return (
     <>
       <div className="notes-screen-workspace flex flex-col h-full w-full flex-1 bg-base overflow-hidden text-text-primary print:hidden">
-      {/* ── TOP LEVEL NAVIGATION HEADER ── */}
-      <div className="px-5 py-3 border-b border-border-subtle bg-surface/90 flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-accent/20 text-accent flex items-center justify-center shadow-sm">
-            <BookOpen className="h-5 w-5" />
-          </div>
-          <div>
+      {/* ── TOP LEVEL NAVIGATION HEADER (Collapsible for maximum vertical writing room) ── */}
+      {isTopHeaderOpen && !isFocusMode && (
+        <div className="px-4 py-2 border-b border-border-subtle bg-surface/90 flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden transition-all duration-300 animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-xl bg-accent/20 text-accent flex items-center justify-center shadow-sm">
+              <BookOpen className="h-4 w-4" />
+            </div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-text-primary tracking-tight">Notes &amp; Notebook Hub</h1>
-              <span className="px-2 py-0.5 rounded-full bg-semantic-green/15 text-semantic-green text-[10px] font-bold border border-semantic-green/30 flex items-center gap-1">
+              <h1 className="text-xs sm:text-sm font-bold text-text-primary tracking-tight">Notes &amp; Notebook Hub</h1>
+              <span className="px-1.5 py-0.2 rounded-full bg-semantic-green/15 text-semantic-green text-[9px] font-bold border border-semantic-green/30 flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-semantic-green animate-pulse" /> Live Collab
               </span>
             </div>
-            <p className="text-xs text-text-muted">Full-screen rich document editor, study notes &amp; live peer sharing</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* View Switcher Tabs */}
+            <div className="flex items-center gap-1 p-0.5 bg-card rounded-xl border border-border-subtle">
+              <button
+                onClick={() => setActiveMainTab('notebooks')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all',
+                  activeMainTab === 'notebooks'
+                    ? 'bg-accent text-white shadow-xs'
+                    : 'text-text-muted hover:text-text-primary'
+                )}
+              >
+                <BookOpen className="h-3 w-3" />
+                <span>Notebooks</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMainTab('stickies')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all',
+                  activeMainTab === 'stickies'
+                    ? 'bg-amber-400 text-slate-900 shadow-xs'
+                    : 'text-text-muted hover:text-text-primary'
+                )}
+              >
+                <StickyNote className="h-3 w-3" />
+                <span>Sticky Notes</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsTopHeaderOpen(false)}
+              className="p-1.5 rounded-lg border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary text-xs transition-colors"
+              title="Minimize Banner (More vertical space)"
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
-
-        {/* View Switcher Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-card rounded-2xl border border-border-subtle">
-          <button
-            onClick={() => setActiveMainTab('notebooks')}
-            className={cn(
-              'flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all',
-              activeMainTab === 'notebooks'
-                ? 'bg-accent text-white shadow-sm'
-                : 'text-text-muted hover:text-text-primary'
-            )}
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            <span>Notebook Documents</span>
-          </button>
-
-          <button
-            onClick={() => setActiveMainTab('stickies')}
-            className={cn(
-              'flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all',
-              activeMainTab === 'stickies'
-                ? 'bg-amber-400 text-slate-900 shadow-sm'
-                : 'text-text-muted hover:text-text-primary'
-            )}
-          >
-            <StickyNote className="h-3.5 w-3.5" />
-            <span>Sticky Notes Wall</span>
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* ── MAIN WORKSPACE CONTENT ── */}
       {activeMainTab === 'notebooks' ? (
@@ -741,314 +783,414 @@ export default function Notes() {
           {activeNotebook ? (
             <div className="flex-1 flex flex-col h-full bg-base overflow-hidden print:overflow-visible print:bg-white">
             {/* Document Header Controls */}
-            <div className="p-3 border-b border-border-subtle bg-surface/90 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 flex-wrap print:hidden">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                {/* Sidebar Expand / Collapse Toggle Button */}
+            {!isFocusMode && (
+              <div className="px-3 py-1.5 border-b border-border-subtle bg-surface/90 backdrop-blur-md flex items-center justify-between gap-2.5 shrink-0 flex-wrap print:hidden">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {/* Inline Tab Switcher & Banner Reveal when top banner is closed */}
+                  {!isTopHeaderOpen && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsTopHeaderOpen(true)}
+                        className="p-1 rounded-lg border border-border-subtle hover:bg-hover text-text-muted hover:text-accent transition-colors text-xs flex items-center gap-0.5"
+                        title="Show Top Hub Banner"
+                      >
+                        <BookOpen className="h-3.5 w-3.5 text-accent" />
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+
+                      <div className="flex items-center p-0.5 bg-card rounded-lg border border-border-subtle">
+                        <button
+                          type="button"
+                          onClick={() => setActiveMainTab('notebooks')}
+                          className={cn(
+                            'flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold transition-all',
+                            activeMainTab === 'notebooks'
+                              ? 'bg-accent text-white shadow-xs'
+                              : 'text-text-muted hover:text-text-primary'
+                          )}
+                          title="Notebooks Documents"
+                        >
+                          <BookOpen className="h-3 w-3" />
+                          <span className="hidden md:inline">Notebooks</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveMainTab('stickies')}
+                          className={cn(
+                            'flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold transition-all',
+                            activeMainTab === 'stickies'
+                              ? 'bg-amber-400 text-slate-900 shadow-xs'
+                              : 'text-text-muted hover:text-text-primary'
+                          )}
+                          title="Sticky Notes Wall"
+                        >
+                          <StickyNote className="h-3 w-3" />
+                          <span className="hidden md:inline">Stickies</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sidebar Expand / Collapse Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsSidebarOpen((prev) => !prev)}
+                    className="p-1.5 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary transition-all flex items-center gap-1.5 text-xs font-medium shrink-0"
+                    title={isSidebarOpen ? 'Collapse Sidebar (More horizontal space)' : 'Expand Sidebar'}
+                  >
+                    {isSidebarOpen ? (
+                      <PanelLeftClose className="h-4 w-4" />
+                    ) : (
+                      <>
+                        <PanelLeftOpen className="h-4 w-4 text-accent" />
+                        <span className="hidden sm:inline font-bold text-accent">Sidebar</span>
+                      </>
+                    )}
+                  </button>
+
+                  <input
+                    type="text"
+                    value={editingPageTitle}
+                    onChange={(e) => setEditingPageTitle(e.target.value)}
+                    onBlur={() => {
+                      if (editingPageTitle.trim() && activeNotebook && activePage) {
+                        renamePage(activeNotebook.id, activePage.id, editingPageTitle.trim())
+                      }
+                    }}
+                    className="text-sm sm:text-base font-bold text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-[130px] sm:max-w-xs md:max-w-sm px-1"
+                    placeholder="Page Title"
+                    title="Click to rename this page"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Formatting Toolbar Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsToolbarOpen((prev) => !prev)}
+                    className={cn(
+                      'px-2 py-1 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 shadow-xs',
+                      isToolbarOpen
+                        ? 'bg-accent/10 border-accent/30 text-accent hover:bg-accent/20'
+                        : 'bg-card border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary'
+                    )}
+                    title={isToolbarOpen ? 'Collapse Toolbar (More vertical space)' : 'Show Formatting Toolbar'}
+                  >
+                    <PenTool className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Toolbar</span>
+                    {isToolbarOpen ? <ChevronUp className="h-3 w-3 opacity-70" /> : <ChevronDown className="h-3 w-3 opacity-70" />}
+                  </button>
+
+                  {/* Zen Focus Mode Button */}
+                  <button
+                    type="button"
+                    onClick={toggleFocusMode}
+                    className="px-2 py-1 rounded-xl border border-border-subtle bg-card hover:bg-hover text-text-secondary hover:text-accent text-xs font-bold transition-colors flex items-center gap-1 shadow-xs"
+                    title="Zen Focus Mode (Distraction-free edge-to-edge canvas)"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    <span className="hidden sm:inline">Focus</span>
+                  </button>
+
+                  {/* Paper Style Selector */}
+                  <select
+                    value={activeNotebook?.paperStyle || 'ruled'}
+                    onChange={(e) => updateNotebook(activeNotebook.id, { paperStyle: e.target.value })}
+                    className="text-xs py-1 pl-2 pr-6 bg-card border border-border-subtle rounded-xl font-medium"
+                    title="Paper Theme Style"
+                  >
+                    {PAPER_THEMES.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+
+                  {/* Collaborate Live Button */}
+                  <button
+                    onClick={() => setShowCollabModal(true)}
+                    className={cn(
+                      'px-2 sm:px-2.5 py-1 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 shadow-xs',
+                      activeNotebook?.isCollaborative
+                        ? 'bg-semantic-green/15 text-semantic-green border-semantic-green/30 hover:bg-semantic-green/25'
+                        : 'bg-card border-border-subtle hover:bg-hover text-text-secondary'
+                    )}
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-semantic-green opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-semantic-green" />
+                    </span>
+                    <Users className="h-3.5 w-3.5" />
+                    <span className="hidden md:inline">Share &amp; Collab</span>
+                    {activeCollaborators.length > 0 && (
+                      <span className="ml-0.5 px-1 py-0.2 rounded-full bg-semantic-green/20 text-semantic-green text-[10px] font-mono">
+                        {activeCollaborators.length + 1}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Print / Save PDF Export */}
+                  <button
+                    onClick={handleOpenExportModal}
+                    className="px-2 py-1 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 text-xs font-bold shadow-xs active:scale-95"
+                    title="Export PDF"
+                  >
+                    <Printer className="h-3.5 w-3.5 text-accent" />
+                    <span className="hidden sm:inline">Export</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── RICH TEXT FORMATTING TOOLBAR (Collapsible for maximum vertical writing space) ── */}
+            {isToolbarOpen && !isFocusMode && (
+              <div className="px-3 py-1.5 border-b border-border-subtle bg-surface/95 flex items-center gap-1 flex-wrap shrink-0 text-text-secondary shadow-xs print:hidden animate-in fade-in transition-all">
+                {/* Undo / Redo */}
                 <button
                   type="button"
-                  onClick={() => setIsSidebarOpen((prev) => !prev)}
-                  className="p-1.5 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary transition-all flex items-center gap-1.5 text-xs font-medium shrink-0"
-                  title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
+                  onClick={() => execCmd('undo')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                  title="Undo (Ctrl+Z)"
                 >
-                  {isSidebarOpen ? (
-                    <PanelLeftClose className="h-4 w-4" />
-                  ) : (
-                    <>
-                      <PanelLeftOpen className="h-4 w-4 text-accent" />
-                      <span className="hidden sm:inline font-bold text-accent">Sidebar</span>
-                    </>
-                  )}
+                  <Undo className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execCmd('redo')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                  title="Redo (Ctrl+Y)"
+                >
+                  <Redo className="h-3.5 w-3.5" />
                 </button>
 
-                <input
-                  type="text"
-                  value={editingPageTitle}
-                  onChange={(e) => setEditingPageTitle(e.target.value)}
-                  onBlur={() => {
-                    if (editingPageTitle.trim() && activeNotebook && activePage) {
-                      renamePage(activeNotebook.id, activePage.id, editingPageTitle.trim())
-                    }
-                  }}
-                  className="text-base sm:text-lg font-black text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-sm sm:max-w-md px-1"
-                  placeholder="Page Title"
-                  title="Click to rename this page"
-                />
-              </div>
+                <div className="h-4 w-px bg-border-subtle mx-1" />
 
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Paper Style Selector */}
+                {/* Heading Selector */}
                 <select
-                  value={activeNotebook?.paperStyle || 'ruled'}
-                  onChange={(e) => updateNotebook(activeNotebook.id, { paperStyle: e.target.value })}
-                  className="text-xs py-1 pl-2.5 pr-6"
-                  title="Paper Theme Style"
+                  onChange={(e) => {
+                    if (e.target.value === 'p') execCmd('formatBlock', '<p>')
+                    else execCmd('formatBlock', `<${e.target.value}>`)
+                  }}
+                  className="text-xs py-0.5 px-2 bg-card border border-border-subtle rounded-lg font-bold"
+                  defaultValue="p"
+                  title="Heading Style"
                 >
-                  {PAPER_THEMES.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                  <option value="p">Normal Text</option>
+                  <option value="h1">Heading 1 (Title)</option>
+                  <option value="h2">Heading 2 (Section)</option>
+                  <option value="h3">Heading 3 (Subhead)</option>
+                </select>
+
+                <div className="h-4 w-px bg-border-subtle mx-1" />
+
+                {/* Bold, Italic, Underline, Strikethrough */}
+                <button
+                  type="button"
+                  onClick={() => execCmd('bold')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary font-bold text-xs"
+                  title="Bold (Ctrl+B)"
+                >
+                  <Bold className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execCmd('italic')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary text-xs"
+                  title="Italic (Ctrl+I)"
+                >
+                  <Italic className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execCmd('underline')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary text-xs"
+                  title="Underline (Ctrl+U)"
+                >
+                  <Underline className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execCmd('strikeThrough')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary text-xs"
+                  title="Strikethrough"
+                >
+                  <Strikethrough className="h-3.5 w-3.5" />
+                </button>
+
+                <div className="h-4 w-px bg-border-subtle mx-1" />
+
+                {/* Font Color */}
+                <select
+                  onChange={(e) => execCmd('foreColor', e.target.value)}
+                  className="text-xs py-0.5 px-1.5 bg-card border border-border-subtle rounded-lg font-bold"
+                  title="Text Color"
+                >
+                  {TEXT_COLORS.map((c) => (
+                    <option key={c.label} value={c.value}>{c.label}</option>
                   ))}
                 </select>
 
-                {/* Collaborate Live Button */}
-                <button
-                  onClick={() => setShowCollabModal(true)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs',
-                    activeNotebook?.isCollaborative
-                      ? 'bg-semantic-green/15 text-semantic-green border-semantic-green/30 hover:bg-semantic-green/25'
-                      : 'bg-card border-border-subtle hover:bg-hover text-text-secondary'
-                  )}
+                {/* Highlighter Marker */}
+                <select
+                  onChange={(e) => execCmd('hiliteColor', e.target.value)}
+                  className="text-xs py-0.5 px-1.5 bg-card border border-border-subtle rounded-lg font-bold"
+                  title="Highlight Marker"
                 >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-semantic-green opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-semantic-green" />
+                  {HIGHLIGHT_COLORS.map((c) => (
+                    <option key={c.label} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+
+                <div className="h-4 w-px bg-border-subtle mx-1" />
+
+                {/* Text Alignments */}
+                <button
+                  type="button"
+                  onClick={() => execCmd('justifyLeft')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary"
+                  title="Align Left"
+                >
+                  <AlignLeft className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execCmd('justifyCenter')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary"
+                  title="Align Center"
+                >
+                  <AlignCenter className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execCmd('justifyRight')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary"
+                  title="Align Right"
+                >
+                  <AlignRight className="h-3.5 w-3.5" />
+                </button>
+
+                <div className="h-4 w-px bg-border-subtle mx-1" />
+
+                {/* Lists & Task Checklists */}
+                <button
+                  type="button"
+                  onClick={() => execCmd('insertUnorderedList')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary"
+                  title="Bullet List"
+                >
+                  <List className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execCmd('insertOrderedList')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary"
+                  title="Numbered List"
+                >
+                  <ListOrdered className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={insertTaskItem}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-accent font-bold text-xs flex items-center gap-1"
+                  title="Insert Interactive Checklist Item"
+                >
+                  <CheckSquare className="h-3.5 w-3.5 text-accent" />
+                  <span className="hidden xl:inline">Task Item</span>
+                </button>
+
+                <div className="h-4 w-px bg-border-subtle mx-1" />
+
+                {/* Blockquote & Divider */}
+                <button
+                  type="button"
+                  onClick={() => execCmd('formatBlock', '<blockquote>')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary"
+                  title="Blockquote"
+                >
+                  <Quote className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execCmd('insertHorizontalRule')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary"
+                  title="Insert Horizontal Divider Line"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenLinkModal}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                  title="Insert Hyperlink (Ctrl+K)"
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execCmd('removeFormat')}
+                  className="p-1 rounded-lg hover:bg-hover hover:text-semantic-red"
+                  title="Clear Formatting"
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                </button>
+
+                {/* Document Zoom, Canvas Width & Collapse Controls */}
+                <div className="flex items-center gap-1 ml-auto shrink-0 pl-1 border-l border-border-subtle">
+                  <button
+                    type="button"
+                    onClick={() => setEditorZoom((z) => Math.max(70, z - 10))}
+                    className="p-1 rounded-lg hover:bg-hover hover:text-text-primary text-text-muted transition-colors text-xs"
+                    title="Zoom Out (Ctrl -)"
+                  >
+                    <ZoomOut className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="text-[11px] font-mono font-bold text-text-muted w-8 text-center select-none">
+                    {editorZoom}%
                   </span>
-                  <Users className="h-3.5 w-3.5" />
-                  <span>Share &amp; Collab</span>
-                  {activeCollaborators.length > 0 && (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-semantic-green/20 text-semantic-green text-[10px] font-mono">
-                      {activeCollaborators.length + 1}
-                    </span>
-                  )}
-                </button>
-
-                {/* Print / Save PDF Export */}
-                <button
-                  onClick={handleOpenExportModal}
-                  className="px-2.5 py-1.5 rounded-xl border border-border-subtle hover:bg-hover text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5 text-xs font-bold shadow-xs active:scale-95"
-                  title="Export PDF"
-                >
-                  <Printer className="h-4 w-4 text-accent" />
-                  <span>Export</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditorZoom((z) => Math.min(130, z + 10))}
+                    className="p-1 rounded-lg hover:bg-hover hover:text-text-primary text-text-muted transition-colors text-xs"
+                    title="Zoom In (Ctrl +)"
+                  >
+                    <ZoomIn className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditorWidthMode((m) => (m === 'wide' ? 'full' : m === 'full' ? 'standard' : 'wide'))}
+                    className={cn(
+                      'p-1 rounded-lg hover:bg-hover transition-colors text-xs flex items-center gap-1',
+                      editorWidthMode !== 'standard' ? 'text-accent font-bold bg-accent/10' : 'text-text-muted hover:text-text-primary'
+                    )}
+                    title={`Canvas Width: ${editorWidthMode.toUpperCase()} (Click to toggle Wide / Full / Standard)`}
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    <span className="hidden xl:inline text-[10px] uppercase font-semibold">{editorWidthMode}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsToolbarOpen(false)}
+                    className="p-1 rounded-lg hover:bg-hover text-text-muted hover:text-text-primary transition-colors text-xs ml-0.5"
+                    title="Collapse Formatting Toolbar (Alt+T)"
+                  >
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* ── RICH TEXT FORMATTING TOOLBAR (Google Docs / Word Style) ── */}
-            <div className="px-4 py-2 border-b border-border-subtle bg-surface/95 flex items-center gap-1 flex-wrap shrink-0 text-text-secondary shadow-xs print:hidden">
-              {/* Undo / Redo */}
+            {/* Zen Focus Mode Floating Exit Pill */}
+            {isFocusMode && (
               <button
                 type="button"
-                onClick={() => execCmd('undo')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
-                title="Undo (Ctrl+Z)"
+                onClick={toggleFocusMode}
+                className="fixed top-4 right-6 z-50 px-3.5 py-1.5 rounded-full bg-slate-900/90 dark:bg-white/90 text-white dark:text-slate-900 text-xs font-bold shadow-2xl backdrop-blur-md border border-white/20 dark:border-black/20 flex items-center gap-2 hover:scale-105 transition-all animate-in fade-in cursor-pointer"
+                title="Exit Focus Mode (Esc)"
               >
-                <Undo className="h-3.5 w-3.5" />
+                <Minimize2 className="h-3.5 w-3.5 text-amber-400" />
+                <span>Exit Zen Mode</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/20 dark:bg-black/10 font-mono">Esc</span>
               </button>
-              <button
-                type="button"
-                onClick={() => execCmd('redo')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
-                title="Redo (Ctrl+Y)"
-              >
-                <Redo className="h-3.5 w-3.5" />
-              </button>
-
-              <div className="h-4 w-px bg-border-subtle mx-1" />
-
-              {/* Heading Selector */}
-              <select
-                onChange={(e) => {
-                  if (e.target.value === 'p') execCmd('formatBlock', '<p>')
-                  else execCmd('formatBlock', `<${e.target.value}>`)
-                }}
-                className="text-xs py-1 px-2.5 bg-card border border-border-subtle rounded-lg font-bold"
-                defaultValue="p"
-                title="Heading Style"
-              >
-                <option value="p">Normal Text</option>
-                <option value="h1">Heading 1 (Title)</option>
-                <option value="h2">Heading 2 (Section)</option>
-                <option value="h3">Heading 3 (Subhead)</option>
-              </select>
-
-              <div className="h-4 w-px bg-border-subtle mx-1" />
-
-              {/* Bold, Italic, Underline, Strikethrough */}
-              <button
-                type="button"
-                onClick={() => execCmd('bold')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary font-bold text-xs"
-                title="Bold (Ctrl+B)"
-              >
-                <Bold className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => execCmd('italic')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary text-xs"
-                title="Italic (Ctrl+I)"
-              >
-                <Italic className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => execCmd('underline')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary text-xs"
-                title="Underline (Ctrl+U)"
-              >
-                <Underline className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => execCmd('strikeThrough')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary text-xs"
-                title="Strikethrough"
-              >
-                <Strikethrough className="h-3.5 w-3.5" />
-              </button>
-
-              <div className="h-4 w-px bg-border-subtle mx-1" />
-
-              {/* Font Color */}
-              <select
-                onChange={(e) => execCmd('foreColor', e.target.value)}
-                className="text-xs py-1 px-2 bg-card border border-border-subtle rounded-lg font-bold"
-                title="Text Color"
-              >
-                {TEXT_COLORS.map((c) => (
-                  <option key={c.label} value={c.value}>{c.label}</option>
-                ))}
-              </select>
-
-              {/* Highlighter Marker */}
-              <select
-                onChange={(e) => execCmd('hiliteColor', e.target.value)}
-                className="text-xs py-1 px-2 bg-card border border-border-subtle rounded-lg font-bold"
-                title="Highlight Marker"
-              >
-                {HIGHLIGHT_COLORS.map((c) => (
-                  <option key={c.label} value={c.value}>{c.label}</option>
-                ))}
-              </select>
-
-              <div className="h-4 w-px bg-border-subtle mx-1" />
-
-              {/* Text Alignments */}
-              <button
-                type="button"
-                onClick={() => execCmd('justifyLeft')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary"
-                title="Align Left"
-              >
-                <AlignLeft className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => execCmd('justifyCenter')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary"
-                title="Align Center"
-              >
-                <AlignCenter className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => execCmd('justifyRight')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary"
-                title="Align Right"
-              >
-                <AlignRight className="h-3.5 w-3.5" />
-              </button>
-
-              <div className="h-4 w-px bg-border-subtle mx-1" />
-
-              {/* Lists & Task Checklists */}
-              <button
-                type="button"
-                onClick={() => execCmd('insertUnorderedList')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary"
-                title="Bullet List"
-              >
-                <List className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => execCmd('insertOrderedList')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary"
-                title="Numbered List"
-              >
-                <ListOrdered className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={insertTaskItem}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-accent font-bold text-xs flex items-center gap-1"
-                title="Insert Interactive Checklist Item"
-              >
-                <CheckSquare className="h-3.5 w-3.5 text-accent" />
-                <span className="hidden xl:inline">Task Item</span>
-              </button>
-
-              <div className="h-4 w-px bg-border-subtle mx-1" />
-
-              {/* Blockquote & Divider */}
-              <button
-                type="button"
-                onClick={() => execCmd('formatBlock', '<blockquote>')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary"
-                title="Blockquote"
-              >
-                <Quote className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => execCmd('insertHorizontalRule')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary"
-                title="Insert Horizontal Divider Line"
-              >
-                <Minus className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenLinkModal}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
-                title="Insert Hyperlink (Ctrl+K)"
-              >
-                <Link2 className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => execCmd('removeFormat')}
-                className="p-1.5 rounded-lg hover:bg-hover hover:text-semantic-red"
-                title="Clear Formatting"
-              >
-                <Eraser className="h-3.5 w-3.5" />
-              </button>
-
-              {/* Document Zoom and Canvas Width Controls */}
-              <div className="flex items-center gap-1 ml-auto shrink-0 pl-1 border-l border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setEditorZoom((z) => Math.max(70, z - 10))}
-                  className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary text-text-muted transition-colors text-xs"
-                  title="Zoom Out (Ctrl -)"
-                >
-                  <ZoomOut className="h-3.5 w-3.5" />
-                </button>
-                <span className="text-[11px] font-mono font-bold text-text-muted w-9 text-center select-none">
-                  {editorZoom}%
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setEditorZoom((z) => Math.min(130, z + 10))}
-                  className="p-1.5 rounded-lg hover:bg-hover hover:text-text-primary text-text-muted transition-colors text-xs"
-                  title="Zoom In (Ctrl +)"
-                >
-                  <ZoomIn className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditorWidthMode((m) => (m === 'wide' ? 'full' : m === 'full' ? 'standard' : 'wide'))}
-                  className={cn(
-                    'p-1.5 rounded-lg hover:bg-hover transition-colors text-xs flex items-center gap-1',
-                    editorWidthMode !== 'standard' ? 'text-accent font-bold bg-accent/10' : 'text-text-muted hover:text-text-primary'
-                  )}
-                  title={`Canvas Width: ${editorWidthMode.toUpperCase()} (Click to toggle Wide / Full / Standard)`}
-                >
-                  <Maximize2 className="h-3.5 w-3.5" />
-                  <span className="hidden xl:inline text-[10px] uppercase font-semibold">{editorWidthMode}</span>
-                </button>
-              </div>
-            </div>
+            )}
 
             {/* Peer Typing Status Banner */}
             {typingStatus && (
@@ -1064,10 +1206,10 @@ export default function Notes() {
                 className={cn(
                   'mx-auto min-h-full flex flex-col transition-all',
                   editorWidthMode === 'wide'
-                    ? 'max-w-6xl w-full px-6 sm:px-12 lg:px-16 py-8'
+                    ? 'max-w-6xl w-full px-4 sm:px-8 lg:px-12 py-5'
                     : editorWidthMode === 'full'
-                    ? 'w-full max-w-none px-6 sm:px-12 lg:px-20 py-8'
-                    : 'max-w-4xl w-full px-4 sm:px-8 py-8'
+                    ? 'w-full max-w-none px-4 sm:px-8 lg:px-12 py-4'
+                    : 'max-w-4xl w-full px-4 sm:px-6 py-5'
                 )}
                 style={{ zoom: `${editorZoom}%` }}
               >
@@ -1100,18 +1242,20 @@ export default function Notes() {
             </div>
 
             {/* ── BOTTOM STATS FOOTER ── */}
-            <div className="px-6 py-2.5 border-t border-border-subtle bg-surface/90 text-xs text-text-muted flex items-center justify-between shrink-0 font-medium print:hidden">
-              <div className="flex items-center gap-4">
-                <span>{stats.words} words</span>
-                <span>{stats.chars} characters</span>
-                <span>{stats.readingTime}</span>
+            {!isFocusMode && (
+              <div className="px-5 py-1.5 border-t border-border-subtle bg-surface/90 text-[11px] text-text-muted flex items-center justify-between shrink-0 font-medium print:hidden">
+                <div className="flex items-center gap-4">
+                  <span>{stats.words} words</span>
+                  <span>{stats.chars} characters</span>
+                  <span>{stats.readingTime}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-semantic-green font-medium">
+                    <Check className="h-3 w-3" /> All edits saved live
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 text-semantic-green">
-                  <Check className="h-3.5 w-3.5" /> All edits saved live
-                </span>
-              </div>
-            </div>
+            )}
           </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-base">
@@ -1146,6 +1290,50 @@ export default function Notes() {
         <div className="flex-1 flex flex-col overflow-hidden bg-base/50 p-4 sm:p-6 space-y-4">
           <div className="flex items-center justify-between gap-3 shrink-0 flex-wrap">
             <div className="flex items-center gap-3">
+              {!isTopHeaderOpen && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsTopHeaderOpen(true)}
+                    className="p-1 rounded-lg border border-border-subtle hover:bg-hover text-text-muted hover:text-accent transition-colors text-xs flex items-center gap-0.5"
+                    title="Show Top Hub Banner"
+                  >
+                    <BookOpen className="h-3.5 w-3.5 text-accent" />
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+
+                  <div className="flex items-center p-0.5 bg-card rounded-lg border border-border-subtle">
+                    <button
+                      type="button"
+                      onClick={() => setActiveMainTab('notebooks')}
+                      className={cn(
+                        'flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all',
+                        activeMainTab === 'notebooks'
+                          ? 'bg-accent text-white shadow-xs'
+                          : 'text-text-muted hover:text-text-primary'
+                      )}
+                      title="Notebooks Documents"
+                    >
+                      <BookOpen className="h-3 w-3" />
+                      <span>Notebooks</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveMainTab('stickies')}
+                      className={cn(
+                        'flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all',
+                        activeMainTab === 'stickies'
+                          ? 'bg-amber-400 text-slate-900 shadow-xs'
+                          : 'text-text-muted hover:text-text-primary'
+                      )}
+                      title="Sticky Notes Wall"
+                    >
+                      <StickyNote className="h-3 w-3" />
+                      <span>Stickies</span>
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="h-9 w-9 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
                 <StickyNote className="h-5 w-5" />
               </div>
