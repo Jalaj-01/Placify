@@ -6,7 +6,7 @@ import {
   Quote, Minus, Eraser, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Highlighter, Palette, Download, Printer, StickyNote, Pin, Eye, Sparkles, Share2,
   PanelLeftClose, PanelLeftOpen, GripVertical, ZoomIn, ZoomOut, Maximize2, Minimize2,
-  ChevronUp, ChevronDown, PenTool
+  ChevronUp, ChevronDown, PenTool, Pencil
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNotebooks } from '@/hooks/useNotebooks'
@@ -40,13 +40,75 @@ const HIGHLIGHT_COLORS = [
 ]
 
 const COLOR_OPTIONS = [
-  { id: 'yellow', name: 'Yellow', borderClass: 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200', dotClass: 'bg-amber-400' },
-  { id: 'pink', name: 'Pink', borderClass: 'border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-200', dotClass: 'bg-rose-400' },
-  { id: 'blue', name: 'Sky Blue', borderClass: 'border-sky-500/40 bg-sky-500/10 text-sky-900 dark:text-sky-200', dotClass: 'bg-sky-400' },
-  { id: 'green', name: 'Mint Green', borderClass: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200', dotClass: 'bg-emerald-400' },
-  { id: 'purple', name: 'Purple', borderClass: 'border-purple-500/40 bg-purple-500/10 text-purple-900 dark:text-purple-200', dotClass: 'bg-purple-400' },
-  { id: 'orange', name: 'Orange', borderClass: 'border-orange-500/40 bg-orange-500/10 text-orange-900 dark:text-orange-200', dotClass: 'bg-orange-400' },
+  {
+    id: 'yellow',
+    name: 'Sunny Yellow',
+    cardClass: 'bg-gradient-to-b from-[#fefce8] to-[#fef08a] dark:from-amber-950/70 dark:to-amber-900/50 border-amber-300 dark:border-amber-600/60 text-amber-950 dark:text-amber-100 shadow-[0_4px_16px_rgba(245,158,11,0.14)]',
+    borderClass: 'border-amber-300 bg-amber-50 text-amber-950 dark:text-amber-100',
+    dotClass: 'bg-amber-400',
+    tapeClass: 'bg-amber-300/80 dark:bg-amber-700/50 border-amber-400/60',
+    pinColor: 'text-amber-600 dark:text-amber-400',
+  },
+  {
+    id: 'pink',
+    name: 'Blush Pink',
+    cardClass: 'bg-gradient-to-b from-[#fff1f2] to-[#fecdd3] dark:from-rose-950/70 dark:to-rose-900/50 border-rose-300 dark:border-rose-600/60 text-rose-950 dark:text-rose-100 shadow-[0_4px_16px_rgba(244,63,94,0.14)]',
+    borderClass: 'border-rose-300 bg-rose-50 text-rose-950 dark:text-rose-100',
+    dotClass: 'bg-rose-400',
+    tapeClass: 'bg-rose-300/80 dark:bg-rose-700/50 border-rose-400/60',
+    pinColor: 'text-rose-600 dark:text-rose-400',
+  },
+  {
+    id: 'blue',
+    name: 'Sky Blue',
+    cardClass: 'bg-gradient-to-b from-[#f0f9ff] to-[#bae6fd] dark:from-sky-950/70 dark:to-sky-900/50 border-sky-300 dark:border-sky-600/60 text-sky-950 dark:text-sky-100 shadow-[0_4px_16px_rgba(14,165,233,0.14)]',
+    borderClass: 'border-sky-300 bg-sky-50 text-sky-950 dark:text-sky-100',
+    dotClass: 'bg-sky-400',
+    tapeClass: 'bg-sky-300/80 dark:bg-sky-700/50 border-sky-400/60',
+    pinColor: 'text-sky-600 dark:text-sky-400',
+  },
+  {
+    id: 'green',
+    name: 'Mint Green',
+    cardClass: 'bg-gradient-to-b from-[#f0fdf4] to-[#bbf7d0] dark:from-emerald-950/70 dark:to-emerald-900/50 border-emerald-300 dark:border-emerald-600/60 text-emerald-950 dark:text-emerald-100 shadow-[0_4px_16px_rgba(16,185,129,0.14)]',
+    borderClass: 'border-emerald-300 bg-emerald-50 text-emerald-950 dark:text-emerald-100',
+    dotClass: 'bg-emerald-400',
+    tapeClass: 'bg-emerald-300/80 dark:bg-emerald-700/50 border-emerald-400/60',
+    pinColor: 'text-emerald-600 dark:text-emerald-400',
+  },
+  {
+    id: 'purple',
+    name: 'Lavender',
+    cardClass: 'bg-gradient-to-b from-[#faf5ff] to-[#e9d5ff] dark:from-purple-950/70 dark:to-purple-900/50 border-purple-300 dark:border-purple-600/60 text-purple-950 dark:text-purple-100 shadow-[0_4px_16px_rgba(168,85,247,0.14)]',
+    borderClass: 'border-purple-300 bg-purple-50 text-purple-950 dark:text-purple-100',
+    dotClass: 'bg-purple-400',
+    tapeClass: 'bg-purple-300/80 dark:bg-purple-700/50 border-purple-400/60',
+    pinColor: 'text-purple-600 dark:text-purple-400',
+  },
+  {
+    id: 'orange',
+    name: 'Tangerine',
+    cardClass: 'bg-gradient-to-b from-[#fff7ed] to-[#fed7aa] dark:from-orange-950/70 dark:to-orange-900/50 border-orange-300 dark:border-orange-600/60 text-orange-950 dark:text-orange-100 shadow-[0_4px_16px_rgba(249,115,22,0.14)]',
+    borderClass: 'border-orange-300 bg-orange-50 text-orange-950 dark:text-orange-100',
+    dotClass: 'bg-orange-400',
+    tapeClass: 'bg-orange-300/80 dark:bg-orange-700/50 border-orange-400/60',
+    pinColor: 'text-orange-600 dark:text-orange-400',
+  },
 ]
+
+const formatDateDisplay = (dateVal) => {
+  if (!dateVal) return 'Just now'
+  let d
+  if (dateVal && typeof dateVal.toDate === 'function') {
+    d = dateVal.toDate()
+  } else if (dateVal && dateVal.seconds) {
+    d = new Date(dateVal.seconds * 1000)
+  } else {
+    d = new Date(dateVal)
+  }
+  if (!d || isNaN(d.getTime())) return 'Recently'
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
 
 export default function Notes() {
   const { user } = useAuth()
@@ -126,6 +188,35 @@ export default function Notes() {
   const [newStickyBody, setNewStickyBody] = useState('')
   const [newStickyColor, setNewStickyColor] = useState('yellow')
   const [isCreatingSticky, setIsCreatingSticky] = useState(false)
+
+  // Sticky Notes Edit Modal State
+  const [editingSticky, setEditingSticky] = useState(null)
+  const [editStickyTitle, setEditStickyTitle] = useState('')
+  const [editStickyBody, setEditStickyBody] = useState('')
+  const [editStickyColor, setEditStickyColor] = useState('yellow')
+  const [editStickyPinned, setEditStickyPinned] = useState(false)
+
+  const handleOpenEditSticky = (note) => {
+    setEditingSticky(note)
+    setEditStickyTitle(note.title || '')
+    setEditStickyBody(note.content || '')
+    setEditStickyColor(note.color || 'yellow')
+    setEditStickyPinned(!!note.isPinned)
+  }
+
+  const handleSaveEditSticky = async (e) => {
+    if (e) e.preventDefault()
+    if (!editingSticky) return
+
+    await updateNote(editingSticky.id, {
+      title: editStickyTitle.trim() || 'Untitled Note',
+      content: editStickyBody.trim(),
+      color: editStickyColor,
+      isPinned: editStickyPinned,
+    })
+
+    setEditingSticky(null)
+  }
 
   // Statistics
   const [stats, setStats] = useState({ words: 0, chars: 0, readingTime: '1 min' })
@@ -1367,13 +1458,32 @@ export default function Notes() {
 
           {/* Quick Create Sticky Form */}
           {isCreatingSticky && (
-            <form onSubmit={handleCreateSticky} className="p-4 rounded-2xl bg-card border border-amber-400/50 shadow-lg space-y-3 max-w-lg animate-in fade-in">
+            <form
+              onSubmit={handleCreateSticky}
+              className={cn(
+                'p-5 rounded-3xl border shadow-xl space-y-3.5 max-w-lg animate-in fade-in zoom-in-95 transition-all',
+                COLOR_OPTIONS.find((c) => c.id === newStickyColor)?.cardClass || 'bg-card border-amber-400/50'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider opacity-75 flex items-center gap-1.5">
+                  <StickyNote className="h-3.5 w-3.5" /> New Sticky Note
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingSticky(false)}
+                  className="p-1 rounded-lg opacity-70 hover:opacity-100"
+                >
+                  ✕
+                </button>
+              </div>
+
               <input
                 type="text"
                 placeholder="Sticky note title..."
                 value={newStickyTitle}
                 onChange={(e) => setNewStickyTitle(e.target.value)}
-                className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:outline-none focus:border-amber-400"
+                className="w-full bg-white/70 dark:bg-black/30 border border-black/15 dark:border-white/15 rounded-xl px-3.5 py-2 text-xs font-bold text-inherit placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent"
                 autoFocus
               />
               <textarea
@@ -1381,22 +1491,27 @@ export default function Notes() {
                 placeholder="Write your note body content..."
                 value={newStickyBody}
                 onChange={(e) => setNewStickyBody(e.target.value)}
-                className="w-full bg-base border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-amber-400 resize-none"
+                className="w-full bg-white/70 dark:bg-black/30 border border-black/15 dark:border-white/15 rounded-xl px-3.5 py-2 text-xs text-inherit placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent resize-none font-medium leading-relaxed"
               />
 
               <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   {COLOR_OPTIONS.map((c) => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => setNewStickyColor(c.id)}
                       className={cn(
-                        'h-6 w-6 rounded-full transition-transform',
+                        'h-6 w-6 rounded-full transition-transform border flex items-center justify-center',
                         c.dotClass,
-                        newStickyColor === c.id ? 'scale-125 ring-2 ring-accent' : 'opacity-70 hover:opacity-100'
+                        newStickyColor === c.id
+                          ? 'scale-125 border-slate-900 dark:border-white shadow-sm ring-2 ring-accent'
+                          : 'border-transparent opacity-70 hover:opacity-100'
                       )}
-                    />
+                      title={c.name}
+                    >
+                      {newStickyColor === c.id && <Check className="h-3 w-3 text-slate-900" />}
+                    </button>
                   ))}
                 </div>
 
@@ -1404,13 +1519,13 @@ export default function Notes() {
                   <button
                     type="button"
                     onClick={() => setIsCreatingSticky(false)}
-                    className="px-2.5 py-1 rounded-lg text-xs text-text-muted hover:text-text-primary"
+                    className="px-3 py-1.5 rounded-xl text-xs opacity-75 hover:opacity-100 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-3.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs"
+                    className="px-4 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs shadow-md hover:scale-105 active:scale-95 transition-all"
                   >
                     Save Note
                   </button>
@@ -1420,7 +1535,7 @@ export default function Notes() {
           )}
 
           {/* Sticky Notes Cards Grid */}
-          <div className="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-1 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 p-2 items-start auto-rows-max scrollbar-thin">
             {notes
               .filter((n) => {
                 const q = stickySearch.toLowerCase()
@@ -1429,52 +1544,268 @@ export default function Notes() {
                   (n.content && n.content.toLowerCase().includes(q))
                 )
               })
-              .map((note) => {
+              .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
+              .map((note, idx) => {
                 const theme = COLOR_OPTIONS.find((c) => c.id === note.color) || COLOR_OPTIONS[0]
                 return (
                   <div
                     key={note.id}
+                    onClick={() => handleOpenEditSticky(note)}
                     className={cn(
-                      'p-4 rounded-3xl border transition-all duration-200 relative group flex flex-col justify-between shadow-sm hover:shadow-lg',
-                      theme.borderClass
+                      'p-4 sm:p-5 rounded-2xl border transition-all duration-200 relative group flex flex-col justify-between cursor-pointer select-none',
+                      'min-h-[190px] max-h-[360px] hover:-translate-y-1.5 hover:shadow-xl',
+                      idx % 3 === 0 ? 'hover:rotate-0 -rotate-0.5' : idx % 3 === 1 ? 'hover:rotate-0 rotate-0.5' : '',
+                      theme.cardClass || theme.borderClass
                     )}
+                    title="Click to edit sticky note"
                   >
+                    {/* Top Washi Tape Sticker */}
+                    <div
+                      className={cn(
+                        'mx-auto -mt-6 sm:-mt-7 mb-2 h-3.5 w-16 rounded-xs border shadow-2xs backdrop-blur-xs',
+                        theme.tapeClass
+                      )}
+                    />
+
                     <div>
-                      <div className="flex items-start justify-between gap-1 pb-1">
-                        <h4 className="font-bold text-xs tracking-tight text-text-primary truncate flex-1">
-                          {note.title || 'Untitled'}
+                      {/* Card Header: Title + Action Buttons */}
+                      <div className="flex items-start justify-between gap-1.5 pb-1">
+                        <h4 className="font-bold text-sm tracking-tight truncate flex-1 leading-snug">
+                          {note.title || 'Untitled Note'}
                         </h4>
-                        <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100">
+                        <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity shrink-0">
+                          {/* Edit Button */}
                           <button
-                            onClick={() => updateNote(note.id, { isPinned: !note.isPinned })}
-                            className={cn('p-1 rounded', note.isPinned ? 'text-amber-500' : 'text-text-muted')}
-                            title={note.isPinned ? 'Unpin' : 'Pin'}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleOpenEditSticky(note)
+                            }}
+                            className="p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                            title="Edit Sticky Note (or click note)"
                           >
-                            <Pin className="h-3 w-3" />
+                            <Pencil className="h-3.5 w-3.5" />
                           </button>
+
+                          {/* Pin Button */}
                           <button
-                            onClick={() => deleteNote(note.id)}
-                            className="p-1 rounded text-text-muted hover:text-semantic-red"
-                            title="Delete"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              updateNote(note.id, { isPinned: !note.isPinned })
+                            }}
+                            className={cn(
+                              'p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors',
+                              note.isPinned ? 'text-amber-600 dark:text-amber-400 font-bold' : 'opacity-70'
+                            )}
+                            title={note.isPinned ? 'Unpin Note' : 'Pin Note'}
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Pin className={cn('h-3.5 w-3.5', note.isPinned && 'fill-current rotate-12')} />
+                          </button>
+
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteNote(note.id)
+                            }}
+                            className="p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-semantic-red transition-colors opacity-75 hover:opacity-100"
+                            title="Delete Note"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </div>
 
+                      {/* Card Content Body */}
                       <div
-                        className="text-xs text-text-secondary line-clamp-5 leading-relaxed mt-1.5"
+                        className="text-xs leading-relaxed my-2.5 font-normal break-words whitespace-pre-wrap line-clamp-6 opacity-90"
                         dangerouslySetInnerHTML={{ __html: note.content || '' }}
                       />
                     </div>
 
-                    <div className="pt-3 mt-3 border-t border-border-subtle/40 text-[10px] text-text-muted flex items-center justify-between">
-                      <span>{note.createdAt ? new Date(note.createdAt).toLocaleDateString() : 'Just now'}</span>
-                      {note.isPinned && <span className="font-bold text-amber-500">Pinned</span>}
+                    {/* Card Bottom Meta Footer */}
+                    <div className="pt-2.5 mt-2 border-t border-black/10 dark:border-white/10 text-[10px] opacity-75 flex items-center justify-between">
+                      <span>{formatDateDisplay(note.createdAt)}</span>
+                      <div className="flex items-center gap-1.5">
+                        {note.isPinned && (
+                          <span className="font-bold flex items-center gap-0.5 text-amber-700 dark:text-amber-300">
+                            <Pin className="h-2.5 w-2.5 fill-current" /> Pinned
+                          </span>
+                        )}
+                        <span className="opacity-0 group-hover:opacity-100 transition-opacity font-semibold flex items-center gap-0.5 text-accent">
+                          <Pencil className="h-2.5 w-2.5" /> Edit
+                        </span>
+                      </div>
                     </div>
+
+                    {/* Folded corner dog-ear decoration */}
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-gradient-to-tl from-black/15 dark:from-white/10 to-transparent rounded-tl-xs pointer-events-none" />
                   </div>
                 )
               })}
+
+            {/* Empty State when no notes match search or exist */}
+            {notes.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center p-12 text-center">
+                <div className="h-16 w-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mb-3 shadow-md">
+                  <StickyNote className="h-8 w-8" />
+                </div>
+                <h3 className="text-base font-bold text-text-primary mb-1">Your Sticky Wall is Empty</h3>
+                <p className="text-xs text-text-muted max-w-sm mb-4">
+                  Capture quick thoughts, interview questions, reminders, and study memos on colorful sticky notes.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingSticky(true)}
+                  className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create Your First Sticky Note</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: EDIT STICKY NOTE ── */}
+      {editingSticky && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setEditingSticky(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'border rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 animate-in zoom-in-95 transition-all text-text-primary',
+              COLOR_OPTIONS.find((c) => c.id === editStickyColor)?.cardClass || 'bg-card'
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-xl bg-black/10 dark:bg-white/10 flex items-center justify-center">
+                  <StickyNote className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Edit Sticky Note</h3>
+                  <span className="text-[11px] opacity-70">
+                    Created {formatDateDisplay(editingSticky.createdAt)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setEditStickyPinned((p) => !p)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-xl border transition-all text-xs flex items-center gap-1 font-bold',
+                    editStickyPinned
+                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300'
+                      : 'border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 opacity-70'
+                  )}
+                  title={editStickyPinned ? 'Unpin note' : 'Pin note to top'}
+                >
+                  <Pin className={cn('h-3.5 w-3.5', editStickyPinned && 'fill-current rotate-12')} />
+                  <span>{editStickyPinned ? 'Pinned' : 'Pin'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingSticky(null)}
+                  className="p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 opacity-70 hover:opacity-100 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveEditSticky} className="space-y-3.5">
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider block mb-1 opacity-75">
+                  Note Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="Title (optional)..."
+                  value={editStickyTitle}
+                  onChange={(e) => setEditStickyTitle(e.target.value)}
+                  className="w-full bg-white/70 dark:bg-black/30 border border-black/15 dark:border-white/15 rounded-xl px-3.5 py-2.5 text-sm font-bold placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider block mb-1 opacity-75">
+                  Content
+                </label>
+                <textarea
+                  rows={6}
+                  placeholder="Type your note content..."
+                  value={editStickyBody}
+                  onChange={(e) => setEditStickyBody(e.target.value)}
+                  className="w-full bg-white/70 dark:bg-black/30 border border-black/15 dark:border-white/15 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent resize-none font-medium"
+                />
+              </div>
+
+              {/* Color Palette Selector */}
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5 opacity-75">
+                  Note Color
+                </label>
+                <div className="flex items-center gap-2">
+                  {COLOR_OPTIONS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setEditStickyColor(c.id)}
+                      className={cn(
+                        'h-7 w-7 rounded-full transition-all border-2 flex items-center justify-center',
+                        c.dotClass,
+                        editStickyColor === c.id
+                          ? 'scale-125 border-slate-900 dark:border-white shadow-md'
+                          : 'border-transparent opacity-75 hover:opacity-100 hover:scale-110'
+                      )}
+                      title={c.name}
+                    >
+                      {editStickyColor === c.id && <Check className="h-3.5 w-3.5 text-slate-900" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-black/10 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteNote(editingSticky.id)
+                    setEditingSticky(null)
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-semantic-red hover:bg-semantic-red/10 transition-colors flex items-center gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Delete Note</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingSticky(null)}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold opacity-75 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Save Changes</span>
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}
