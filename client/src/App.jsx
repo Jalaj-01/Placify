@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ToastProvider } from '@/components/ui/toast'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
@@ -44,6 +44,7 @@ import { useApplications } from '@/hooks/useApplications'
 import { requestNotificationPermission, runNotificationScheduler } from '@/utils/notifications'
 
 function AppContent() {
+  const navigate = useNavigate()
   const { user, profile, signOut, loading: authLoading } = useAuth()
   const setOffline = useAppStore((s) => s.setOffline)
   const theme = useAppStore((s) => s.theme)
@@ -86,32 +87,16 @@ function AppContent() {
     }
   }, [user, streakData, applications])
 
-  // Capture pending room invitation link ONLY for unauthenticated users
+  // Safely redirect to pending notebook room when authenticated (without full-page reloads)
   useEffect(() => {
-    if (!user) {
-      const params = new URLSearchParams(window.location.search)
-      const room = params.get('room') || params.get('join')
-      if (room) {
-        localStorage.setItem('placify_pending_notebook_room', room)
+    const pendingRoom = localStorage.getItem('placify_pending_notebook_room')
+    if (pendingRoom && user) {
+      localStorage.removeItem('placify_pending_notebook_room')
+      if (!window.location.pathname.startsWith('/notes')) {
+        navigate(`/notes?room=${encodeURIComponent(pendingRoom)}`, { replace: true })
       }
     }
-  }, [user])
-
-  // Auto-redirect to shared notebook once authenticated if pending room invite exists
-  useEffect(() => {
-    if (user) {
-      const pendingRoom = localStorage.getItem('placify_pending_notebook_room')
-      if (pendingRoom) {
-        localStorage.removeItem('placify_pending_notebook_room')
-        const currentPath = window.location.pathname
-        const currentSearch = window.location.search
-        // Only redirect if NOT already on /notes with that room param
-        if (currentPath !== '/notes' || !currentSearch.includes(pendingRoom)) {
-          window.location.replace(`/notes?room=${encodeURIComponent(pendingRoom)}`)
-        }
-      }
-    }
-  }, [user])
+  }, [user, navigate])
 
   if (authLoading) {
     return (
@@ -124,12 +109,13 @@ function AppContent() {
     )
   }
 
-  // Public routing for unauthenticated users
+  // Public routing for unauthenticated users (preserves query params for invite banners)
   if (!user) {
     return (
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/notes" element={<Landing />} />
+        <Route path="*" element={<Landing />} />
       </Routes>
     )
   }

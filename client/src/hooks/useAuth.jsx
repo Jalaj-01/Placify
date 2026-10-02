@@ -32,57 +32,72 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Failsafe timer to never leave user stuck on black loading screen
+    let isMounted = true
+
+    // Failsafe timer to never leave user stuck on loading screen
     const safetyTimer = setTimeout(() => {
-      setLoading(false)
-    }, 2500)
+      if (isMounted) setLoading(false)
+    }, 1500)
 
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      clearTimeout(safetyTimer)
-      if (firebaseUser) {
-        const sessionObj = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName || 'User',
-          photoURL: firebaseUser.photoURL || '',
-        }
-        setUser(sessionObj)
-        try {
-          localStorage.setItem('placement_tracker_session', JSON.stringify(sessionObj))
-        } catch {}
-
-        try {
-          const p = await getOrCreateProfile(firebaseUser)
-          setProfile(p)
+      try {
+        if (firebaseUser) {
+          const sessionObj = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName || 'User',
+            photoURL: firebaseUser.photoURL || '',
+          }
+          if (isMounted) setUser(sessionObj)
           try {
-            localStorage.setItem('placement_tracker_profile', JSON.stringify(p))
+            localStorage.setItem('placement_tracker_session', JSON.stringify(sessionObj))
           } catch {}
 
-          if (!p?.onboardingComplete) {
-            seedTopics(firebaseUser.uid).catch(console.warn)
+          // Fetch profile with a 1.5-second timeout race so it never hangs
+          try {
+            const profilePromise = getOrCreateProfile(firebaseUser)
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Profile timeout')), 1500)
+            )
+            const p = await Promise.race([profilePromise, timeoutPromise])
+            if (isMounted) setProfile(p)
+            try {
+              localStorage.setItem('placement_tracker_profile', JSON.stringify(p))
+            } catch {}
+
+            if (!p?.onboardingComplete) {
+              seedTopics(firebaseUser.uid).catch(console.warn)
+            }
+          } catch (profileErr) {
+            console.warn('Profile fetch timed out or failed, using fallback:', profileErr)
+            if (isMounted) {
+              const fallbackProfile = {
+                displayName: firebaseUser.displayName || 'User',
+                email: firebaseUser.email || '',
+                role: localStorage.getItem('placify_active_role') || 'student',
+                onboardingComplete: true,
+              }
+              setProfile(fallbackProfile)
+            }
           }
-        } catch (profileErr) {
-          console.warn('Profile fetch fallback:', profileErr)
-          const fallbackProfile = {
-            displayName: firebaseUser.displayName || 'User',
-            email: firebaseUser.email || '',
-            role: localStorage.getItem('placify_active_role') || 'student',
-            onboardingComplete: true
+        } else {
+          if (isMounted) {
+            setUser(null)
+            setProfile(null)
           }
-          setProfile(fallbackProfile)
+          try {
+            localStorage.removeItem('placement_tracker_session')
+            localStorage.removeItem('placement_tracker_profile')
+          } catch {}
         }
-      } else {
-        setUser(null)
-        setProfile(null)
-        try {
-          localStorage.removeItem('placement_tracker_session')
-          localStorage.removeItem('placement_tracker_profile')
-        } catch {}
+      } finally {
+        clearTimeout(safetyTimer)
+        if (isMounted) setLoading(false)
       }
-      setLoading(false)
     })
 
     return () => {
+      isMounted = false
       clearTimeout(safetyTimer)
       unsub()
     }

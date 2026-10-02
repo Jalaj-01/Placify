@@ -401,7 +401,7 @@ export function useNotebooks(user) {
       paperStyle: data.paperStyle || 'ruled',
       colorTheme: data.colorTheme || 'indigo',
       isCollaborative: !!data.isCollaborative,
-      collabRoomId: roomId,
+      collabRoomId: data.collabRoomId || roomId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       pages: [
@@ -423,8 +423,8 @@ export function useNotebooks(user) {
     if (uid) {
       await firestoreSaveNotebook(uid, newNotebook).catch(() => {})
     }
-    if (newNotebook.isCollaborative) {
-      await firestoreSaveSharedNotebook(roomId, newNotebook).catch(() => {})
+    if (newNotebook.isCollaborative && newNotebook.collabRoomId) {
+      await firestoreSaveSharedNotebook(newNotebook.collabRoomId, newNotebook).catch(() => {})
     }
 
     return newNotebook
@@ -563,10 +563,32 @@ export function useNotebooks(user) {
       return { success: true, notebook: existing }
     }
 
-    // 2. Fetch shared notebook from Firestore or local storage cache
+    // 2. Fetch shared notebook from Firestore or local storage cache with safety timeout
     return new Promise((resolve) => {
-      const unsub = subscribeSharedNotebook(cleanCode, async (sharedData) => {
-        unsub()
+      let resolved = false
+
+      let unsub = () => {}
+
+      const timeoutId = setTimeout(async () => {
+        if (!resolved) {
+          resolved = true
+          if (typeof unsub === 'function') unsub()
+          const freshNotebook = await createNotebook({
+            title: `Shared Collab #${cleanCode}`,
+            subject: 'DSA',
+            isCollaborative: true,
+            collabRoomId: cleanCode,
+          })
+          resolve({ success: true, notebook: freshNotebook })
+        }
+      }, 2000)
+
+      unsub = subscribeSharedNotebook(cleanCode, async (sharedData) => {
+        if (resolved) return
+        resolved = true
+        clearTimeout(timeoutId)
+        if (typeof unsub === 'function') unsub()
+
         if (sharedData) {
           const joinedNotebook = {
             ...sharedData,
