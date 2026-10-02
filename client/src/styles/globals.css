@@ -363,15 +363,15 @@
   }
 
   .pdf-header {
-    border-bottom: 2.5px solid #4f46e5 !important;
-    padding-bottom: 12pt !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    padding-bottom: 8pt !important;
     margin-bottom: 16pt !important;
   }
 
   .pdf-title-block {
-    border-bottom: 1px solid #e2e8f0 !important;
-    padding-bottom: 14pt !important;
-    margin-bottom: 18pt !important;
+    border-bottom: none !important;
+    padding-bottom: 8pt !important;
+    margin-bottom: 14pt !important;
   }
 
   .pdf-body-content {
@@ -477,8 +477,8 @@
   }
 
   .pdf-footer {
-    border-top: 1px solid #e2e8f0 !important;
-    padding-top: 10pt !important;
+    border-top: none !important;
+    padding-top: 14pt !important;
     margin-top: 24pt !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
