@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useNotebooks } from '@/hooks/useNotebooks'
 import { useStickyNotes } from '@/hooks/useStickyNotes'
 import { cn } from '@/lib/utils'
+import { formatAcademicDocument } from '@/lib/academicDocFormatter'
 
 const PAPER_THEMES = [
   { id: 'ruled', name: 'Ruled Lines', class: 'paper-ruled' },
@@ -2366,53 +2367,65 @@ export default function Notes() {
               {
                 id: activePage?.id,
                 title: activePage?.title,
-                pageNumber: 1,
-                totalCount: 1,
+                pageNumber:
+                  activeNotebook?.pages && activePage?.id
+                    ? Math.max(1, activeNotebook.pages.findIndex((p) => p.id === activePage.id) + 1)
+                    : 1,
+                totalCount: activeNotebook?.pages?.length || 1,
                 htmlToRender: editorRef.current?.innerHTML || activePage?.htmlContent || '',
               },
             ]
         ).map((pageItem, pIdx, arr) => (
           <div
             key={pageItem.id || pIdx}
-            className={cn('pdf-page-container', pIdx < arr.length - 1 && 'pdf-page-break')}
+            className={cn('pdf-page-container flex flex-col justify-between', pIdx < arr.length - 1 && 'pdf-page-break')}
           >
-            {/* 1. Simple Minimalist Header (Platform name & URL in left corner, subject in right corner) */}
-            <div className="pdf-header pb-2 mb-6 border-b border-slate-300 flex items-center justify-between">
-              <div className="flex flex-col text-left">
-                <span className="text-xs font-bold text-slate-800 tracking-tight leading-tight">CampusGrid</span>
-                <span className="text-[10px] text-slate-500 font-mono">placify.app/notes</span>
+            <div>
+              {/* 1. New Minimal Page Header: Strictly 25-35px, ONLY CampusGrid + placify.app/notes at TOP-LEFT */}
+              <div className="pdf-header pb-1 mb-3 border-b border-slate-300 flex items-center justify-between">
+                <div className="flex flex-col text-left">
+                  <span className="text-[11px] font-bold text-slate-800 tracking-tight leading-tight">CampusGrid</span>
+                  <span className="text-[9px] text-slate-500 font-mono leading-tight">placify.app/notes</span>
+                </div>
               </div>
-              {activeNotebook?.subject && (
-                <div className="text-right">
-                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    {activeNotebook.subject}
-                  </span>
+
+              {/* 2. Document Title / Topic Block (Compact, starts high on the page) */}
+              {pIdx === 0 ? (
+                <div className="pdf-title-block mb-3.5">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-snug">
+                    {activeNotebook?.title || 'Research Document'}
+                  </h1>
+                  <div className="flex items-center gap-2 text-xs text-slate-600 mt-1 font-medium flex-wrap">
+                    <span className="font-semibold text-slate-800">Chapter / Topic:</span>
+                    <span className="font-bold text-slate-900">{pageItem.title || `Page ${pageItem.pageNumber}`}</span>
+                    {activeNotebook?.subject && (
+                      <>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-slate-500 font-medium">CampusGrid Notes · {activeNotebook.subject}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="pdf-title-block mb-2.5">
+                  <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                    <span className="font-semibold text-slate-800">Chapter / Topic:</span>
+                    <span className="font-bold text-slate-900">{pageItem.title || `Page ${pageItem.pageNumber}`}</span>
+                  </div>
                 </div>
               )}
+
+              {/* 3. Publication-Grade Typeset Body Content */}
+              <div
+                className="pdf-body-content text-slate-800 leading-relaxed min-h-[300px]"
+                dangerouslySetInnerHTML={{
+                  __html: formatAcademicDocument(pageItem.htmlToRender || '<p>No content written in this page.</p>'),
+                }}
+              />
             </div>
 
-            {/* 2. Title & Topic Block */}
-            <div className="pdf-title-block mb-6">
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-snug">
-                {activeNotebook?.title || 'Untitled Notebook'}
-              </h1>
-
-              <div className="text-sm text-slate-700 mt-2 font-medium">
-                <span className="text-slate-500 font-normal mr-1.5">Chapter / Topic:</span>
-                <span className="font-bold text-slate-900">{pageItem.title || `Page ${pageItem.pageNumber}`}</span>
-              </div>
-            </div>
-
-            {/* 3. Document Content Body */}
-            <div
-              className="pdf-body-content text-slate-800 leading-relaxed min-h-[350px]"
-              dangerouslySetInnerHTML={{
-                __html: pageItem.htmlToRender || '<p>No content written in this page.</p>',
-              }}
-            />
-
-            {/* 4. Document Footer (Page number ONLY at bottom) */}
-            <div className="pdf-footer mt-auto pt-8 flex items-center justify-end text-xs font-mono text-slate-600 font-semibold">
+            {/* 4. Minimal Footer: ONLY Page Number at Bottom */}
+            <div className="pdf-footer mt-auto pt-3 flex items-center justify-end text-xs font-mono text-slate-500 font-medium">
               <span>{pageItem.pageNumber}</span>
             </div>
           </div>
