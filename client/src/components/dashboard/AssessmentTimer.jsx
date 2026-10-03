@@ -30,43 +30,61 @@ export default function AssessmentTimer() {
 
   // Handle timer tick intervals
   useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current)
-            setIsRunning(false)
-            localStorage.removeItem('oa_timer_end_time')
-            localStorage.removeItem('oa_timer_running')
-            
-            // Fire premium alarm sound and browser alert
-            try {
-              const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    if (!isRunning) {
+      if (timerRef.current) clearInterval(timerRef.current)
+      return
+    }
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        const savedEndTime = localStorage.getItem('oa_timer_end_time')
+        let currentRemaining = prev - 1
+        if (savedEndTime) {
+          const parsed = parseInt(savedEndTime, 10)
+          if (!isNaN(parsed) && parsed > 0) {
+            currentRemaining = Math.max(0, Math.round((parsed - Date.now()) / 1000))
+          }
+        }
+
+        if (currentRemaining <= 0) {
+          if (timerRef.current) clearInterval(timerRef.current)
+          setIsRunning(false)
+          localStorage.removeItem('oa_timer_end_time')
+          localStorage.removeItem('oa_timer_running')
+          
+          // Fire premium alarm sound and browser alert with clean AudioContext closure
+          try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext
+            if (AudioContextClass) {
+              const audioCtx = new AudioContextClass()
               const osc = audioCtx.createOscillator()
               osc.type = 'sine'
               osc.frequency.setValueAtTime(440, audioCtx.currentTime)
               osc.connect(audioCtx.destination)
               osc.start()
               osc.stop(audioCtx.currentTime + 1.2)
-            } catch (e) {
-              console.log('Audio Context blocked or unsupported', e)
+              setTimeout(() => {
+                try { audioCtx.close() } catch {}
+              }, 1500)
             }
-
-            showNotification(
-              'Assessment Timer Concluded! ⏰',
-              'Your mock Online Assessment (OA) session has ended. Log your solved questions now!'
-            )
-            return 0
+          } catch (e) {
+            console.log('Audio Context blocked or unsupported', e)
           }
-          return prev - 1
-        })
-      }, 1000)
-    } else {
-      clearInterval(timerRef.current)
-    }
 
-    return () => clearInterval(timerRef.current)
-  }, [isRunning, timeLeft])
+          showNotification(
+            'Assessment Timer Concluded! ⏰',
+            'Your mock Online Assessment (OA) session has ended. Log your solved questions now!'
+          )
+          return 0
+        }
+        return currentRemaining
+      })
+    }, 1000)
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [isRunning])
 
   // Sync state to local storage to support page reloads
   const startTimer = () => {

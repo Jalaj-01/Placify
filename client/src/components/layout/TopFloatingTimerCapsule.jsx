@@ -4,7 +4,13 @@ import { useAppStore } from '@/store/useAppStore'
 import { showNotification } from '@/utils/notifications'
 
 export default function TopFloatingTimerCapsule() {
-  const { assessmentTimerOpen, closeAssessmentTimer, activeTimerSeconds } = useAppStore()
+  const assessmentTimerOpen = useAppStore((s) => s.assessmentTimerOpen)
+  if (!assessmentTimerOpen) return null
+  return <TopFloatingTimerCapsuleContent />
+}
+
+function TopFloatingTimerCapsuleContent() {
+  const { closeAssessmentTimer, activeTimerSeconds, assessmentTimerOpen } = useAppStore()
   const [duration, setDuration] = useState(activeTimerSeconds || 45 * 60)
   const [timeLeft, setTimeLeft] = useState(activeTimerSeconds || 45 * 60)
   const [isRunning, setIsRunning] = useState(false)
@@ -42,43 +48,61 @@ export default function TopFloatingTimerCapsule() {
 
   // Handle countdown intervals
   useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current)
-            setIsRunning(false)
-            localStorage.removeItem('oa_timer_end_time')
-            localStorage.removeItem('oa_timer_running')
+    if (!isRunning) {
+      if (timerRef.current) clearInterval(timerRef.current)
+      return
+    }
 
-            // Sound alert
-            try {
-              const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        const savedEndTime = localStorage.getItem('oa_timer_end_time')
+        let currentRemaining = prev - 1
+        if (savedEndTime) {
+          const parsed = parseInt(savedEndTime, 10)
+          if (!isNaN(parsed) && parsed > 0) {
+            currentRemaining = Math.max(0, Math.round((parsed - Date.now()) / 1000))
+          }
+        }
+
+        if (currentRemaining <= 0) {
+          if (timerRef.current) clearInterval(timerRef.current)
+          setIsRunning(false)
+          localStorage.removeItem('oa_timer_end_time')
+          localStorage.removeItem('oa_timer_running')
+
+          // Sound alert with clean AudioContext closure
+          try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext
+            if (AudioContextClass) {
+              const audioCtx = new AudioContextClass()
               const osc = audioCtx.createOscillator()
               osc.type = 'sine'
               osc.frequency.setValueAtTime(440, audioCtx.currentTime)
               osc.connect(audioCtx.destination)
               osc.start()
               osc.stop(audioCtx.currentTime + 1.2)
-            } catch (e) {
-              console.log('Audio blocked', e)
+              setTimeout(() => {
+                try { audioCtx.close() } catch {}
+              }, 1500)
             }
-
-            showNotification(
-              'Assessment Timer Concluded! ⏰',
-              'Your timed assessment session has finished. Great job!'
-            )
-            return 0
+          } catch (e) {
+            console.log('Audio blocked', e)
           }
-          return prev - 1
-        })
-      }, 1000)
-    } else {
-      clearInterval(timerRef.current)
-    }
 
-    return () => clearInterval(timerRef.current)
-  }, [isRunning, timeLeft])
+          showNotification(
+            'Assessment Timer Concluded! ⏰',
+            'Your timed assessment session has finished. Great job!'
+          )
+          return 0
+        }
+        return currentRemaining
+      })
+    }, 1000)
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [isRunning])
 
   const startTimer = () => {
     if (timeLeft <= 0) return
@@ -114,8 +138,6 @@ export default function TopFloatingTimerCapsule() {
     const secs = seconds % 60
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
-
-  if (!assessmentTimerOpen) return null
 
   const isUrgent = timeLeft <= 5 * 60 && timeLeft > 0
 

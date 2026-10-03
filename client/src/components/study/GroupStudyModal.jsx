@@ -12,10 +12,15 @@ import { useStickyNotes } from '@/hooks/useStickyNotes'
 import { cn } from '@/lib/utils'
 
 export default function GroupStudyModal({ user }) {
+  const isOpen = useAppStore((s) => s.groupStudyOpen)
+  if (!isOpen) return null
+  return <GroupStudyModalContent user={user} />
+}
+
+function GroupStudyModalContent({ user }) {
   const socket = useSocket(user?.uid)
   const { addNote } = useStickyNotes(user?.uid)
   
-  const isOpen = useAppStore(s => s.groupStudyOpen)
   const onClose = useAppStore(s => s.closeGroupStudy)
   const activeStudyRoomId = useAppStore(s => s.activeStudyRoomId)
   const openGroupStudy = useAppStore(s => s.openGroupStudy)
@@ -205,11 +210,8 @@ export default function GroupStudyModal({ user }) {
       socket.off('user-announce-receive', handleUserAnnounceReceive)
       socket.off('contrib-receive', handleContribReceive)
       socket.off('user-left', handleUserLeft)
-      socket.emit('leave-room', roomId)
     }
-  }, [isOpen, socket, roomId, user])
-
-  if (!isOpen) return null
+  }, [socket, roomId, user])
 
   // Handlers
   const handleUpdateVideo = (e) => {

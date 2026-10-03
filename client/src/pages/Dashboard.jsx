@@ -55,7 +55,16 @@ export default function Dashboard() {
   // Subscribe to active announcements
   useEffect(() => {
     const unsub = subscribeAnnouncements((list) => {
-      setAnnouncements(list.filter((a) => a.active !== false))
+      const activeList = (list || []).filter((a) => a.active !== false)
+      setAnnouncements((prev) => {
+        if (
+          prev.length === activeList.length &&
+          prev.every((item, i) => item.id === activeList[i]?.id && item.updatedAt === activeList[i]?.updatedAt)
+        ) {
+          return prev
+        }
+        return activeList
+      })
     })
     return () => {
       if (typeof unsub === 'function') unsub()

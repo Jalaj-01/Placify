@@ -13,7 +13,17 @@ import ChatMessage from './ChatMessage'
 import { Button } from '@/components/ui/button'
 
 export default function AICoachDrawer() {
-  const { aiCoachOpen, closeAICoach } = useAppStore()
+  const aiCoachOpen = useAppStore((s) => s.aiCoachOpen)
+
+  return (
+    <AnimatePresence>
+      {aiCoachOpen && <AICoachDrawerContent key="ai-coach-drawer-content" />}
+    </AnimatePresence>
+  )
+}
+
+function AICoachDrawerContent() {
+  const { closeAICoach } = useAppStore()
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
@@ -92,16 +102,13 @@ export default function AICoachDrawer() {
   }
 
   return (
-    <AnimatePresence>
-      {aiCoachOpen && (
-        /* Side-by-side compact AI Coach Panel (Width: 400px, No backdrop blur so main screen is 100% interactive) */
-        <motion.div
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-          className="fixed right-0 top-0 h-screen w-full sm:w-[380px] lg:w-[400px] z-40 bg-surface border-l border-border-subtle shadow-2xl flex flex-col overflow-hidden transition-colors duration-300"
-        >
+    <motion.div
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+      className="fixed right-0 top-0 h-screen w-full sm:w-[380px] lg:w-[400px] z-40 bg-surface border-l border-border-subtle shadow-2xl flex flex-col overflow-hidden transition-colors duration-300"
+    >
           {/* Header */}
           <div className="px-4 py-3 bg-card border-b border-border-subtle flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
@@ -355,7 +362,5 @@ export default function AICoachDrawer() {
             </form>
           </div>
         </motion.div>
-      )}
-    </AnimatePresence>
   )
 }

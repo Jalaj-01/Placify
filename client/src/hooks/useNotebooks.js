@@ -220,6 +220,8 @@ const saveLocalNotebooks = (notebooks) => {
 export function useNotebooks(user) {
   const uid = user?.uid
   const userSeededKey = uid ? `placify_notebooks_seeded_${uid}` : LOCAL_SEEDED_KEY
+  const cleanedUpDuplicatesRef = useRef(false)
+  const activeNotebookRef = useRef(null)
   const socket = useSocket(uid)
 
   const [notebooks, setNotebooks] = useState(() => getLocalNotebooks())
@@ -252,6 +254,10 @@ export function useNotebooks(user) {
   const typingTimeoutRef = useRef(null)
 
   const activeNotebook = notebooks.find((n) => n.id === activeNotebookId) || notebooks[0] || null
+
+  useEffect(() => {
+    activeNotebookRef.current = activeNotebook
+  }, [activeNotebook])
 
   // Maintain activePageId when switching notebooks or on initial load
   const prevNotebookIdRef = useRef(activeNotebook?.id)
@@ -328,6 +334,24 @@ export function useNotebooks(user) {
       if (firestoreNotebooks && firestoreNotebooks.length > 0) {
         localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
         if (uid) localStorage.setItem(userSeededKey, 'true')
+
+        // SAFE ONE-TIME BACKGROUND CLEANUP (Eliminates OOM delete loops entirely)
+        if (!cleanedUpDuplicatesRef.current && uid && firestoreNotebooks.length > 5) {
+          cleanedUpDuplicatesRef.current = true
+          setTimeout(async () => {
+            try {
+              const dedupedList = deduplicateNotebooks(firestoreNotebooks)
+              const keptIds = new Set(dedupedList.map((n) => n.id))
+              const duplicateDocs = firestoreNotebooks.filter((fn) => !keptIds.has(fn.id))
+              for (const d of duplicateDocs) {
+                await firestoreDeleteNotebook(uid, d.id).catch(() => {})
+              }
+            } catch (err) {
+              console.warn('Silent duplicate cleanup completed', err)
+            }
+          }, 4000)
+        }
+
         setNotebooks((current) => {
           // Merge firestoreNotebooks intelligently with local current
           const mergedFirestore = firestoreNotebooks.map((fn) => {
@@ -351,15 +375,17 @@ export function useNotebooks(user) {
           )
           const merged = deduplicateNotebooks([...collabNotebooks, ...mergedFirestore])
 
-          // AUTOMATIC FIRESTORE CLEANUP:
-          // If Firestore contains orphaned duplicate notebook documents from previous loops,
-          // permanently delete them so the user never gets 102 notebooks again!
-          const keptIds = new Set(merged.map((n) => n.id))
-          const duplicateDocs = firestoreNotebooks.filter((fn) => !keptIds.has(fn.id))
-          if (duplicateDocs.length > 0) {
-            duplicateDocs.forEach((d) => {
-              firestoreDeleteNotebook(uid, d.id).catch(() => {})
-            })
+          // Avoid unnecessary state re-renders if content has not changed
+          if (
+            current.length === merged.length &&
+            current.every(
+              (c, i) =>
+                c.id === merged[i]?.id &&
+                c.updatedAt === merged[i]?.updatedAt &&
+                (c.pages?.length || 0) === (merged[i]?.pages?.length || 0)
+            )
+          ) {
+            return current
           }
 
           try {
@@ -371,6 +397,12 @@ export function useNotebooks(user) {
         if (isSeeded) {
           setNotebooks((current) => {
             const collabNotebooks = deduplicateNotebooks(current.filter((n) => n.isCollaborative))
+            if (
+              current.length === collabNotebooks.length &&
+              current.every((c, i) => c.id === collabNotebooks[i]?.id)
+            ) {
+              return current
+            }
             try {
               localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(collabNotebooks))
             } catch {}
@@ -495,20 +527,22 @@ export function useNotebooks(user) {
           return prev
         })
         // Host immediately syncs full notebook state to newly joined peer
-        if (activeNotebook) {
+        const currentActive = activeNotebookRef.current
+        if (currentActive) {
           socket.emit('notebook-sync', {
             roomId,
-            notebook: activeNotebook,
+            notebook: currentActive,
             sender: uid,
           })
         }
       }
 
       const handleRequestState = () => {
-        if (activeNotebook) {
+        const currentActive = activeNotebookRef.current
+        if (currentActive) {
           socket.emit('notebook-sync', {
             roomId,
-            notebook: activeNotebook,
+            notebook: currentActive,
             sender: uid,
           })
         }
@@ -523,7 +557,7 @@ export function useNotebooks(user) {
         setNotebooks((prev) => {
           const currentNb = prev.find(
             (n) =>
-              n.id === activeNotebook.id ||
+              n.id === activeNotebook?.id ||
               n.id === remoteNb.id ||
               n.collabRoomId?.trim().replace(/^#+/, '').toLowerCase() === roomId
           )
@@ -546,7 +580,7 @@ export function useNotebooks(user) {
         setNotebooks((prev) => {
           const currentNb = prev.find(
             (n) =>
-              n.id === activeNotebook.id ||
+              n.id === activeNotebook?.id ||
               n.collabRoomId?.trim().replace(/^#+/, '').toLowerCase() === roomId
           )
           if (!currentNb) return prev
@@ -615,7 +649,7 @@ export function useNotebooks(user) {
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
       }
     }
-  }, [socket, activeNotebook?.id, activeNotebook?.collabRoomId, uid, user])
+  }, [socket, activeNotebook?.id, activeNotebook?.collabRoomId, uid, user?.displayName, user?.email, user?.photoURL])
 
   const firestoreSaveDebounceRef = useRef({})
 

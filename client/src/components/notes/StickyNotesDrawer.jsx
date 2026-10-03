@@ -38,9 +38,18 @@ export const formatDateDisplay = (dateVal) => {
 }
 
 export default function StickyNotesDrawer() {
+  const stickyNotesOpen = useAppStore((s) => s.stickyNotesOpen)
+
+  return (
+    <AnimatePresence>
+      {stickyNotesOpen && <StickyNotesDrawerContent key="sticky-notes-drawer-content" />}
+    </AnimatePresence>
+  )
+}
+
+function StickyNotesDrawerContent() {
   const { user } = useAuth()
   const {
-    stickyNotesOpen,
     closeStickyNotes,
     notesDrawerTab,
     setNotesDrawerTab,
@@ -234,10 +243,8 @@ export default function StickyNotesDrawer() {
     .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
 
   return (
-    <AnimatePresence>
-      {stickyNotesOpen && (
-        <>
-          {/* Backdrop Overlay */}
+    <>
+      {/* Backdrop Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -776,7 +783,5 @@ export default function StickyNotesDrawer() {
             </div>
           )}
         </>
-      )}
-    </AnimatePresence>
   )
 }

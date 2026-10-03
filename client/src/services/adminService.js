@@ -559,22 +559,39 @@ export async function deleteAnnouncement(adminUser, announcementId) {
  * Subscribe to announcements
  */
 export function subscribeAnnouncements(callback) {
+  let unsubFallback = null
+  let unsubPrimary = null
   try {
     const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'))
-    return onSnapshot(
+    unsubPrimary = onSnapshot(
       q,
       (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
       (err) => {
         console.warn('subscribeAnnouncements fallback:', err)
-        return onSnapshot(collection(db, 'announcements'), (snap) => {
-          callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-        })
+        try {
+          unsubFallback = onSnapshot(collection(db, 'announcements'), (snap) => {
+            callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+          })
+        } catch (e) {
+          console.warn('subscribeAnnouncements secondary fallback failed:', e)
+        }
       }
     )
+    return () => {
+      if (typeof unsubPrimary === 'function') unsubPrimary()
+      if (typeof unsubFallback === 'function') unsubFallback()
+    }
   } catch {
-    return onSnapshot(collection(db, 'announcements'), (snap) => {
-      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    })
+    try {
+      const unsub = onSnapshot(collection(db, 'announcements'), (snap) => {
+        callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+      })
+      return () => {
+        if (typeof unsub === 'function') unsub()
+      }
+    } catch {
+      return () => {}
+    }
   }
 }
 
