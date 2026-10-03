@@ -1253,7 +1253,7 @@ export default function Notes() {
                       if (e.target.value === 'p') execCmd('formatBlock', '<p>')
                       else execCmd('formatBlock', `<${e.target.value}>`)
                     }}
-                    className="text-xs py-1 pl-2.5 pr-6 bg-card hover:bg-hover border border-border-subtle rounded-lg font-bold appearance-none cursor-pointer text-text-primary focus:outline-none focus:border-accent"
+                    className="text-xs py-1 pl-2.5 pr-7 bg-card hover:bg-hover border border-border-subtle rounded-lg font-bold cursor-pointer text-text-primary focus:outline-none focus:border-accent"
                     defaultValue="p"
                     title="Heading Style"
                   >
@@ -1262,7 +1262,6 @@ export default function Notes() {
                     <option value="h2">Heading 2</option>
                     <option value="h3">Heading 3</option>
                   </select>
-                  <ChevronDown className="h-3 w-3 text-text-muted absolute right-1.5 pointer-events-none" />
                 </div>
 
                 <div className="h-4 w-px bg-border-subtle mx-0.5" />
@@ -1310,7 +1309,7 @@ export default function Notes() {
                   </span>
                   <select
                     onChange={(e) => execCmd('foreColor', e.target.value)}
-                    className="text-xs py-1 pl-6 pr-6 bg-card hover:bg-hover border border-border-subtle rounded-lg font-semibold appearance-none cursor-pointer text-text-primary focus:outline-none focus:border-accent"
+                    className="text-xs py-1 pl-6 pr-7 bg-card hover:bg-hover border border-border-subtle rounded-lg font-semibold cursor-pointer text-text-primary focus:outline-none focus:border-accent"
                     title="Text Color"
                     defaultValue="inherit"
                   >
@@ -1318,7 +1317,6 @@ export default function Notes() {
                       <option key={c.label} value={c.value}>{c.label}</option>
                     ))}
                   </select>
-                  <ChevronDown className="h-3 w-3 text-text-muted absolute right-1.5 pointer-events-none" />
                 </div>
 
                 {/* Highlighter Marker */}
@@ -1328,7 +1326,7 @@ export default function Notes() {
                   </span>
                   <select
                     onChange={(e) => execCmd('hiliteColor', e.target.value)}
-                    className="text-xs py-1 pl-6 pr-6 bg-card hover:bg-hover border border-border-subtle rounded-lg font-semibold appearance-none cursor-pointer text-text-primary focus:outline-none focus:border-accent"
+                    className="text-xs py-1 pl-6 pr-7 bg-card hover:bg-hover border border-border-subtle rounded-lg font-semibold cursor-pointer text-text-primary focus:outline-none focus:border-accent"
                     title="Highlight Marker"
                     defaultValue="transparent"
                   >
@@ -1336,7 +1334,6 @@ export default function Notes() {
                       <option key={c.label} value={c.value}>{c.label}</option>
                     ))}
                   </select>
-                  <ChevronDown className="h-3 w-3 text-text-muted absolute right-1.5 pointer-events-none" />
                 </div>
 
                 <div className="h-4 w-px bg-border-subtle mx-1" />
