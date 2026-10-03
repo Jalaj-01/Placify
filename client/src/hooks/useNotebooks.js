@@ -129,12 +129,48 @@ const SEED_NOTEBOOKS = [
 
 const LOCAL_SEEDED_KEY = 'placify_notebooks_seeded'
 
+export const normalizeRoomId = (roomId) => {
+  if (!roomId) return ''
+  const clean = String(roomId).trim().replace(/^#+/, '').toLowerCase()
+  return clean.startsWith('collab-') ? clean : `collab-${clean}`
+}
+
+export const deduplicateNotebooks = (list) => {
+  if (!Array.isArray(list)) return []
+  const seenRooms = new Set()
+  const seenIds = new Set()
+  const result = []
+
+  for (const nb of list) {
+    if (!nb) continue
+    const canonicalRoom = nb.collabRoomId ? normalizeRoomId(nb.collabRoomId) : null
+    const idKey = (nb.id || '').toLowerCase()
+
+    if (canonicalRoom) {
+      if (seenRooms.has(canonicalRoom)) continue
+      seenRooms.add(canonicalRoom)
+      if (idKey) seenIds.add(idKey)
+      result.push({
+        ...nb,
+        collabRoomId: canonicalRoom,
+      })
+    } else if (idKey) {
+      if (seenIds.has(idKey)) continue
+      seenIds.add(idKey)
+      result.push(nb)
+    } else {
+      result.push(nb)
+    }
+  }
+  return result
+}
+
 const getLocalNotebooks = () => {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (raw !== null) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) return parsed
+      if (Array.isArray(parsed)) return deduplicateNotebooks(parsed)
     }
     const isSeeded = localStorage.getItem(LOCAL_SEEDED_KEY)
     if (isSeeded === 'true') {
@@ -155,8 +191,8 @@ const getLocalNotebooks = () => {
 const saveLocalNotebooks = (notebooks) => {
   try {
     localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(notebooks))
-    window.dispatchEvent(new Event('placify_notebooks_changed'))
+    const deduped = deduplicateNotebooks(notebooks)
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(deduped))
   } catch (err) {
     console.warn('Failed saving notebooks to localStorage', err)
   }
@@ -221,19 +257,25 @@ export function useNotebooks(user) {
 
   const activePage = activeNotebook?.pages?.find((p) => p.id === activePageId) || activeNotebook?.pages?.[0] || null
 
+  // Subscribe to external storage changes across tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (!e || e.key === LOCAL_STORAGE_KEY) {
+        setNotebooks(getLocalNotebooks())
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [])
+
   // Subscribe to user's notebooks in Firestore
   useEffect(() => {
-    const handleLocalChange = () => {
-      setNotebooks(getLocalNotebooks())
-    }
-    window.addEventListener('placify_notebooks_changed', handleLocalChange)
-
     if (!uid) {
       setNotebooks(getLocalNotebooks())
       setLoading(false)
-      return () => {
-        window.removeEventListener('placify_notebooks_changed', handleLocalChange)
-      }
+      return
     }
 
     const unsub = subscribeNotebooks(uid, (firestoreNotebooks) => {
@@ -249,7 +291,6 @@ export function useNotebooks(user) {
           const mergedFirestore = firestoreNotebooks.map((fn) => {
             const local = current.find((c) => c.id === fn.id)
             if (!local) return fn
-            // If local copy has newer timestamp or has more pages (e.g. newly added page), preserve local
             const localTime = new Date(local.updatedAt || 0).getTime()
             const firestoreTime = new Date(fn.updatedAt || 0).getTime()
             if (localTime > firestoreTime || (local.pages?.length || 0) > (fn.pages?.length || 0)) {
@@ -258,22 +299,30 @@ export function useNotebooks(user) {
             return fn
           })
           const collabNotebooks = current.filter(
-            (n) => n.isCollaborative && !mergedFirestore.some((fn) => fn.id === n.id || fn.collabRoomId === n.collabRoomId)
+            (n) =>
+              n.isCollaborative &&
+              !mergedFirestore.some((fn) => {
+                const r1 = normalizeRoomId(fn.collabRoomId)
+                const r2 = normalizeRoomId(n.collabRoomId)
+                return fn.id === n.id || (r1 && r2 && r1 === r2)
+              })
           )
-          const merged = [...collabNotebooks, ...mergedFirestore]
-          saveLocalNotebooks(merged)
+          const merged = deduplicateNotebooks([...collabNotebooks, ...mergedFirestore])
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged))
+          } catch {}
           return merged
         })
       } else {
         if (isSeeded) {
-          // User already seeded and deliberately deleted all notebooks. DO NOT re-seed!
           setNotebooks((current) => {
-            const collabNotebooks = current.filter((n) => n.isCollaborative)
-            saveLocalNotebooks(collabNotebooks)
+            const collabNotebooks = deduplicateNotebooks(current.filter((n) => n.isCollaborative))
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(collabNotebooks))
+            } catch {}
             return collabNotebooks
           })
         } else {
-          // Brand new user visiting Firestore for the first time
           localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
           if (uid) localStorage.setItem(userSeededKey, 'true')
           SEED_NOTEBOOKS.forEach((nb) => {
@@ -290,64 +339,60 @@ export function useNotebooks(user) {
 
     return () => {
       unsub()
-      window.removeEventListener('placify_notebooks_changed', handleLocalChange)
     }
   }, [uid, userSeededKey])
-
-  // Automatically keep all collaborative notebooks synced to cloud shared storage whenever notebooks change
-  useEffect(() => {
-    if (!notebooks || notebooks.length === 0) return
-    notebooks.forEach((nb) => {
-      if (nb.collabRoomId) {
-        firestoreSaveSharedNotebook(nb.collabRoomId, nb).catch(() => {})
-      }
-    })
-  }, [notebooks])
-
-  // Also ensure active notebook updates are immediately pushed
-  useEffect(() => {
-    if (activeNotebook?.collabRoomId) {
-      firestoreSaveSharedNotebook(activeNotebook.collabRoomId, activeNotebook).catch(() => {})
-    }
-  }, [activeNotebook?.id, activeNotebook?.updatedAt, activeNotebook?.collabRoomId])
 
   // Real-time Firestore subscription for active collaborative notebook (guarantees live sync across all devices)
   useEffect(() => {
     if (!activeNotebook?.collabRoomId) return
 
-    const rawRoom = activeNotebook.collabRoomId.trim().replace(/^#+/, '').toLowerCase()
-    const roomId = rawRoom.startsWith('collab-') ? rawRoom : `collab-${rawRoom}`
+    const roomId = normalizeRoomId(activeNotebook.collabRoomId)
 
     const unsubFirestore = subscribeSharedNotebook(roomId, (remoteNb) => {
-      if (!remoteNb || (!remoteNb.pages && !remoteNb.title)) return
+      if (!remoteNb || (!remoteNb.pages?.length && !remoteNb.title)) return
 
       setNotebooks((prev) => {
-        const currentNb = prev.find(
+        const canonicalRoom = normalizeRoomId(roomId)
+        const existingIndex = prev.findIndex(
           (n) =>
-            n.id === activeNotebook.id ||
-            n.id === remoteNb.id ||
-            n.collabRoomId?.trim().replace(/^#+/, '').toLowerCase() === roomId
+            (n.collabRoomId && normalizeRoomId(n.collabRoomId) === canonicalRoom) ||
+            n.id === remoteNb.id
         )
-        if (!currentNb) return prev
 
-        // Merge remote updates with local state
-        const updatedNb = {
-          ...currentNb,
-          ...remoteNb,
-          id: currentNb.id,
-          collabRoomId: roomId,
+        let updatedList
+        if (existingIndex >= 0) {
+          const currentNb = prev[existingIndex]
+          const updatedNb = {
+            ...currentNb,
+            ...remoteNb,
+            id: currentNb.id,
+            collabRoomId: canonicalRoom,
+            pages: (remoteNb.pages && remoteNb.pages.length > 0) ? remoteNb.pages : currentNb.pages,
+          }
+          updatedList = prev.map((n, idx) => (idx === existingIndex ? updatedNb : n))
+        } else {
+          // Add remote notebook so collaborator sees it immediately!
+          const newNb = {
+            ...remoteNb,
+            id: remoteNb.id || `nb-${Date.now()}`,
+            collabRoomId: canonicalRoom,
+            isCollaborative: true,
+          }
+          updatedList = [newNb, ...prev]
         }
 
-        const updatedList = prev.map((n) => (n.id === currentNb.id ? updatedNb : n))
-        saveLocalNotebooks(updatedList)
-        return updatedList
+        const deduped = deduplicateNotebooks(updatedList)
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(deduped))
+        } catch {}
+        return deduped
       })
     })
 
     return () => {
       if (typeof unsubFirestore === 'function') unsubFirestore()
     }
-  }, [activeNotebook?.id, activeNotebook?.collabRoomId])
+  }, [activeNotebook?.collabRoomId])
 
   // Real-time socket & shared room subscription for active collaborative notebook
   useEffect(() => {
@@ -745,11 +790,11 @@ export function useNotebooks(user) {
         if (parsed && (parsed.pages?.length > 0 || parsed.title)) {
           const finalNb = {
             ...parsed,
-            id: parsed.id || `nb-joined-${Date.now()}`,
+            id: parsed.id || `nb-${canonicalRoomId}`,
             isCollaborative: true,
             collabRoomId: canonicalRoomId,
           }
-          const updatedList = [finalNb, ...notebooks.filter((n) => n.id !== finalNb.id)]
+          const updatedList = deduplicateNotebooks([finalNb, ...notebooks])
           setNotebooks(updatedList)
           saveLocalNotebooks(updatedList)
           setActiveNotebookId(finalNb.id)
@@ -798,19 +843,19 @@ export function useNotebooks(user) {
 
         const finalNb = {
           ...realNb,
-          id: realNb.id || `nb-joined-${Date.now()}`,
+          id: realNb.id || `nb-${canonicalRoomId}`,
           isCollaborative: true,
           collabRoomId: canonicalRoomId,
         }
 
         setNotebooks((prev) => {
-          const updatedList = [
+          const updatedList = deduplicateNotebooks([
             finalNb,
             ...prev.filter((n) => {
               const r = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
               return n.id !== finalNb.id && r !== cleanCodeLower && r !== altCodeLower
             }),
-          ]
+          ])
           saveLocalNotebooks(updatedList)
           return updatedList
         })

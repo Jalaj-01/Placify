@@ -155,8 +155,8 @@ export default function InvitesDrawer() {
 
     try {
       if (invite.type === 'notebook' || invite.itemType === 'notebook') {
-        const rawRoom = (invite.roomId || invite.itemData?.collabRoomId || '').trim().replace(/^#+/, '')
-        const targetRoom = rawRoom.startsWith('collab-') ? rawRoom : (rawRoom ? `collab-${rawRoom}` : null)
+        const rawRoom = (invite.roomId || invite.itemData?.collabRoomId || '').trim().replace(/^#+/, '').toLowerCase()
+        const targetRoom = rawRoom ? (rawRoom.startsWith('collab-') ? rawRoom : `collab-${rawRoom}`) : null
         let notebookData = invite.itemData
 
         // If invite payload lacks pages or chapters, actively fetch the full notebook
@@ -166,13 +166,16 @@ export default function InvitesDrawer() {
             if (fetched && (fetched.pages?.length > 0 || fetched.title)) {
               notebookData = fetched
             }
-          } catch {}
+          } catch (e) {
+            console.warn('fetchSharedNotebook in InvitesDrawer:', e)
+          }
         }
 
         if (notebookData && (notebookData.id || targetRoom)) {
+          const finalId = notebookData.id || (targetRoom ? `nb-${targetRoom}` : `nb-${Date.now()}`)
           const finalNb = {
             ...notebookData,
-            id: notebookData.id || `nb-${Date.now()}`,
+            id: finalId,
             title: notebookData.title || invite.title || 'Shared Collaborative Notebook',
             isCollaborative: true,
             collabRoomId: targetRoom || notebookData.collabRoomId,
@@ -182,7 +185,12 @@ export default function InvitesDrawer() {
           }
           try {
             const existing = JSON.parse(localStorage.getItem('placify_notebooks') || '[]')
-            const updated = [finalNb, ...existing.filter((n) => n.id !== finalNb.id && n.collabRoomId !== finalNb.collabRoomId)]
+            const filtered = existing.filter((n) => {
+              const r1 = (n.collabRoomId || '').trim().replace(/^#+/, '').toLowerCase()
+              const r2 = (targetRoom || '').trim().replace(/^#+/, '').toLowerCase()
+              return n.id !== finalId && (!r1 || !r2 || r1 !== r2)
+            })
+            const updated = [finalNb, ...filtered]
             localStorage.setItem('placify_notebooks', JSON.stringify(updated))
             localStorage.setItem('placify_active_notebook_id', finalNb.id)
             if (targetRoom) {
@@ -191,7 +199,6 @@ export default function InvitesDrawer() {
               localStorage.setItem(`placify_shared_nb_${cleanR}`, JSON.stringify(finalNb))
               localStorage.setItem(`placify_shared_nb_${altR}`, JSON.stringify(finalNb))
             }
-            window.dispatchEvent(new Event('placify_notebooks_changed'))
           } catch {}
           if (user?.uid) {
             saveNotebook(user.uid, finalNb).catch(() => {})
