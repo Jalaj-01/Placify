@@ -233,6 +233,7 @@ export default function Notes() {
 
   // Document Editor State
   const editorRef = useRef(null)
+  const scrollContainerRef = useRef(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [editingPageTitle, setEditingPageTitle] = useState('')
   const [showCollabModal, setShowCollabModal] = useState(false)
@@ -373,23 +374,44 @@ export default function Notes() {
     })
   }
 
-  const handleAddNewPage = useCallback(async () => {
+  const handleAddNewPage = useCallback(() => {
     if (!activeNotebook) return
-    const newPage = await addPage(activeNotebook.id)
+
+    // Immediately save previous active page content if open
+    if (editorRef.current && activePage) {
+      updatePageContent(activeNotebook.id, activePage.id, editorRef.current.innerHTML)
+    }
+
+    const newPage = addPage(activeNotebook.id)
     if (newPage && newPage.id) {
+      prevPageIdRef.current = newPage.id
       setActivePageId(newPage.id)
       setEditingPageTitle(newPage.title || '')
       if (editorRef.current) {
         editorRef.current.innerHTML = ''
         updateStats('')
-        setTimeout(() => {
-          if (editorRef.current) {
-            editorRef.current.focus()
-          }
-        }, 50)
       }
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0
+      }
+      requestAnimationFrame(() => {
+        if (editorRef.current) {
+          editorRef.current.focus()
+        }
+      })
     }
-  }, [activeNotebook, addPage, setActivePageId])
+  }, [activeNotebook, activePage, addPage, setActivePageId, updatePageContent])
+
+  const handleSelectPage = (pageId) => {
+    if (editorRef.current && activePage && activeNotebook && activePage.id !== pageId) {
+      updatePageContent(activeNotebook.id, activePage.id, editorRef.current.innerHTML)
+    }
+    prevPageIdRef.current = pageId
+    setActivePageId(pageId)
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0
+    }
+  }
 
   // Global keyboard shortcuts (Ctrl+N for New Page, Escape for focus mode)
   useEffect(() => {
@@ -1033,7 +1055,7 @@ export default function Notes() {
                         }}
                         onDragEnd={handleDragEnd}
                         onDrop={(e) => handleDrop(e, idx)}
-                        onClick={() => setActivePageId(page.id)}
+                        onClick={() => handleSelectPage(page.id)}
                         className={cn(
                           'group flex items-center gap-1.5 px-2 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all select-none border',
                           isPageActive
@@ -1551,7 +1573,7 @@ export default function Notes() {
             )}
 
             {/* ── THE NOTEBOOK PAPER DOCUMENT (Edge-to-Edge Clean Workspace) ── */}
-            <div className={cn('flex-1 overflow-y-auto scrollbar-thin', currentTheme.class)}>
+            <div ref={scrollContainerRef} className={cn('flex-1 overflow-y-auto scrollbar-thin', currentTheme.class)}>
               <div
                 className={cn(
                   'mx-auto min-h-full flex flex-col transition-all',

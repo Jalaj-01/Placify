@@ -198,17 +198,26 @@ export function useNotebooks(user) {
 
   const activeNotebook = notebooks.find((n) => n.id === activeNotebookId) || notebooks[0] || null
 
-  // Ensure activePageId defaults to the first page of active notebook
+  // Maintain activePageId when switching notebooks or on initial load
+  const prevNotebookIdRef = useRef(activeNotebook?.id)
   useEffect(() => {
-    if (activeNotebook && activeNotebook.pages?.length > 0) {
-      const pageExists = activeNotebook.pages.some((p) => p.id === activePageId)
-      if (!pageExists) {
-        setActivePageId(activeNotebook.pages[0].id)
-      }
-    } else {
+    if (!activeNotebook) {
       setActivePageId(null)
+      return
     }
-  }, [activeNotebook, activePageId])
+
+    // When notebook changes to another notebook, select its first page
+    if (prevNotebookIdRef.current !== activeNotebook.id) {
+      prevNotebookIdRef.current = activeNotebook.id
+      setActivePageId(activeNotebook.pages?.[0]?.id || null)
+      return
+    }
+
+    // On initial load or if activePageId is unset, default to the first page
+    if (!activePageId && activeNotebook.pages?.length > 0) {
+      setActivePageId(activeNotebook.pages[0].id)
+    }
+  }, [activeNotebook?.id, activeNotebook?.pages, activePageId])
 
   const activePage = activeNotebook?.pages?.find((p) => p.id === activePageId) || activeNotebook?.pages?.[0] || null
 
@@ -236,11 +245,22 @@ export function useNotebooks(user) {
         localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
         if (uid) localStorage.setItem(userSeededKey, 'true')
         setNotebooks((current) => {
-          // Preserve any collaborative notebooks already in state
+          // Merge firestoreNotebooks intelligently with local current
+          const mergedFirestore = firestoreNotebooks.map((fn) => {
+            const local = current.find((c) => c.id === fn.id)
+            if (!local) return fn
+            // If local copy has newer timestamp or has more pages (e.g. newly added page), preserve local
+            const localTime = new Date(local.updatedAt || 0).getTime()
+            const firestoreTime = new Date(fn.updatedAt || 0).getTime()
+            if (localTime > firestoreTime || (local.pages?.length || 0) > (fn.pages?.length || 0)) {
+              return local
+            }
+            return fn
+          })
           const collabNotebooks = current.filter(
-            (n) => n.isCollaborative && !firestoreNotebooks.some((fn) => fn.id === n.id || fn.collabRoomId === n.collabRoomId)
+            (n) => n.isCollaborative && !mergedFirestore.some((fn) => fn.id === n.id || fn.collabRoomId === n.collabRoomId)
           )
-          const merged = [...collabNotebooks, ...firestoreNotebooks]
+          const merged = [...collabNotebooks, ...mergedFirestore]
           saveLocalNotebooks(merged)
           return merged
         })
@@ -509,15 +529,16 @@ export function useNotebooks(user) {
 
   // ── Page Operations ──
 
-  const addPage = async (notebookId, title = '') => {
-    const nb = notebooks.find((n) => n.id === notebookId)
-    if (!nb) return
+  const addPage = (notebookId, title = '') => {
+    const targetId = notebookId || activeNotebookId || activeNotebook?.id
+    const nb = notebooks.find((n) => n.id === targetId)
+    if (!nb) return null
 
     const nextNumber = (nb.pages?.length || 0) + 1
     const pageTitle = (!title || title === 'New Page') ? `Page ${nextNumber}` : title.trim()
 
     const newPage = {
-      id: `page-${Date.now()}`,
+      id: `page-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       title: pageTitle,
       htmlContent: '',
       cells: [],
@@ -529,12 +550,25 @@ export function useNotebooks(user) {
       updatedAt: new Date().toISOString(),
     }
 
-    await persistNotebook(updatedNb)
+    // 1. Immediately switch activePageId to the new page (0ms instant navigation)
     setActivePageId(newPage.id)
+
+    // 2. Immediately update in-memory notebooks and localStorage
+    const updatedList = notebooks.map((n) => (n.id === updatedNb.id ? updatedNb : n))
+    setNotebooks(updatedList)
+    saveLocalNotebooks(updatedList)
+
+    // 3. Asynchronously sync to cloud in background without blocking UI
+    persistNotebook(updatedNb).catch((err) => {
+      console.warn('Failed saving new page to cloud', err)
+    })
+
+    return newPage
   }
 
   const deletePage = async (notebookId, pageId) => {
-    const nb = notebooks.find((n) => n.id === notebookId)
+    const targetId = notebookId || activeNotebookId || activeNotebook?.id
+    const nb = notebooks.find((n) => n.id === targetId)
     if (!nb || nb.pages.length <= 1) return // Keep at least one page
 
     const updatedPages = nb.pages.filter((p) => p.id !== pageId)
@@ -544,10 +578,15 @@ export function useNotebooks(user) {
       updatedAt: new Date().toISOString(),
     }
 
-    await persistNotebook(updatedNb)
     if (activePageId === pageId) {
       setActivePageId(updatedPages[0]?.id || null)
     }
+
+    const updatedList = notebooks.map((n) => (n.id === updatedNb.id ? updatedNb : n))
+    setNotebooks(updatedList)
+    saveLocalNotebooks(updatedList)
+
+    persistNotebook(updatedNb).catch(() => {})
   }
 
   const renamePage = async (notebookId, pageId, newTitle) => {
