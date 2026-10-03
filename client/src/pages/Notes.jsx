@@ -303,18 +303,28 @@ export default function Notes() {
 
   // Statistics
   const [stats, setStats] = useState({ words: 0, chars: 0, readingTime: '1 min' })
+  const prevPageIdRef = useRef(activePage?.id)
 
   // Synchronize document editor when activeNotebook, activePage, or page content changes
   useEffect(() => {
     if (editorRef.current && activePage) {
       const pageHtml = activePage.htmlContent || ''
-      const isFocused = document.activeElement === editorRef.current
-      if (!isFocused || !editorRef.current.innerHTML.trim()) {
-        if (editorRef.current.innerHTML !== pageHtml) {
-          editorRef.current.innerHTML = pageHtml
+      const isDifferentPage = prevPageIdRef.current !== activePage.id
+      prevPageIdRef.current = activePage.id
+
+      if (isDifferentPage) {
+        // Unconditionally switch editor content when navigating to a new/different page
+        editorRef.current.innerHTML = pageHtml
+        updateStats(editorRef.current.innerText || '')
+      } else {
+        const isFocused = document.activeElement === editorRef.current
+        if (!isFocused || !editorRef.current.innerHTML.trim()) {
+          if (editorRef.current.innerHTML !== pageHtml) {
+            editorRef.current.innerHTML = pageHtml
+            updateStats(editorRef.current.innerText || '')
+          }
         }
       }
-      updateStats(editorRef.current.innerText || '')
     }
   }, [activeNotebook?.id, activePage?.id, activePage?.htmlContent])
 
@@ -644,6 +654,24 @@ export default function Notes() {
     }
   }
 
+  const handleAddNewPage = async () => {
+    if (!activeNotebook) return
+    const newPage = await addPage(activeNotebook.id)
+    if (newPage && newPage.id) {
+      setActivePageId(newPage.id)
+      setEditingPageTitle(newPage.title || '')
+      if (editorRef.current) {
+        editorRef.current.innerHTML = ''
+        updateStats('')
+        setTimeout(() => {
+          if (editorRef.current) {
+            editorRef.current.focus()
+          }
+        }, 50)
+      }
+    }
+  }
+
   const handleCreateSticky = async (e) => {
     e.preventDefault()
     if (!newStickyTitle.trim() && !newStickyBody.trim()) {
@@ -955,7 +983,7 @@ export default function Notes() {
                     </span>
                   </div>
                   <button
-                    onClick={() => addPage(activeNotebook.id)}
+                    onClick={handleAddNewPage}
                     className="text-xs text-accent hover:text-accent-light font-bold flex items-center gap-1 px-1.5 py-0.5 rounded-lg hover:bg-accent/10 transition-colors"
                   >
                     <Plus className="h-3 w-3" /> Add Page
@@ -1215,7 +1243,7 @@ export default function Notes() {
                 {activeNotebook && (
                   <button
                     type="button"
-                    onClick={() => addPage(activeNotebook.id)}
+                    onClick={handleAddNewPage}
                     className="px-2.5 py-1 rounded-lg bg-accent/15 hover:bg-accent text-accent hover:text-white transition-all text-xs font-bold flex items-center gap-1.5 shadow-2xs active:scale-95 shrink-0 border border-accent/25"
                     title="Add New Page / Chapter"
                   >
