@@ -15,11 +15,24 @@ export class ErrorBoundary extends React.Component {
     console.error('Placify Error Boundary caught an error:', error, errorInfo)
   }
 
-  handleReset = () => {
-    localStorage.removeItem('placement_tracker_session')
-    localStorage.removeItem('placement_tracker_profile')
-    localStorage.removeItem('placify_active_role')
-    window.location.href = '/'
+  handleReset = async () => {
+    try {
+      localStorage.removeItem('placement_tracker_session')
+      localStorage.removeItem('placement_tracker_profile')
+      localStorage.removeItem('placify_active_role')
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        const keys = await caches.keys()
+        await Promise.all(keys.map((k) => caches.delete(k)))
+      }
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(registrations.map((r) => r.unregister()))
+      }
+    } catch (e) {
+      console.warn('Cache clearing error:', e)
+    } finally {
+      window.location.reload()
+    }
   }
 
   render() {

@@ -254,6 +254,12 @@ export default function Notes() {
   const [linkModalText, setLinkModalText] = useState('')
   const savedRangeRef = useRef(null)
 
+  // PDF Export States (Whole Notebook vs Specific Page)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportScope, setExportScope] = useState('notebook') // 'notebook' | 'single'
+  const [exportSelectedPageNumber, setExportSelectedPageNumber] = useState(1)
+  const [exportPagesToPrint, setExportPagesToPrint] = useState([])
+
   // Create Notebook Form
   const [newNbTitle, setNewNbTitle] = useState('')
   const [newNbSubject, setNewNbSubject] = useState('DSA')
@@ -446,12 +452,6 @@ export default function Notes() {
     handleAddNewPage,
   ])
 
-  // PDF Export States (Whole Notebook vs Specific Page)
-  const [showExportModal, setShowExportModal] = useState(false)
-  const [exportScope, setExportScope] = useState('notebook') // 'notebook' | 'single'
-  const [exportSelectedPageNumber, setExportSelectedPageNumber] = useState(1)
-  const [exportPagesToPrint, setExportPagesToPrint] = useState([])
-
   const handleOpenExportModal = () => {
     const currentIdx = activeNotebook?.pages?.findIndex((p) => p.id === activePage?.id)
     setExportSelectedPageNumber(currentIdx >= 0 ? currentIdx + 1 : 1)
@@ -535,14 +535,6 @@ export default function Notes() {
     setDragOverPageIndex(null)
   }
 
-  // Execute Rich Text Formatting via document.execCommand
-  const execCmd = (command, value = null) => {
-    if (!editorRef.current) return
-    editorRef.current.focus()
-    document.execCommand(command, false, value)
-    handleEditorInput()
-  }
-
   // Handle typing inside editor
   const handleEditorInput = () => {
     if (!editorRef.current || !activeNotebook || !activePage) return
@@ -550,6 +542,14 @@ export default function Notes() {
     updateStats(editorRef.current.innerText || '')
     updatePageContent(activeNotebook.id, activePage.id, html)
     emitTyping(activePage.id, true)
+  }
+
+  // Execute Rich Text Formatting via document.execCommand
+  const execCmd = (command, value = null) => {
+    if (!editorRef.current) return
+    editorRef.current.focus()
+    document.execCommand(command, false, value)
+    handleEditorInput()
   }
 
   // Insert an interactive task checklist item directly into document
