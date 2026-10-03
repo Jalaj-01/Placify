@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   BookOpen, Plus, Users, Search, Trash2, ArrowLeft, Save,
@@ -373,18 +373,60 @@ export default function Notes() {
     })
   }
 
-  // Exit Zen Focus Mode on Escape key
+  const handleAddNewPage = useCallback(async () => {
+    if (!activeNotebook) return
+    const newPage = await addPage(activeNotebook.id)
+    if (newPage && newPage.id) {
+      setActivePageId(newPage.id)
+      setEditingPageTitle(newPage.title || '')
+      if (editorRef.current) {
+        editorRef.current.innerHTML = ''
+        updateStats('')
+        setTimeout(() => {
+          if (editorRef.current) {
+            editorRef.current.focus()
+          }
+        }, 50)
+      }
+    }
+  }, [activeNotebook, addPage, setActivePageId])
+
+  // Global keyboard shortcuts (Ctrl+N for New Page, Escape for focus mode)
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Exit Zen Focus Mode on Escape key
       if (e.key === 'Escape' && isFocusMode) {
         setIsFocusMode(false)
         setIsSidebarOpen(true)
         setIsToolbarOpen(true)
+        return
+      }
+
+      // Shortcut: Ctrl+N or Cmd+N (also supports Alt+N) to add new page
+      if ((e.ctrlKey || e.metaKey || e.altKey) && (e.key === 'n' || e.key === 'N')) {
+        if (showExportModal || showCollabModal || showCreateNbModal || showJoinNbModal || showLinkModal) {
+          return
+        }
+        if (activeNotebook) {
+          e.preventDefault()
+          e.stopPropagation()
+          handleAddNewPage()
+        }
       }
     }
+
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isFocusMode])
+  }, [
+    isFocusMode,
+    activeNotebook,
+    showExportModal,
+    showCollabModal,
+    showCreateNbModal,
+    showJoinNbModal,
+    showLinkModal,
+    handleAddNewPage,
+  ])
 
   // PDF Export States (Whole Notebook vs Specific Page)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -654,23 +696,6 @@ export default function Notes() {
     }
   }
 
-  const handleAddNewPage = async () => {
-    if (!activeNotebook) return
-    const newPage = await addPage(activeNotebook.id)
-    if (newPage && newPage.id) {
-      setActivePageId(newPage.id)
-      setEditingPageTitle(newPage.title || '')
-      if (editorRef.current) {
-        editorRef.current.innerHTML = ''
-        updateStats('')
-        setTimeout(() => {
-          if (editorRef.current) {
-            editorRef.current.focus()
-          }
-        }, 50)
-      }
-    }
-  }
 
   const handleCreateSticky = async (e) => {
     e.preventDefault()
@@ -985,6 +1010,7 @@ export default function Notes() {
                   <button
                     onClick={handleAddNewPage}
                     className="text-xs text-accent hover:text-accent-light font-bold flex items-center gap-1 px-1.5 py-0.5 rounded-lg hover:bg-accent/10 transition-colors"
+                    title="Add New Page / Chapter (Ctrl+N)"
                   >
                     <Plus className="h-3 w-3" /> Add Page
                   </button>
@@ -1245,7 +1271,7 @@ export default function Notes() {
                     type="button"
                     onClick={handleAddNewPage}
                     className="px-2.5 py-1 rounded-lg bg-accent/15 hover:bg-accent text-accent hover:text-white transition-all text-xs font-bold flex items-center gap-1.5 shadow-2xs active:scale-95 shrink-0 border border-accent/25"
-                    title="Add New Page / Chapter"
+                    title="Add New Page / Chapter (Ctrl+N)"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     <span>New Page</span>
