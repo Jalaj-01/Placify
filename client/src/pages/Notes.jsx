@@ -642,26 +642,65 @@ export default function Notes() {
     if (nb?.id) setActiveNotebookId(nb.id)
   }
 
-  const handleShareClick = async (e, nb) => {
-    e.stopPropagation()
-    const shared = await shareNotebook(nb.id)
-    const effectiveNb = shared || nb
+  const handleShareClick = (e, nb) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    const targetNb = nb || activeNotebook || notebooks[0]
+    if (!targetNb) return
+
+    const effectiveNb = {
+      ...targetNb,
+      collabRoomId: targetNb.collabRoomId || `collab-${Math.random().toString(36).substring(2, 8)}`,
+      isCollaborative: true,
+    }
+
     const shareUrl = `${window.location.origin}/notes?room=${effectiveNb.collabRoomId}`
-    navigator.clipboard.writeText(shareUrl)
-    setCopiedCardId(effectiveNb.id)
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          setCopiedCardId(effectiveNb.id)
+          setShareCopied(true)
+          setTimeout(() => {
+            setCopiedCardId(null)
+            setShareCopied(false)
+          }, 2500)
+        }).catch(() => {})
+      }
+    } catch {}
+
     setShareModalTarget(effectiveNb)
-    setShareCopied(true)
-    setTimeout(() => {
-      setCopiedCardId(null)
-      setShareCopied(false)
-    }, 2500)
+
+    shareNotebook(effectiveNb.id).then((updated) => {
+      if (updated) {
+        setShareModalTarget((curr) => (curr?.id === updated.id ? updated : curr))
+      }
+    }).catch((err) => {
+      console.warn('shareNotebook background sync warning:', err)
+    })
   }
 
-  const handleOpenCollabModal = async () => {
-    if (activeNotebook) {
-      await shareNotebook(activeNotebook.id)
+  const handleOpenCollabModal = (e) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
     }
+    const currentNb = activeNotebook || notebooks[0]
+    if (!currentNb) return
+
+    if (!currentNb.collabRoomId) {
+      const newRoom = `collab-${Math.random().toString(36).substring(2, 8)}`
+      currentNb.collabRoomId = newRoom
+      currentNb.isCollaborative = true
+    }
+
     setShowCollabModal(true)
+
+    shareNotebook(currentNb.id).catch((err) => {
+      console.warn('shareNotebook background sync warning:', err)
+    })
   }
 
   const handleJoinNotebook = async (e) => {
@@ -735,6 +774,7 @@ export default function Notes() {
   }
 
   const currentTheme = PAPER_THEMES.find((t) => t.id === (activeNotebook?.paperStyle || 'ruled')) || PAPER_THEMES[0]
+  const targetCollabNb = activeNotebook || notebooks[0] || null
 
   return (
     <>
@@ -2254,7 +2294,7 @@ export default function Notes() {
       )}
 
       {/* ── MODAL 3: SHARE & COLLABORATE POPUP (HOST / ACTIVE NOTEBOOK) ── */}
-      {showCollabModal && activeNotebook && (
+      {showCollabModal && targetCollabNb && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-surface border border-border-subtle rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
@@ -2277,16 +2317,21 @@ export default function Notes() {
               </label>
               <div className="flex items-center justify-between gap-2 bg-base px-3 py-2 rounded-xl border border-border-subtle">
                 <span className="text-xs font-mono text-accent truncate flex-1">
-                  {`${window.location.origin}/notes?room=${activeNotebook.collabRoomId}`}
+                  {`${window.location.origin}/notes?room=${targetCollabNb.collabRoomId}`}
                 </span>
                 <button
+                  type="button"
                   onClick={() => {
-                    const link = `${window.location.origin}/notes?room=${activeNotebook.collabRoomId}`
-                    navigator.clipboard.writeText(link)
+                    const link = `${window.location.origin}/notes?room=${targetCollabNb.collabRoomId}`
+                    try {
+                      if (navigator?.clipboard?.writeText) {
+                        navigator.clipboard.writeText(link).catch(() => {})
+                      }
+                    } catch {}
                     setCopiedCode(true)
                     setTimeout(() => setCopiedCode(false), 2000)
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-accent text-white hover:bg-accent-light text-xs font-bold flex items-center gap-1 shrink-0 shadow-xs"
+                  className="px-2.5 py-1 rounded-lg bg-accent text-white hover:bg-accent-light text-xs font-bold flex items-center gap-1 shrink-0 shadow-xs cursor-pointer"
                 >
                   {copiedCode ? <Check className="h-3 w-3 text-emerald-300" /> : <Copy className="h-3 w-3" />}
                   <span>{copiedCode ? 'Copied Link!' : 'Copy Link'}</span>
@@ -2378,13 +2423,18 @@ export default function Notes() {
                   {`${window.location.origin}/notes?room=${shareModalTarget.collabRoomId}`}
                 </span>
                 <button
+                  type="button"
                   onClick={() => {
                     const link = `${window.location.origin}/notes?room=${shareModalTarget.collabRoomId}`
-                    navigator.clipboard.writeText(link)
+                    try {
+                      if (navigator?.clipboard?.writeText) {
+                        navigator.clipboard.writeText(link).catch(() => {})
+                      }
+                    } catch {}
                     setShareCopied(true)
                     setTimeout(() => setShareCopied(false), 2500)
                   }}
-                  className="px-3 py-1 rounded-lg bg-accent text-white text-xs font-bold flex items-center gap-1 shrink-0 shadow-xs"
+                  className="px-3 py-1 rounded-lg bg-accent text-white text-xs font-bold flex items-center gap-1 shrink-0 shadow-xs cursor-pointer"
                 >
                   {shareCopied ? <Check className="h-3 w-3 text-emerald-300" /> : <Copy className="h-3 w-3" />}
                   <span>{shareCopied ? 'Copied!' : 'Copy Link'}</span>
