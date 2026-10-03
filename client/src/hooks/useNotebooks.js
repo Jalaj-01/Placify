@@ -311,6 +311,44 @@ export function useNotebooks(user) {
     }
   }, [activeNotebook?.id, activeNotebook?.updatedAt, activeNotebook?.collabRoomId])
 
+  // Real-time Firestore subscription for active collaborative notebook (guarantees live sync across all devices)
+  useEffect(() => {
+    if (!activeNotebook?.collabRoomId) return
+
+    const rawRoom = activeNotebook.collabRoomId.trim().replace(/^#+/, '').toLowerCase()
+    const roomId = rawRoom.startsWith('collab-') ? rawRoom : `collab-${rawRoom}`
+
+    const unsubFirestore = subscribeSharedNotebook(roomId, (remoteNb) => {
+      if (!remoteNb || (!remoteNb.pages && !remoteNb.title)) return
+
+      setNotebooks((prev) => {
+        const currentNb = prev.find(
+          (n) =>
+            n.id === activeNotebook.id ||
+            n.id === remoteNb.id ||
+            n.collabRoomId?.trim().replace(/^#+/, '').toLowerCase() === roomId
+        )
+        if (!currentNb) return prev
+
+        // Merge remote updates with local state
+        const updatedNb = {
+          ...currentNb,
+          ...remoteNb,
+          id: currentNb.id,
+          collabRoomId: roomId,
+        }
+
+        const updatedList = prev.map((n) => (n.id === currentNb.id ? updatedNb : n))
+        saveLocalNotebooks(updatedList)
+        return updatedList
+      })
+    })
+
+    return () => {
+      if (typeof unsubFirestore === 'function') unsubFirestore()
+    }
+  }, [activeNotebook?.id, activeNotebook?.collabRoomId])
+
   // Real-time socket & shared room subscription for active collaborative notebook
   useEffect(() => {
     if (!activeNotebook?.collabRoomId) {
@@ -366,7 +404,21 @@ export function useNotebooks(user) {
       const handleNotebookUpdated = ({ notebook: remoteNb, sender }) => {
         if (sender === uid || !remoteNb) return
         setNotebooks((prev) => {
-          const updated = prev.map((n) => (n.id === remoteNb.id ? remoteNb : n))
+          const currentNb = prev.find(
+            (n) =>
+              n.id === activeNotebook.id ||
+              n.id === remoteNb.id ||
+              n.collabRoomId?.trim().replace(/^#+/, '').toLowerCase() === roomId
+          )
+          if (!currentNb) return prev
+
+          const updatedNb = {
+            ...currentNb,
+            ...remoteNb,
+            id: currentNb.id,
+            collabRoomId: roomId,
+          }
+          const updated = prev.map((n) => (n.id === currentNb.id ? updatedNb : n))
           saveLocalNotebooks(updated)
           return updated
         })
@@ -375,7 +427,11 @@ export function useNotebooks(user) {
       const handlePageUpdated = ({ pageId, htmlContent, sender }) => {
         if (sender === uid) return
         setNotebooks((prev) => {
-          const currentNb = prev.find((n) => n.id === activeNotebook.id)
+          const currentNb = prev.find(
+            (n) =>
+              n.id === activeNotebook.id ||
+              n.collabRoomId?.trim().replace(/^#+/, '').toLowerCase() === roomId
+          )
           if (!currentNb) return prev
 
           const updatedPages = currentNb.pages.map((p) => {
@@ -384,7 +440,7 @@ export function useNotebooks(user) {
           })
 
           const updatedNb = { ...currentNb, pages: updatedPages, updatedAt: new Date().toISOString() }
-          const updatedList = prev.map((n) => (n.id === updatedNb.id ? updatedNb : n))
+          const updatedList = prev.map((n) => (n.id === currentNb.id ? updatedNb : n))
           saveLocalNotebooks(updatedList)
           return updatedList
         })
@@ -625,8 +681,10 @@ export function useNotebooks(user) {
 
     // Broadcast live over socket to room
     if (nb.isCollaborative && nb.collabRoomId && socket) {
+      const cleanRoom = nb.collabRoomId.trim().replace(/^#+/, '').toLowerCase()
+      const roomId = cleanRoom.startsWith('collab-') ? cleanRoom : `collab-${cleanRoom}`
       socket.emit('notebook-page-update', {
-        roomId: nb.collabRoomId,
+        roomId,
         pageId,
         htmlContent,
         sender: uid,

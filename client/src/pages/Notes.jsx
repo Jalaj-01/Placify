@@ -149,6 +149,22 @@ export default function Notes() {
   ]
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('ALL')
 
+  // Document Editor State - declared first to prevent any TDZ ReferenceErrors
+  const editorRef = useRef(null)
+  const scrollContainerRef = useRef(null)
+  const prevPageIdRef = useRef(null)
+  const [editingTitle, setEditingTitle] = useState('')
+  const [editingPageTitle, setEditingPageTitle] = useState('')
+  const [stats, setStats] = useState({ words: 0, chars: 0, readingTime: '1 min' })
+
+  const updateStats = (text) => {
+    const cleanText = (text || '').trim()
+    const words = cleanText ? cleanText.split(/\s+/).length : 0
+    const chars = cleanText.length
+    const readingTime = `${Math.max(1, Math.ceil(words / 200))} min read`
+    setStats({ words, chars, readingTime })
+  }
+
   // Sticky Notes Hook
   const { notes, addNote, updateNote, deleteNote } = useStickyNotes(user?.uid)
 
@@ -195,10 +211,6 @@ export default function Notes() {
           const firstPage = res.notebook.pages?.[0]
           if (firstPage?.id) {
             setActivePageId(firstPage.id)
-            if (editorRef.current) {
-              editorRef.current.innerHTML = firstPage.htmlContent || ''
-              updateStats(editorRef.current.innerText || '')
-            }
           }
           setTimeout(() => {
             setJoinFeedback((curr) => curr?.type === 'success' ? null : curr)
@@ -231,11 +243,7 @@ export default function Notes() {
     }
   }, [searchParams])
 
-  // Document Editor State
-  const editorRef = useRef(null)
-  const scrollContainerRef = useRef(null)
-  const [editingTitle, setEditingTitle] = useState('')
-  const [editingPageTitle, setEditingPageTitle] = useState('')
+  // Modals & Forms State
   const [showCollabModal, setShowCollabModal] = useState(false)
   const [showCreateNbModal, setShowCreateNbModal] = useState(false)
   const [showJoinNbModal, setShowJoinNbModal] = useState(false)
@@ -302,10 +310,6 @@ export default function Notes() {
     setEditingSticky(null)
   }
 
-  // Statistics
-  const [stats, setStats] = useState({ words: 0, chars: 0, readingTime: '1 min' })
-  const prevPageIdRef = useRef(activePage?.id)
-
   // Synchronize document editor when activeNotebook, activePage, or page content changes
   useEffect(() => {
     if (editorRef.current && activePage) {
@@ -336,14 +340,6 @@ export default function Notes() {
   useEffect(() => {
     setEditingPageTitle(activePage?.title || '')
   }, [activePage?.id, activePage?.title])
-
-  const updateStats = (text) => {
-    const cleanText = text.trim()
-    const words = cleanText ? cleanText.split(/\s+/).length : 0
-    const chars = cleanText.length
-    const readingTime = `${Math.max(1, Math.ceil(words / 200))} min read`
-    setStats({ words, chars, readingTime })
-  }
 
   // Sidebar, Header & Toolbar Collapse States
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
@@ -1126,7 +1122,7 @@ export default function Notes() {
             <div className="flex-1 flex flex-col h-full bg-base overflow-hidden print:overflow-visible print:bg-white">
             {/* Document Header Controls */}
             {!isFocusMode && (
-              <div className="px-3 py-1.5 border-b border-border-subtle bg-surface/90 backdrop-blur-md flex items-center justify-between gap-2.5 shrink-0 flex-wrap print:hidden">
+              <div className="px-3 py-1.5 border-b border-border-subtle bg-surface/90 backdrop-blur-md flex items-center justify-between gap-2.5 shrink-0 flex-nowrap overflow-x-auto scrollbar-none print:hidden">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   {/* Inline Tab Switcher & Banner Reveal when top banner is closed */}
                   {!isTopHeaderOpen && (
@@ -1200,9 +1196,8 @@ export default function Notes() {
                         renamePage(activeNotebook.id, activePage.id, editingPageTitle.trim())
                       }
                     }}
-                    className="text-sm sm:text-base font-bold text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-[130px] sm:max-w-xs md:max-w-sm px-1 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                    style={{ color: 'var(--text-primary)' }}
-                    placeholder={activePage?.title || 'Page Title'}
+                    className="text-sm sm:text-base font-bold bg-transparent border-b border-transparent hover:border-border-subtle focus:border-accent focus:outline-none transition-colors truncate max-w-[130px] sm:max-w-xs md:max-w-sm px-1 text-text-primary placeholder:text-text-muted/50"
+                    placeholder="Page Title"
                     title="Click to rename this page"
                   />
                 </div>

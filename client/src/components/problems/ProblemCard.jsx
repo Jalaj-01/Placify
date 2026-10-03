@@ -9,6 +9,7 @@ import { daysAgo, formatDate } from '@/utils/dateHelpers'
 import { Timestamp } from 'firebase/firestore'
 import { cn } from '@/lib/utils'
 import { openFileInNewTab } from '@/utils/fileHelpers'
+import DocumentPreviewModal from '@/components/ui/DocumentPreviewModal'
 
 
 function isDue(nextReviewDate) {
@@ -39,6 +40,7 @@ export default function ProblemCard({ problem, onUpdate, onDelete, onShare }) {
   const [output, setOutput] = useState('')
   const [running, setRunning] = useState(false)
   const [savingCode, setSavingCode] = useState(false)
+  const [previewAtt, setPreviewAtt] = useState(null)
 
   const runCode = async () => {
     setRunning(true)
@@ -147,8 +149,9 @@ export default function ProblemCard({ problem, onUpdate, onDelete, onShare }) {
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => openFileInNewTab(att.url, att.type)}
-                  className="inline-flex items-center gap-1.5 text-micro bg-hover border border-border-subtle hover:border-border-hover px-2 py-0.5 rounded text-accent-light transition-colors"
+                  onClick={() => setPreviewAtt(att)}
+                  className="inline-flex items-center gap-1.5 text-micro bg-hover border border-border-subtle hover:border-accent hover:text-accent px-2 py-0.5 rounded text-accent-light transition-colors"
+                  title={`Click to view ${att.name} in platform`}
                 >
                   <Paperclip className="h-3 w-3" />
                   {att.name}
@@ -233,6 +236,12 @@ export default function ProblemCard({ problem, onUpdate, onDelete, onShare }) {
           )}
         </CardContent>
       </Card>
+
+      <DocumentPreviewModal
+        open={!!previewAtt}
+        onOpenChange={(open) => !open && setPreviewAtt(null)}
+        file={previewAtt}
+      />
     </motion.div>
   )
 }

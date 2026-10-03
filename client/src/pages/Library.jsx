@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { FolderOpen, FileUp, FileText, ImageIcon, Search, Trash2, ExternalLink, Loader2, ArrowRight, Share2 } from 'lucide-react'
+import { FolderOpen, FileUp, FileText, ImageIcon, Search, Trash2, ExternalLink, Loader2, ArrowRight, Share2, Eye } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useLibrary } from '@/hooks/useLibrary'
 import ShareDialog from '@/components/share/ShareDialog'
+import DocumentPreviewModal from '@/components/ui/DocumentPreviewModal'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ export default function Library() {
   // Dialog state
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null)
   const [shareItemData, setShareItemData] = useState(null)
+  const [previewDoc, setPreviewDoc] = useState(null)
 
 
   const readFileAsBase64 = (file) => {
@@ -205,9 +207,13 @@ export default function Library() {
             {filteredDocs.map((docItem) => {
               const isImage = docItem.type?.startsWith('image/')
               return (
-                <Card key={docItem.id} className="bg-card border border-border-subtle hover:border-border-hover transition-all flex flex-col group overflow-hidden">
+                <Card key={docItem.id} className="bg-card border border-border-subtle hover:border-accent/40 transition-all flex flex-col group overflow-hidden shadow-xs hover:shadow-md">
                   {/* File Preview Thumbnail */}
-                  <div className="h-32 bg-surface flex items-center justify-center border-b border-border-subtle relative overflow-hidden shrink-0">
+                  <div
+                    onClick={() => setPreviewDoc(docItem)}
+                    className="h-32 bg-surface flex items-center justify-center border-b border-border-subtle relative overflow-hidden shrink-0 cursor-pointer"
+                    title="Click to view file in platform"
+                  >
                     {isImage ? (
                       <img
                         src={docItem.url}
@@ -215,17 +221,28 @@ export default function Library() {
                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       />
                     ) : (
-                      <div className="flex flex-col items-center gap-1.5">
+                      <div className="flex flex-col items-center gap-1.5 transition-transform group-hover:scale-105">
                         <FileText className="h-10 w-10 text-semantic-red" />
                         <span className="text-[10px] font-bold text-semantic-red bg-semantic-red/10 px-2 py-0.5 rounded uppercase">PDF Doc</span>
                       </div>
                     )}
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <div className="px-2.5 py-1 rounded-full bg-surface/90 text-text-primary text-[11px] font-bold flex items-center gap-1.5 shadow-md">
+                        <Eye className="h-3.5 w-3.5 text-accent" />
+                        <span>Preview</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Metadata */}
                   <CardContent className="p-3.5 flex-1 flex flex-col justify-between gap-3">
                     <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-text-primary truncate" title={docItem.name}>
+                      <h4
+                        onClick={() => setPreviewDoc(docItem)}
+                        className="text-xs font-bold text-text-primary truncate cursor-pointer hover:text-accent transition-colors"
+                        title={`Click to view: ${docItem.name}`}
+                      >
                         {docItem.name}
                       </h4>
                       <p className="text-[10px] text-text-muted mt-1">
@@ -237,16 +254,18 @@ export default function Library() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openFileInNewTab(docItem.url, docItem.type)}
-                        className="h-7 w-7 text-text-muted hover:text-text-primary hover:bg-hover"
+                        onClick={() => setPreviewDoc(docItem)}
+                        className="h-7 w-7 text-text-muted hover:text-accent hover:bg-hover"
+                        title="View file in platform"
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
+                        <Eye className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setShareItemData({ type: 'library', data: docItem })}
                         className="h-7 w-7 text-text-muted hover:text-accent-light hover:bg-hover"
+                        title="Share Document"
                       >
                         <Share2 className="h-3.5 w-3.5" />
                       </Button>
@@ -255,6 +274,7 @@ export default function Library() {
                         size="icon"
                         onClick={() => setDeleteConfirmDoc(docItem)}
                         className="h-7 w-7 text-text-muted hover:text-semantic-red hover:bg-hover"
+                        title="Delete Document"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -266,6 +286,13 @@ export default function Library() {
           </div>
         )}
       </div>
+
+      {/* In-Platform Document & Image Preview Modal */}
+      <DocumentPreviewModal
+        open={!!previewDoc}
+        onOpenChange={(open) => !open && setPreviewDoc(null)}
+        file={previewDoc}
+      />
 
       {/* Confirmation Dialog */}
       <Dialog open={!!deleteConfirmDoc} onOpenChange={() => setDeleteConfirmDoc(null)}>
