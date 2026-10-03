@@ -169,7 +169,22 @@ export default function Notes() {
         message: `Connecting to collaborative notebook #${clean}...`,
       })
 
+      let didFinish = false
+      const safetyTimer = setTimeout(() => {
+        if (!didFinish) {
+          didFinish = true
+          setJoiningRoomCode(null)
+          setJoinFeedback({
+            type: 'error',
+            message: `Could not connect to collaborative notebook #${clean}. Host may need to open Placify to sync.`,
+          })
+        }
+      }, 4500)
+
       joinSharedNotebook(clean).then((res) => {
+        if (didFinish) return
+        didFinish = true
+        clearTimeout(safetyTimer)
         setJoiningRoomCode(null)
         if (res?.success && res.notebook) {
           setJoinFeedback({
@@ -199,12 +214,20 @@ export default function Notes() {
           })
         }
       }).catch((err) => {
+        if (didFinish) return
+        didFinish = true
+        clearTimeout(safetyTimer)
         setJoiningRoomCode(null)
         setJoinFeedback({
           type: 'error',
           message: err?.message || 'Error connecting to collaborative notebook room.',
         })
       })
+
+      return () => {
+        didFinish = true
+        clearTimeout(safetyTimer)
+      }
     }
   }, [searchParams])
 
@@ -577,25 +600,29 @@ export default function Notes() {
     setIsJoining(true)
     setJoinError('')
 
-    const res = await joinSharedNotebook(joinCodeInput.trim())
-    setIsJoining(false)
-
-    if (res?.success) {
-      setShowJoinNbModal(false)
-      setJoinCodeInput('')
-      if (res.notebook?.id) {
-        setActiveNotebookId(res.notebook.id)
-        const firstPage = res.notebook.pages?.[0]
-        if (firstPage?.id) {
-          setActivePageId(firstPage.id)
-          if (editorRef.current) {
-            editorRef.current.innerHTML = firstPage.htmlContent || ''
-            updateStats(editorRef.current.innerText || '')
+    try {
+      const res = await joinSharedNotebook(joinCodeInput.trim())
+      if (res?.success) {
+        setShowJoinNbModal(false)
+        setJoinCodeInput('')
+        if (res.notebook?.id) {
+          setActiveNotebookId(res.notebook.id)
+          const firstPage = res.notebook.pages?.[0]
+          if (firstPage?.id) {
+            setActivePageId(firstPage.id)
+            if (editorRef.current) {
+              editorRef.current.innerHTML = firstPage.htmlContent || ''
+              updateStats(editorRef.current.innerText || '')
+            }
           }
         }
+      } else {
+        setJoinError(res?.error || 'Failed to join notebook room.')
       }
-    } else {
-      setJoinError(res?.error || 'Failed to join notebook room.')
+    } catch (err) {
+      setJoinError(err?.message || 'Error connecting to collaborative notebook.')
+    } finally {
+      setIsJoining(false)
     }
   }
 

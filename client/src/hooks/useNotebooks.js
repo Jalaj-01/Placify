@@ -170,10 +170,26 @@ export function useNotebooks(user) {
   const [notebooks, setNotebooks] = useState(() => getLocalNotebooks())
   const [loading, setLoading] = useState(true)
   const [activeNotebookId, setActiveNotebookId] = useState(() => {
-    const list = getLocalNotebooks()
-    return list[0]?.id || null
+    try {
+      const storedActiveId = localStorage.getItem('placify_active_notebook_id')
+      const list = getLocalNotebooks()
+      if (storedActiveId && list.some((n) => n.id === storedActiveId)) {
+        return storedActiveId
+      }
+      return list[0]?.id || null
+    } catch {
+      return null
+    }
   })
   const [activePageId, setActivePageId] = useState(null)
+
+  useEffect(() => {
+    if (activeNotebookId) {
+      try {
+        localStorage.setItem('placify_active_notebook_id', activeNotebookId)
+      } catch {}
+    }
+  }, [activeNotebookId])
 
   // Real-time collaboration states
   const [activeCollaborators, setActiveCollaborators] = useState([])
@@ -603,7 +619,7 @@ export function useNotebooks(user) {
     })
     const hasMeaningfulContent = existing && (
       (existing.pages?.length > 1) ||
-      (existing.pages?.[0]?.htmlContent && existing.pages[0].htmlContent.trim().length > 10)
+      (existing.pages?.[0]?.htmlContent && existing.pages[0].htmlContent.trim().length > 0)
     ) && !existing.title?.startsWith('Shared Collab (Room')
 
     if (existing && hasMeaningfulContent) {
@@ -611,6 +627,40 @@ export function useNotebooks(user) {
       if (existing.pages?.[0]?.id) setActivePageId(existing.pages[0].id)
       return { success: true, notebook: existing }
     }
+
+    // 1b. Check local storage directly for instant resolution
+    try {
+      const localList = getLocalNotebooks()
+      const localMatch = localList.find((n) => {
+        const rId = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
+        const nId = n.id?.toLowerCase()
+        return rId === cleanCodeLower || rId === altCodeLower || nId === cleanCodeLower || nId === altCodeLower
+      })
+      if (localMatch && (localMatch.pages?.length > 1 || localMatch.pages?.[0]?.htmlContent?.trim()?.length > 0)) {
+        setActiveNotebookId(localMatch.id)
+        if (localMatch.pages?.[0]?.id) setActivePageId(localMatch.pages[0].id)
+        return { success: true, notebook: localMatch }
+      }
+
+      const cachedRaw = localStorage.getItem(`placify_shared_nb_${cleanCodeLower}`) || localStorage.getItem(`placify_shared_nb_${altCodeLower}`)
+      if (cachedRaw) {
+        const parsed = JSON.parse(cachedRaw)
+        if (parsed && (parsed.pages?.length > 0 || parsed.title)) {
+          const finalNb = {
+            ...parsed,
+            id: parsed.id || `nb-joined-${Date.now()}`,
+            isCollaborative: true,
+            collabRoomId: canonicalRoomId,
+          }
+          const updatedList = [finalNb, ...notebooks.filter((n) => n.id !== finalNb.id)]
+          setNotebooks(updatedList)
+          saveLocalNotebooks(updatedList)
+          setActiveNotebookId(finalNb.id)
+          if (finalNb.pages?.[0]?.id) setActivePageId(finalNb.pages[0].id)
+          return { success: true, notebook: finalNb }
+        }
+      }
+    } catch {}
 
     // 2. Connect to Socket room and request active peer notebook state
     if (socket) {
@@ -624,17 +674,30 @@ export function useNotebooks(user) {
       socket.emit('notebook-request-state', { roomId: canonicalRoomId })
     }
 
-    // 3. Fetch shared notebook from Firestore or Socket with safety timeout
-    return new Promise(async (resolve) => {
+    // 3. Fetch shared notebook with strict non-hanging promise structure
+    return new Promise((resolve) => {
       let resolved = false
-      let unsubFirestore = () => {}
+      let timeoutId = null
+      let unsubFirestore = null
 
-      const finalizeJoin = async (realNb) => {
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
+        if (typeof unsubFirestore === 'function') {
+          try { unsubFirestore() } catch {}
+          unsubFirestore = null
+        }
+        if (socket) {
+          try { socket.off('notebook-updated', handleSocketUpdate) } catch {}
+        }
+      }
+
+      const finalizeJoin = (realNb) => {
         if (resolved || !realNb) return
         resolved = true
-        clearTimeout(timeoutId)
-        if (typeof unsubFirestore === 'function') unsubFirestore()
-        if (socket) socket.off('notebook-updated', handleSocketUpdate)
+        cleanup()
 
         const finalNb = {
           ...realNb,
@@ -643,32 +706,28 @@ export function useNotebooks(user) {
           collabRoomId: canonicalRoomId,
         }
 
-        const updatedList = [finalNb, ...notebooks.filter((n) => {
-          const r = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
-          return n.id !== finalNb.id && r !== cleanCodeLower && r !== altCodeLower
-        })]
-        setNotebooks(updatedList)
-        saveLocalNotebooks(updatedList)
+        setNotebooks((prev) => {
+          const updatedList = [
+            finalNb,
+            ...prev.filter((n) => {
+              const r = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
+              return n.id !== finalNb.id && r !== cleanCodeLower && r !== altCodeLower
+            }),
+          ]
+          saveLocalNotebooks(updatedList)
+          return updatedList
+        })
+
         setActiveNotebookId(finalNb.id)
         if (finalNb.pages?.[0]?.id) {
           setActivePageId(finalNb.pages[0].id)
         }
 
         if (uid) {
-          await firestoreSaveNotebook(uid, finalNb).catch(() => {})
+          firestoreSaveNotebook(uid, finalNb).catch(() => {})
         }
 
         resolve({ success: true, notebook: finalNb })
-      }
-
-      // 3a. Check immediate fetch from universal Firestore cloud storage
-      try {
-        const instantNb = await fetchSharedNotebook(canonicalRoomId)
-        if (instantNb && instantNb.pages && (instantNb.pages.length > 1 || instantNb.pages[0]?.htmlContent?.trim()?.length > 0)) {
-          return finalizeJoin(instantNb)
-        }
-      } catch (err) {
-        console.warn('instant fetchSharedNotebook error:', err)
       }
 
       const handleSocketUpdate = ({ notebook: socketNb }) => {
@@ -683,30 +742,51 @@ export function useNotebooks(user) {
         socket.on('notebook-updated', handleSocketUpdate)
       }
 
-      // Safety timeout: 7 seconds to allow network & Firestore connection
-      const timeoutId = setTimeout(() => {
+      // Safety timeout: 4 seconds maximum to prevent any hang
+      timeoutId = setTimeout(() => {
         if (!resolved) {
           resolved = true
-          if (typeof unsubFirestore === 'function') unsubFirestore()
-          if (socket) socket.off('notebook-updated', handleSocketUpdate)
-          if (existing) {
-            setActiveNotebookId(existing.id)
-            if (existing.pages?.[0]?.id) setActivePageId(existing.pages[0].id)
-            resolve({ success: true, notebook: existing })
+          cleanup()
+          const currentList = getLocalNotebooks()
+          const fallbackNb = currentList.find((n) => {
+            const r = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
+            const id = n.id?.toLowerCase()
+            return r === cleanCodeLower || r === altCodeLower || id === cleanCodeLower || id === altCodeLower
+          })
+          if (fallbackNb) {
+            setActiveNotebookId(fallbackNb.id)
+            if (fallbackNb.pages?.[0]?.id) setActivePageId(fallbackNb.pages[0].id)
+            resolve({ success: true, notebook: fallbackNb })
           } else {
             resolve({
               success: false,
-              error: `Could not find notebook for room code "${roomCode}". Make sure the notebook host has opened Placify or verify the code.`,
+              error: `Could not find notebook for room code "${roomCode}". Make sure the notebook host has shared it or verify the code.`,
             })
           }
         }
-      }, 7000)
+      }, 4000)
 
-      unsubFirestore = subscribeSharedNotebook(cleanCodeLower, async (sharedData) => {
-        if (sharedData && sharedData.pages) {
-          finalizeJoin(sharedData)
-        }
-      })
+      // Subscribe to real-time updates from Firestore
+      try {
+        unsubFirestore = subscribeSharedNotebook(cleanCodeLower, (sharedData) => {
+          if (sharedData && (sharedData.pages?.length > 0 || sharedData.title)) {
+            finalizeJoin(sharedData)
+          }
+        })
+      } catch (err) {
+        console.warn('subscribeSharedNotebook error:', err)
+      }
+
+      // Instant active fetch
+      fetchSharedNotebook(canonicalRoomId)
+        .then((instantNb) => {
+          if (instantNb && (instantNb.pages?.length > 0 || instantNb.title)) {
+            finalizeJoin(instantNb)
+          }
+        })
+        .catch((err) => {
+          console.warn('instant fetchSharedNotebook error:', err)
+        })
     })
   }
 

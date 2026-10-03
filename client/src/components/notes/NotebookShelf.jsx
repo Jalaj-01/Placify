@@ -86,17 +86,21 @@ export default function NotebookShelf({
     setIsJoining(true)
     setJoinError('')
 
-    const res = await onJoinSharedNotebook(joinCode.trim())
-    setIsJoining(false)
-
-    if (res?.success) {
-      setShowJoinModal(false)
-      setJoinCode('')
-      if (res.notebook?.id) {
-        onSelectNotebook(res.notebook.id)
+    try {
+      const res = await onJoinSharedNotebook(joinCode.trim())
+      if (res?.success) {
+        setShowJoinModal(false)
+        setJoinCode('')
+        if (res.notebook?.id) {
+          onSelectNotebook(res.notebook.id)
+        }
+      } else {
+        setJoinError(res?.error || 'Could not join notebook room.')
       }
-    } else {
-      setJoinError(res?.error || 'Could not join notebook room.')
+    } catch (err) {
+      setJoinError(err?.message || 'Error joining notebook room.')
+    } finally {
+      setIsJoining(false)
     }
   }
 

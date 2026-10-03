@@ -19,6 +19,7 @@ import {
   savePlaygroundFile,
   importEntirePreparation,
   saveNotebook,
+  fetchSharedNotebook,
 } from '@/services/firestoreService'
 import { cn } from '@/lib/utils'
 
@@ -156,20 +157,39 @@ export default function InvitesDrawer() {
       if (invite.type === 'notebook' || invite.itemType === 'notebook') {
         const rawRoom = (invite.roomId || invite.itemData?.collabRoomId || '').trim().replace(/^#+/, '')
         const targetRoom = rawRoom.startsWith('collab-') ? rawRoom : (rawRoom ? `collab-${rawRoom}` : null)
-        const notebookData = invite.itemData
+        let notebookData = invite.itemData
 
-        if (notebookData && notebookData.id) {
+        // If invite payload lacks pages or chapters, actively fetch the full notebook
+        if ((!notebookData?.pages || notebookData.pages.length === 0) && targetRoom) {
+          try {
+            const fetched = await fetchSharedNotebook(targetRoom)
+            if (fetched && (fetched.pages?.length > 0 || fetched.title)) {
+              notebookData = fetched
+            }
+          } catch {}
+        }
+
+        if (notebookData && (notebookData.id || targetRoom)) {
           const finalNb = {
             ...notebookData,
+            id: notebookData.id || `nb-${Date.now()}`,
+            title: notebookData.title || invite.title || 'Shared Collaborative Notebook',
             isCollaborative: true,
             collabRoomId: targetRoom || notebookData.collabRoomId,
+            pages: notebookData.pages && notebookData.pages.length > 0 ? notebookData.pages : [
+              { id: `page-${Date.now()}`, title: 'Page 1', htmlContent: '' }
+            ],
           }
           try {
             const existing = JSON.parse(localStorage.getItem('placify_notebooks') || '[]')
             const updated = [finalNb, ...existing.filter((n) => n.id !== finalNb.id && n.collabRoomId !== finalNb.collabRoomId)]
             localStorage.setItem('placify_notebooks', JSON.stringify(updated))
+            localStorage.setItem('placify_active_notebook_id', finalNb.id)
             if (targetRoom) {
-              localStorage.setItem(`placify_shared_nb_${targetRoom.toLowerCase()}`, JSON.stringify(finalNb))
+              const cleanR = targetRoom.toLowerCase().replace(/^#+/, '')
+              const altR = cleanR.startsWith('collab-') ? cleanR.replace(/^collab-/, '') : `collab-${cleanR}`
+              localStorage.setItem(`placify_shared_nb_${cleanR}`, JSON.stringify(finalNb))
+              localStorage.setItem(`placify_shared_nb_${altR}`, JSON.stringify(finalNb))
             }
             window.dispatchEvent(new Event('placify_notebooks_changed'))
           } catch {}
@@ -183,7 +203,7 @@ export default function InvitesDrawer() {
         if (targetRoom) {
           navigate(`/notes?room=${encodeURIComponent(targetRoom)}`)
         } else {
-          openNotebooks()
+          navigate('/notes')
         }
         return
       } else if (invite.type === 'room' || (!invite.type && invite.roomId)) {
