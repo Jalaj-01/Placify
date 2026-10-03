@@ -15,6 +15,8 @@ import { useStickyNotes } from '@/hooks/useStickyNotes'
 import { cn } from '@/lib/utils'
 import { formatAcademicDocument } from '@/lib/academicDocFormatter'
 import { createCommunityPost } from '@/services/firestoreService'
+import { htmlToCleanText } from '@/utils/textHelpers'
+import PageStickyNote from '@/components/notes/PageStickyNote'
 
 const PAPER_THEMES = [
   { id: 'ruled', name: 'Ruled Lines', class: 'paper-ruled' },
@@ -136,6 +138,7 @@ export default function Notes() {
     renamePage,
     reorderPages,
     updatePageContent,
+    updatePageStickyNotes,
     joinSharedNotebook,
     sendPeerInvite,
     emitTyping,
@@ -304,8 +307,8 @@ export default function Notes() {
 
   const handleOpenEditSticky = (note) => {
     setEditingSticky(note)
-    setEditStickyTitle(note.title || '')
-    setEditStickyBody(note.content || '')
+    setEditStickyTitle(htmlToCleanText(note.title || ''))
+    setEditStickyBody(htmlToCleanText(note.content || ''))
     setEditStickyColor(note.color || 'yellow')
     setEditStickyPinned(!!note.isPinned)
   }
@@ -315,13 +318,44 @@ export default function Notes() {
     if (!editingSticky) return
 
     await updateNote(editingSticky.id, {
-      title: editStickyTitle.trim() || 'Untitled Note',
-      content: editStickyBody.trim(),
+      title: htmlToCleanText(editStickyTitle).trim() || 'Untitled Note',
+      content: htmlToCleanText(editStickyBody).trim(),
       color: editStickyColor,
       isPinned: editStickyPinned,
     })
 
     setEditingSticky(null)
+  }
+
+  // ── Page-Specific Movable Sticky Notes Handlers ──
+  const handleAddPageStickyNote = () => {
+    if (!activeNotebook || !activePage) return
+    const currentStickies = activePage.stickyNotes || []
+    const offset = (currentStickies.length % 6) * 24
+    const newNote = {
+      id: `psn_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      text: '',
+      color: 'yellow',
+      x: 30 + offset,
+      y: 50 + offset,
+      width: 220,
+    }
+    const updated = [...currentStickies, newNote]
+    updatePageStickyNotes(activeNotebook.id, activePage.id, updated)
+  }
+
+  const handleUpdatePageStickyNote = (stickyId, updates) => {
+    if (!activeNotebook || !activePage) return
+    const currentStickies = activePage.stickyNotes || []
+    const updated = currentStickies.map((s) => (s.id === stickyId ? { ...s, ...updates } : s))
+    updatePageStickyNotes(activeNotebook.id, activePage.id, updated)
+  }
+
+  const handleDeletePageStickyNote = (stickyId) => {
+    if (!activeNotebook || !activePage) return
+    const currentStickies = activePage.stickyNotes || []
+    const updated = currentStickies.filter((s) => s.id !== stickyId)
+    updatePageStickyNotes(activeNotebook.id, activePage.id, updated)
   }
 
   // Synchronize document editor when activeNotebook, activePage, or page content changes
@@ -756,8 +790,8 @@ export default function Notes() {
         sendPeerInvite(emailToInvite, targetNb.title, targetNb.collabRoomId),
         new Promise((_, reject) =>
           setTimeout(
-            () => reject(new Error('Invite request timed out. Please copy and share the link directly.')),
-            7000
+            () => reject(new Error('Invite request timed out. Please check connection or share the room link.')),
+            15000
           )
         ),
       ])
@@ -788,8 +822,8 @@ export default function Notes() {
     }
 
     await addNote({
-      title: newStickyTitle.trim() || 'Untitled Note',
-      content: newStickyBody.trim(),
+      title: htmlToCleanText(newStickyTitle).trim() || 'Untitled Note',
+      content: htmlToCleanText(newStickyBody).trim(),
       color: newStickyColor,
       isPinned: false,
     })
@@ -1565,6 +1599,19 @@ export default function Notes() {
                   <Eraser className="h-3.5 w-3.5" />
                 </button>
 
+                <div className="h-4 w-px bg-border-subtle mx-1" />
+
+                {/* Page Sticky Note Toolbar Action (only visible on this note page, moveable) */}
+                <button
+                  type="button"
+                  onClick={handleAddPageStickyNote}
+                  className="p-1 px-2 rounded-lg hover:bg-hover hover:text-amber-500 text-text-muted hover:text-text-primary transition-colors text-xs flex items-center gap-1.5 font-medium"
+                  title="Add movable sticky note to this page"
+                >
+                  <StickyNote className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="hidden xl:inline">Sticky Note</span>
+                </button>
+
                 {/* Document Zoom, Canvas Width & Collapse Controls */}
                 <div className="flex items-center gap-1 ml-auto shrink-0 pl-1 border-l border-border-subtle">
                   <button
@@ -1636,7 +1683,7 @@ export default function Notes() {
             <div ref={scrollContainerRef} className={cn('flex-1 overflow-y-auto scrollbar-thin', currentTheme.class)}>
               <div
                 className={cn(
-                  'mx-auto min-h-full flex flex-col transition-all',
+                  'mx-auto min-h-full flex flex-col transition-all relative',
                   editorWidthMode === 'wide'
                     ? 'max-w-6xl w-full px-4 sm:px-8 lg:px-12 py-5'
                     : editorWidthMode === 'full'
@@ -1645,6 +1692,17 @@ export default function Notes() {
                 )}
                 style={{ zoom: `${editorZoom}%` }}
               >
+                {/* ── Movable Page Sticky Notes Layer (only for this page) ── */}
+                {(activePage?.stickyNotes || []).map((sticky) => (
+                  <PageStickyNote
+                    key={sticky.id}
+                    note={sticky}
+                    zoom={editorZoom}
+                    onUpdate={(updates) => handleUpdatePageStickyNote(sticky.id, updates)}
+                    onDelete={() => handleDeletePageStickyNote(sticky.id)}
+                  />
+                ))}
+
                 <div
                   ref={editorRef}
                   contentEditable
@@ -1813,11 +1871,11 @@ export default function Notes() {
             <form
               onSubmit={handleCreateSticky}
               className={cn(
-                'p-5 rounded-3xl border shadow-xl space-y-3.5 max-w-lg animate-in fade-in zoom-in-95 transition-all',
+                'p-4 sm:p-5 rounded-2xl border border-black/10 dark:border-white/10 shadow-xl space-y-3 max-w-xl animate-in fade-in zoom-in-95 transition-all',
                 COLOR_OPTIONS.find((c) => c.id === newStickyColor)?.cardClass || 'bg-card border-amber-400/50'
               )}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pb-1 border-b border-black/5 dark:border-white/5">
                 <span className="text-xs font-bold uppercase tracking-wider opacity-75 flex items-center gap-1.5">
                   <StickyNote className="h-3.5 w-3.5" /> New Sticky Note
                 </span>
@@ -1835,15 +1893,15 @@ export default function Notes() {
                 placeholder="Sticky note title..."
                 value={newStickyTitle}
                 onChange={(e) => setNewStickyTitle(e.target.value)}
-                className="w-full bg-white/70 dark:bg-black/30 border border-black/15 dark:border-white/15 rounded-xl px-3.5 py-2 text-xs font-bold text-inherit placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3.5 py-2 text-xs font-bold text-inherit placeholder:opacity-50 focus:outline-none focus:ring-1 focus:ring-accent"
                 autoFocus
               />
               <textarea
-                rows={3}
+                rows={5}
                 placeholder="Write your note body content..."
                 value={newStickyBody}
                 onChange={(e) => setNewStickyBody(e.target.value)}
-                className="w-full bg-white/70 dark:bg-black/30 border border-black/15 dark:border-white/15 rounded-xl px-3.5 py-2 text-xs text-inherit placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent resize-none font-medium leading-relaxed"
+                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl p-3 text-xs text-inherit placeholder:opacity-50 focus:outline-none focus:ring-1 focus:ring-accent resize-y min-h-[110px] font-normal leading-relaxed"
               />
 
               <div className="flex items-center justify-between pt-1">
@@ -1970,11 +2028,10 @@ export default function Notes() {
                         </div>
                       </div>
 
-                      {/* Card Content Body */}
-                      <div
-                        className="text-xs leading-relaxed my-2.5 font-normal break-words whitespace-pre-wrap line-clamp-6 opacity-90"
-                        dangerouslySetInnerHTML={{ __html: note.content || '' }}
-                      />
+                      {/* Card Content Body: Clean formatted plain text, zero raw HTML tags */}
+                      <div className="text-xs leading-relaxed my-2.5 font-normal break-words whitespace-pre-wrap line-clamp-6 opacity-90">
+                        {htmlToCleanText(note.content)}
+                      </div>
                     </div>
 
                     {/* Card Bottom Meta Footer */}
@@ -2022,27 +2079,27 @@ export default function Notes() {
         </div>
       )}
 
-      {/* ── MODAL: EDIT STICKY NOTE ── */}
+      {/* ── MODAL: EDIT STICKY NOTE (Reduced Bezel, Max Writing Space, No Heavy Borders) ── */}
       {editingSticky && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
           onClick={() => setEditingSticky(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              'border rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 animate-in zoom-in-95 transition-all text-text-primary',
+              'border border-black/10 dark:border-white/10 rounded-2xl p-4 sm:p-5 w-full max-w-2xl shadow-2xl space-y-3.5 animate-in zoom-in-95 transition-all text-text-primary',
               COLOR_OPTIONS.find((c) => c.id === editStickyColor)?.cardClass || 'bg-card'
             )}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pb-1 border-b border-black/5 dark:border-white/5">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-xl bg-black/10 dark:bg-white/10 flex items-center justify-center">
-                  <StickyNote className="h-4 w-4" />
+                <div className="h-7 w-7 rounded-lg bg-black/10 dark:bg-white/10 flex items-center justify-center">
+                  <StickyNote className="h-3.5 w-3.5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm">Edit Sticky Note</h3>
-                  <span className="text-[11px] opacity-70">
+                  <h3 className="font-bold text-sm tracking-tight">Edit Sticky Note</h3>
+                  <span className="text-[10px] opacity-60">
                     Created {formatDateDisplay(editingSticky.createdAt)}
                   </span>
                 </div>
@@ -2053,7 +2110,7 @@ export default function Notes() {
                   type="button"
                   onClick={() => setEditStickyPinned((p) => !p)}
                   className={cn(
-                    'px-2.5 py-1 rounded-xl border transition-all text-xs flex items-center gap-1 font-bold',
+                    'px-2.5 py-1 rounded-lg border transition-all text-xs flex items-center gap-1 font-bold',
                     editStickyPinned
                       ? 'bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300'
                       : 'border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 opacity-70'
@@ -2066,44 +2123,47 @@ export default function Notes() {
                 <button
                   type="button"
                   onClick={() => setEditingSticky(null)}
-                  className="p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 opacity-70 hover:opacity-100 transition-colors"
+                  className="p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 opacity-70 hover:opacity-100 transition-colors"
                 >
                   ✕
                 </button>
               </div>
             </div>
 
-            <form onSubmit={handleSaveEditSticky} className="space-y-3.5">
+            <form onSubmit={handleSaveEditSticky} className="space-y-3">
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider block mb-1 opacity-75">
+                <label className="text-[10px] font-bold uppercase tracking-wider block mb-1 opacity-65">
                   Note Title
                 </label>
                 <input
                   type="text"
-                  placeholder="Title (optional)..."
+                  placeholder="Note Title (optional)..."
                   value={editStickyTitle}
                   onChange={(e) => setEditStickyTitle(e.target.value)}
-                  className="w-full bg-white/70 dark:bg-black/30 border border-black/15 dark:border-white/15 rounded-xl px-3.5 py-2.5 text-sm font-bold placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3.5 py-2 text-sm sm:text-base font-bold placeholder:opacity-40 focus:outline-none focus:ring-1 focus:ring-accent"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider block mb-1 opacity-75">
-                  Content
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider opacity-65">
+                    Content
+                  </label>
+                  <span className="text-[10px] opacity-45">Clean plain text • More space to write</span>
+                </div>
                 <textarea
-                  rows={6}
+                  rows={9}
                   placeholder="Type your note content..."
                   value={editStickyBody}
                   onChange={(e) => setEditStickyBody(e.target.value)}
-                  className="w-full bg-white/70 dark:bg-black/30 border border-black/15 dark:border-white/15 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent resize-none font-medium"
+                  className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl p-3.5 text-xs sm:text-sm leading-relaxed placeholder:opacity-40 focus:outline-none focus:ring-1 focus:ring-accent resize-y min-h-[220px] sm:min-h-[280px] font-normal"
                 />
               </div>
 
               {/* Color Palette Selector */}
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5 opacity-75">
+                <label className="text-[10px] font-bold uppercase tracking-wider block mb-1.5 opacity-65">
                   Note Color
                 </label>
                 <div className="flex items-center gap-2">
@@ -2113,15 +2173,15 @@ export default function Notes() {
                       type="button"
                       onClick={() => setEditStickyColor(c.id)}
                       className={cn(
-                        'h-7 w-7 rounded-full transition-all border-2 flex items-center justify-center',
+                        'h-6 w-6 rounded-full transition-all border flex items-center justify-center',
                         c.dotClass,
                         editStickyColor === c.id
-                          ? 'scale-125 border-slate-900 dark:border-white shadow-md'
+                          ? 'scale-125 border-slate-900 dark:border-white shadow-md ring-2 ring-accent'
                           : 'border-transparent opacity-75 hover:opacity-100 hover:scale-110'
                       )}
                       title={c.name}
                     >
-                      {editStickyColor === c.id && <Check className="h-3.5 w-3.5 text-slate-900" />}
+                      {editStickyColor === c.id && <Check className="h-3 w-3 text-slate-900" />}
                     </button>
                   ))}
                 </div>

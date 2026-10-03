@@ -12,6 +12,7 @@ import { useStickyNotes } from '@/hooks/useStickyNotes'
 import { useNotebooks } from '@/hooks/useNotebooks'
 import NotebookShelf from '@/components/notes/NotebookShelf'
 import NotebookWorkspace from '@/components/notes/NotebookWorkspace'
+import { htmlToCleanText } from '@/utils/textHelpers'
 
 const COLOR_OPTIONS = [
   { id: 'yellow', name: 'Yellow', bgHex: '#fef08a', borderClass: 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 hover:border-amber-500/70', dotClass: 'bg-amber-400' },
@@ -182,15 +183,16 @@ export default function StickyNotesDrawer() {
 
   const handleOpenExistingEditor = (note) => {
     setEditingNote(note)
-    setNoteTitle(note.title || '')
-    setNoteContent(note.content || '')
+    setNoteTitle(htmlToCleanText(note.title || ''))
+    setNoteContent(htmlToCleanText(note.content || ''))
     setNoteColor(note.color || 'yellow')
     setIsPinned(!!note.isPinned)
   }
 
   const handleSaveNote = async (e) => {
     if (e) e.preventDefault()
-    const finalContent = editorRef.current ? editorRef.current.innerHTML : noteContent
+    const rawContent = editorRef.current ? editorRef.current.innerHTML : noteContent
+    const finalContent = htmlToCleanText(rawContent).trim()
 
     if (!noteTitle.trim() && !finalContent.trim()) {
       setEditingNote(null)
@@ -199,14 +201,14 @@ export default function StickyNotesDrawer() {
 
     if (editingNote?.isNew) {
       await addNote({
-        title: noteTitle.trim() || 'Untitled Note',
+        title: htmlToCleanText(noteTitle).trim() || 'Untitled Note',
         content: finalContent,
         color: noteColor,
         isPinned,
       })
     } else if (editingNote?.id) {
       await updateNote(editingNote.id, {
-        title: noteTitle.trim() || 'Untitled Note',
+        title: htmlToCleanText(noteTitle).trim() || 'Untitled Note',
         content: finalContent,
         color: noteColor,
         isPinned,
@@ -669,10 +671,9 @@ export default function StickyNotesDrawer() {
                             </div>
 
                             {note.content && (
-                              <div
-                                className="text-xs text-text-secondary line-clamp-3 leading-relaxed font-normal overflow-hidden mt-1"
-                                dangerouslySetInnerHTML={{ __html: note.content }}
-                              />
+                              <div className="text-xs text-text-secondary line-clamp-3 leading-relaxed font-normal overflow-hidden mt-1 whitespace-pre-wrap break-words">
+                                {htmlToCleanText(note.content)}
+                              </div>
                             )}
 
                             <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-border-subtle/40 text-[10px] text-text-muted">

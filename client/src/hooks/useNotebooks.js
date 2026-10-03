@@ -563,6 +563,28 @@ export function useNotebooks(user) {
         })
       }
 
+      const handlePageStickiesUpdated = ({ pageId, stickyNotes, sender }) => {
+        if (sender === uid) return
+        setNotebooks((prev) => {
+          const currentNb = prev.find(
+            (n) =>
+              n.id === activeNotebook?.id ||
+              n.collabRoomId?.trim().replace(/^#+/, '').toLowerCase() === roomId
+          )
+          if (!currentNb) return prev
+
+          const updatedPages = (currentNb.pages || []).map((p) => {
+            if (p.id !== pageId) return p
+            return { ...p, stickyNotes, updatedAt: new Date().toISOString() }
+          })
+
+          const updatedNb = { ...currentNb, pages: updatedPages, updatedAt: new Date().toISOString() }
+          const updatedList = prev.map((n) => (n.id === currentNb.id ? updatedNb : n))
+          saveLocalNotebooks(updatedList)
+          return updatedList
+        })
+      }
+
       const handleTypingStatus = ({ user: peerUser, cellId, isTyping }) => {
         if (isTyping) {
           setTypingStatus({ name: peerUser?.name || 'Peer', cellId })
@@ -578,6 +600,7 @@ export function useNotebooks(user) {
       socket.on('notebook-user-left', handleUserLeft)
       socket.on('notebook-updated', handleNotebookUpdated)
       socket.on('notebook-page-updated', handlePageUpdated)
+      socket.on('notebook-page-stickies', handlePageStickiesUpdated)
       socket.on('notebook-typing-status', handleTypingStatus)
 
       return () => {
@@ -587,6 +610,7 @@ export function useNotebooks(user) {
         socket.off('notebook-user-left', handleUserLeft)
         socket.off('notebook-updated', handleNotebookUpdated)
         socket.off('notebook-page-updated', handlePageUpdated)
+        socket.off('notebook-page-stickies', handlePageStickiesUpdated)
         socket.off('notebook-typing-status', handleTypingStatus)
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
       }
@@ -817,6 +841,32 @@ export function useNotebooks(user) {
     }
   }
 
+  // ── Page-Specific Movable Sticky Notes (isolated to active notebook page) ──
+
+  const updatePageStickyNotes = async (notebookId, pageId, stickyNotes) => {
+    const nb = notebooks.find((n) => n.id === notebookId)
+    if (!nb) return
+
+    const updatedPages = (nb.pages || []).map((p) =>
+      p.id === pageId ? { ...p, stickyNotes, updatedAt: new Date().toISOString() } : p
+    )
+    const updatedNb = { ...nb, pages: updatedPages, updatedAt: new Date().toISOString() }
+
+    await persistNotebook(updatedNb)
+
+    // Broadcast live over socket to room
+    if (nb.isCollaborative && nb.collabRoomId && socket) {
+      const cleanRoom = nb.collabRoomId.trim().replace(/^#+/, '').toLowerCase()
+      const roomId = cleanRoom.startsWith('collab-') ? cleanRoom : `collab-${cleanRoom}`
+      socket.emit('notebook-page-stickies', {
+        roomId,
+        pageId,
+        stickyNotes,
+        sender: uid,
+      })
+    }
+  }
+
   // ── Join Shared Notebook with Room Code ──
 
   const joinSharedNotebook = async (roomCode) => {
@@ -1026,10 +1076,12 @@ export function useNotebooks(user) {
         isCollaborative: true,
       }
 
-      // 1. Ensure the full notebook is saved in universal shared cloud storage
-      await firestoreSaveSharedNotebook(cleanRoom, fullNotebookPayload).catch(() => {})
+      // 1. Concurrently save shared notebook to cloud storage (non-blocking)
+      const saveSharedPromise = firestoreSaveSharedNotebook(cleanRoom, fullNotebookPayload).catch((e) => {
+        console.warn('firestoreSaveSharedNotebook warning in sendPeerInvite:', e)
+      })
 
-      // 2. Deliver invite directly via sendUserInvite (handles both existing users and pending email reservations)
+      // 2. Deliver invite directly via sendUserInvite (fast resolution)
       const res = await sendUserInvite(user, cleanEmail, {
         type: 'notebook',
         roomId: cleanRoom,
@@ -1037,6 +1089,9 @@ export function useNotebooks(user) {
         itemType: 'notebook',
         itemData: fullNotebookPayload,
       })
+
+      // Ensure shared notebook persistence finishes
+      await saveSharedPromise
 
       // 3. Realtime socket notification if peer is connected
       if (res?.targetUser?.uid && socket) {
@@ -1110,6 +1165,7 @@ export function useNotebooks(user) {
     renamePage,
     reorderPages,
     updatePageContent,
+    updatePageStickyNotes,
     joinSharedNotebook,
     sendPeerInvite,
     emitTyping,

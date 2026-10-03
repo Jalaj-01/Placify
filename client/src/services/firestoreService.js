@@ -60,9 +60,20 @@ export async function getOrCreateProfile(user) {
 
     if (needsUpdate) {
       await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() })
-      return { ...existing, ...updates }
     }
-    return existing
+
+    // Ensure publicUsers directory has active user mapping for instant peer invitations
+    if (cleanEmail) {
+      setDoc(doc(db, 'publicUsers', cleanEmail), {
+        uid: user.uid,
+        email: cleanEmail,
+        displayName: existing.displayName || user.displayName || cleanEmail.split('@')[0],
+        photoURL: existing.photoURL || user.photoURL || null,
+        updatedAt: serverTimestamp(),
+      }, { merge: true }).catch(() => {})
+    }
+
+    return needsUpdate ? { ...existing, ...updates } : existing
   }
 
   // Brand new profile
@@ -610,38 +621,44 @@ export async function deleteBookmarkDoc(uid, bookmarkId) {
 export async function findUserByEmail(email) {
   if (!email || !email.trim()) throw new Error('Email is required')
   const cleanEmail = email.toLowerCase().trim()
+  const rawEmail = email.trim()
 
-  const withTimeout = (promise, ms = 2500) =>
+  const withTimeout = (promise, ms = 2000) =>
     Promise.race([
       promise,
       new Promise((_, reject) => setTimeout(() => reject(new Error('Lookup timeout')), ms)),
     ])
 
-  // 1. Direct doc lookup in publicUsers (fast, zero index required, 100% reliable)
+  // 1. Direct doc lookup in publicUsers (ultra-fast, zero index required, ~100ms)
   try {
-    const snap = await withTimeout(getDoc(doc(db, 'publicUsers', cleanEmail)), 2000)
+    const snap = await withTimeout(getDoc(doc(db, 'publicUsers', cleanEmail)), 1200)
     if (snap?.exists()) {
       const d = snap.data()
       return { uid: d.uid, email: d.email, displayName: d.displayName }
     }
   } catch (e) {
-    console.warn('publicUsers lookup error:', e)
+    // proceed to collectionGroup fallback
   }
 
-  // 2. CollectionGroup lookup on profile (with deployed index)
+  // 2. CollectionGroup lookup on profile
   try {
     const lowerQ = query(
       collectionGroup(db, 'profile'),
       where('email', '==', cleanEmail)
     )
-    let snap = await withTimeout(getDocs(lowerQ), 2500)
-    if (snap?.empty) {
-      const exactQ = query(
-        collectionGroup(db, 'profile'),
-        where('email', '==', email.trim())
-      )
-      snap = await withTimeout(getDocs(exactQ), 2500)
-    }
+    const exactQ = rawEmail !== cleanEmail
+      ? query(collectionGroup(db, 'profile'), where('email', '==', rawEmail))
+      : null
+
+    const snap = await withTimeout(
+      (async () => {
+        const res = await getDocs(lowerQ)
+        if (!res.empty) return res
+        if (exactQ) return await getDocs(exactQ)
+        return res
+      })(),
+      2000
+    )
 
     if (snap && !snap.empty) {
       const profileDoc = snap.docs[0]
@@ -656,7 +673,7 @@ export async function findUserByEmail(email) {
       return { uid, email: data.email, displayName: data.displayName }
     }
   } catch (e) {
-    console.warn('profile collectionGroup lookup failed:', e)
+    console.warn('profile collectionGroup lookup fallback note:', e.message)
   }
 
   throw new Error(`User with email "${email}" not found. Please ensure they have a Placify account.`)

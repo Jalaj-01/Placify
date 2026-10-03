@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
 import { useStickyNotes } from '@/hooks/useStickyNotes'
 import { formatDateDisplay } from '@/components/notes/StickyNotesDrawer'
+import { htmlToCleanText } from '@/utils/textHelpers'
 
 export default function StickyNotesCard() {
   const { user } = useAuth()
@@ -25,8 +26,8 @@ export default function StickyNotesCard() {
       return
     }
     await addNote({
-      title: inlineTitle.trim() || 'Quick Note',
-      content: inlineContent.trim(),
+      title: htmlToCleanText(inlineTitle).trim() || 'Quick Note',
+      content: htmlToCleanText(inlineContent).trim(),
       color: 'yellow',
       isPinned: false,
     })
@@ -117,10 +118,9 @@ export default function StickyNotesCard() {
                 {note.isPinned && <Pin className="h-3 w-3 text-yellow-400 fill-current" />}
               </div>
               {note.content && (
-                <div
-                  className="text-[11px] text-text-secondary line-clamp-2 leading-snug font-normal overflow-hidden"
-                  dangerouslySetInnerHTML={{ __html: note.content }}
-                />
+                <div className="text-[11px] text-text-secondary line-clamp-2 leading-snug font-normal overflow-hidden whitespace-pre-wrap break-words">
+                  {htmlToCleanText(note.content)}
+                </div>
               )}
             </div>
           ))}
