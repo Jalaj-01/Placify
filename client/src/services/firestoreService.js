@@ -1033,7 +1033,12 @@ export async function fetchSharedNotebook(roomId) {
       if (snap && snap.exists()) {
         const data = snap.data()
         if (data && (data.pages?.length > 0 || data.title)) {
-          return { id: snap.id, ...data }
+          return {
+            ...data,
+            id: data.id || `nb-${cleanId}`,
+            collabRoomId: cleanId,
+            isCollaborative: true,
+          }
         }
       }
     } catch {}
@@ -1127,10 +1132,17 @@ export function subscribeSharedNotebook(roomId, callback) {
 
   const handleFound = (data) => {
     if (!active || !data) return
-    callback(data)
+    const stableId = data.id || `nb-${cleanId}`
+    const normalized = {
+      ...data,
+      id: stableId,
+      collabRoomId: cleanId,
+      isCollaborative: true,
+    }
+    callback(normalized)
     try {
-      localStorage.setItem(`placify_shared_nb_${cleanId}`, JSON.stringify(data))
-      if (altId) localStorage.setItem(`placify_shared_nb_${altId}`, JSON.stringify(data))
+      localStorage.setItem(`placify_shared_nb_${cleanId}`, JSON.stringify(normalized))
+      if (altId) localStorage.setItem(`placify_shared_nb_${altId}`, JSON.stringify(normalized))
     } catch {}
   }
 
@@ -1147,7 +1159,7 @@ export function subscribeSharedNotebook(roomId, callback) {
       bookmarkRef1,
       (snap) => {
         if (snap.exists() && active) {
-          handleFound({ id: snap.id, ...snap.data() })
+          handleFound({ id: snap.data()?.id || snap.id, ...snap.data() })
         }
       },
       (err) => console.warn('bookmarks snapshot error:', err)
@@ -1162,7 +1174,7 @@ export function subscribeSharedNotebook(roomId, callback) {
       sharedRef,
       (snap) => {
         if (snap.exists() && active) {
-          handleFound({ id: snap.id, ...snap.data() })
+          handleFound({ id: snap.data()?.id || snap.id, ...snap.data() })
         }
       },
       (err) => console.warn('sharedNotebooks snapshot error:', err)
@@ -1261,25 +1273,45 @@ export async function sendUserInvite(senderUser, receiverEmail, inviteData) {
   })
 
   if (receiver && receiver.uid) {
-    // 1. Direct delivery to recipient's invites collection
-    const ref = collection(db, 'users', receiver.uid, 'invites')
-    const newDoc = await addDoc(ref, { ...invitePayload, createdAt: serverTimestamp() })
+    // 1. Direct delivery to recipient's invites collection with deterministic room key
+    const cleanRoomKey = inviteData.roomId ? `room_${String(inviteData.roomId).trim().replace(/^#+/, '').toLowerCase()}` : null
+    let docId = cleanRoomKey
+    if (cleanRoomKey) {
+      await setDoc(doc(db, 'users', receiver.uid, 'invites', cleanRoomKey), {
+        ...invitePayload,
+        createdAt: serverTimestamp(),
+      }, { merge: true })
+    } else {
+      const ref = collection(db, 'users', receiver.uid, 'invites')
+      const newDoc = await addDoc(ref, { ...invitePayload, createdAt: serverTimestamp() })
+      docId = newDoc.id
+    }
 
     // 2. Guaranteed secondary delivery to recipient's shares collection
     try {
-      const sharesRef = collection(db, 'users', receiver.uid, 'shares')
-      await addDoc(sharesRef, {
-        senderEmail: senderUser?.email || '',
-        senderUid: senderUser?.uid || '',
-        itemType: inviteData.type === 'notebook' ? 'notebook' : (inviteData.itemType || 'share'),
-        itemData: safeItemData,
-        createdAt: serverTimestamp(),
-      })
+      if (cleanRoomKey) {
+        await setDoc(doc(db, 'users', receiver.uid, 'shares', cleanRoomKey), {
+          senderEmail: senderUser?.email || '',
+          senderUid: senderUser?.uid || '',
+          itemType: inviteData.type === 'notebook' ? 'notebook' : (inviteData.itemType || 'share'),
+          itemData: safeItemData,
+          createdAt: serverTimestamp(),
+        }, { merge: true })
+      } else {
+        const sharesRef = collection(db, 'users', receiver.uid, 'shares')
+        await addDoc(sharesRef, {
+          senderEmail: senderUser?.email || '',
+          senderUid: senderUser?.uid || '',
+          itemType: inviteData.type === 'notebook' ? 'notebook' : (inviteData.itemType || 'share'),
+          itemData: safeItemData,
+          createdAt: serverTimestamp(),
+        })
+      }
     } catch (e) {
       console.warn('Secondary share delivery:', e)
     }
 
-    return { success: true, docId: newDoc.id, targetUser: receiver }
+    return { success: true, docId, targetUser: receiver }
   } else {
     // Save to pendingInvites collection so when recipient signs up or visits, it's immediately claimable
     try {

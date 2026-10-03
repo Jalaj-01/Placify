@@ -73,18 +73,22 @@ export default function InvitesDrawer() {
 
     // A. Firestore persistent invites
     firestoreInvites.forEach((inv) => {
-      const uniqueKey = inv.roomId ? `room-${inv.roomId}` : `inv-${inv.id}`
-      seenKeys.add(uniqueKey)
-      list.push({
-        ...inv,
-        source: 'firestore',
-        uniqueKey,
-      })
+      const cleanRoom = inv.roomId ? inv.roomId.trim().replace(/^#+/, '').toLowerCase() : null
+      const uniqueKey = cleanRoom ? `room-${cleanRoom}` : `inv-${inv.id}`
+      if (!seenKeys.has(uniqueKey)) {
+        seenKeys.add(uniqueKey)
+        list.push({
+          ...inv,
+          source: 'firestore',
+          uniqueKey,
+        })
+      }
     })
 
     // B. Real-time socket invites (if not yet saved or duplicate)
     socketInvites.forEach((inv) => {
-      const uniqueKey = inv.roomId ? `room-${inv.roomId}` : `sock-${inv.roomId || Math.random()}`
+      const cleanRoom = inv.roomId ? inv.roomId.trim().replace(/^#+/, '').toLowerCase() : null
+      const uniqueKey = cleanRoom ? `room-${cleanRoom}` : `sock-${inv.roomId || Math.random()}`
       if (!seenKeys.has(uniqueKey)) {
         seenKeys.add(uniqueKey)
         list.push({
@@ -157,14 +161,14 @@ export default function InvitesDrawer() {
       if (invite.type === 'notebook' || invite.itemType === 'notebook') {
         const rawRoom = (invite.roomId || invite.itemData?.collabRoomId || '').trim().replace(/^#+/, '').toLowerCase()
         const targetRoom = rawRoom ? (rawRoom.startsWith('collab-') ? rawRoom : `collab-${rawRoom}`) : null
-        let notebookData = invite.itemData
+        let notebookData = invite.itemData || {}
 
-        // If invite payload lacks pages or chapters, actively fetch the full notebook
-        if ((!notebookData?.pages || notebookData.pages.length === 0) && targetRoom) {
+        // Always actively fetch latest full notebook from cloud shared storage
+        if (targetRoom) {
           try {
             const fetched = await fetchSharedNotebook(targetRoom)
             if (fetched && (fetched.pages?.length > 0 || fetched.title)) {
-              notebookData = fetched
+              notebookData = { ...notebookData, ...fetched }
             }
           } catch (e) {
             console.warn('fetchSharedNotebook in InvitesDrawer:', e)
@@ -203,6 +207,9 @@ export default function InvitesDrawer() {
           if (user?.uid) {
             saveNotebook(user.uid, finalNb).catch(() => {})
           }
+
+          // Immediate in-window notification so useNotebooks updates state without reload
+          window.dispatchEvent(new CustomEvent('placify_notebook_accepted', { detail: finalNb }))
         }
 
         await dismissInvite(invite)

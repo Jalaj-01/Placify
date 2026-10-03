@@ -139,28 +139,47 @@ export const deduplicateNotebooks = (list) => {
   if (!Array.isArray(list)) return []
   const seenRooms = new Set()
   const seenIds = new Set()
+  const seenTitles = new Set()
   const result = []
 
   for (const nb of list) {
     if (!nb) continue
     const canonicalRoom = nb.collabRoomId ? normalizeRoomId(nb.collabRoomId) : null
     const idKey = (nb.id || '').toLowerCase()
+    const cleanTitle = (nb.title || '').trim().toLowerCase()
+    const isSeed =
+      idKey === 'nb-dsa-mastery' ||
+      idKey === 'nb-sys-design' ||
+      cleanTitle.includes('dsa mastery') ||
+      cleanTitle.includes('system design')
 
+    // 1. Collab room deduplication
     if (canonicalRoom) {
       if (seenRooms.has(canonicalRoom)) continue
       seenRooms.add(canonicalRoom)
       if (idKey) seenIds.add(idKey)
+      if (cleanTitle) seenTitles.add(`${cleanTitle}_${nb.subject || ''}`)
       result.push({
         ...nb,
         collabRoomId: canonicalRoom,
       })
-    } else if (idKey) {
+      continue
+    }
+
+    // 2. ID deduplication
+    if (idKey) {
       if (seenIds.has(idKey)) continue
       seenIds.add(idKey)
-      result.push(nb)
-    } else {
-      result.push(nb)
     }
+
+    // 3. Seed / Duplicate title deduplication (eliminates the cloned 102 notebooks)
+    if (isSeed || nb.isCollaborative) {
+      const titleKey = `${cleanTitle}_${nb.subject || ''}`
+      if (cleanTitle && seenTitles.has(titleKey)) continue
+      if (cleanTitle) seenTitles.add(titleKey)
+    }
+
+    result.push(nb)
   }
   return result
 }
@@ -270,6 +289,29 @@ export function useNotebooks(user) {
     }
   }, [])
 
+  // Instant in-window notification when an invite is accepted from InvitesDrawer
+  useEffect(() => {
+    const handleAccepted = (e) => {
+      const acceptedNb = e.detail
+      if (!acceptedNb) return
+      setNotebooks((prev) => {
+        const merged = deduplicateNotebooks([acceptedNb, ...prev])
+        saveLocalNotebooks(merged)
+        return merged
+      })
+      if (acceptedNb.id) {
+        setActiveNotebookId(acceptedNb.id)
+        if (acceptedNb.pages?.[0]?.id) {
+          setActivePageId(acceptedNb.pages[0].id)
+        }
+      }
+    }
+    window.addEventListener('placify_notebook_accepted', handleAccepted)
+    return () => {
+      window.removeEventListener('placify_notebook_accepted', handleAccepted)
+    }
+  }, [])
+
   // Subscribe to user's notebooks in Firestore
   useEffect(() => {
     if (!uid) {
@@ -308,6 +350,18 @@ export function useNotebooks(user) {
               })
           )
           const merged = deduplicateNotebooks([...collabNotebooks, ...mergedFirestore])
+
+          // AUTOMATIC FIRESTORE CLEANUP:
+          // If Firestore contains orphaned duplicate notebook documents from previous loops,
+          // permanently delete them so the user never gets 102 notebooks again!
+          const keptIds = new Set(merged.map((n) => n.id))
+          const duplicateDocs = firestoreNotebooks.filter((fn) => !keptIds.has(fn.id))
+          if (duplicateDocs.length > 0) {
+            duplicateDocs.forEach((d) => {
+              firestoreDeleteNotebook(uid, d.id).catch(() => {})
+            })
+          }
+
           try {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged))
           } catch {}
@@ -362,6 +416,24 @@ export function useNotebooks(user) {
         let updatedList
         if (existingIndex >= 0) {
           const currentNb = prev[existingIndex]
+          // AVOID NO-OP RE-RENDER LOOPS
+          const currentUpdated = currentNb.updatedAt || ''
+          const remoteUpdated = remoteNb.updatedAt || ''
+          const currentPagesCount = currentNb.pages?.length || 0
+          const remotePagesCount = remoteNb.pages?.length || 0
+          const currentFirstHtml = currentNb.pages?.[0]?.htmlContent || ''
+          const remoteFirstHtml = remoteNb.pages?.[0]?.htmlContent || ''
+
+          if (
+            currentUpdated && remoteUpdated &&
+            currentUpdated === remoteUpdated &&
+            currentPagesCount === remotePagesCount &&
+            currentFirstHtml === remoteFirstHtml &&
+            currentNb.title === remoteNb.title
+          ) {
+            return prev
+          }
+
           const updatedNb = {
             ...currentNb,
             ...remoteNb,
@@ -371,10 +443,10 @@ export function useNotebooks(user) {
           }
           updatedList = prev.map((n, idx) => (idx === existingIndex ? updatedNb : n))
         } else {
-          // Add remote notebook so collaborator sees it immediately!
+          // Add remote notebook so collaborator sees it immediately with stable canonical ID
           const newNb = {
             ...remoteNb,
-            id: remoteNb.id || `nb-${Date.now()}`,
+            id: remoteNb.id || `nb-${canonicalRoom}`,
             collabRoomId: canonicalRoom,
             isCollaborative: true,
           }
@@ -521,41 +593,49 @@ export function useNotebooks(user) {
     }
   }, [socket, activeNotebook?.id, activeNotebook?.collabRoomId, uid, user])
 
+  const firestoreSaveDebounceRef = useRef({})
+
+  const debouncedFirestoreSave = useCallback((notebook) => {
+    if (!notebook?.id) return
+    const key = notebook.id
+    if (firestoreSaveDebounceRef.current[key]) {
+      clearTimeout(firestoreSaveDebounceRef.current[key])
+    }
+    firestoreSaveDebounceRef.current[key] = setTimeout(() => {
+      delete firestoreSaveDebounceRef.current[key]
+      if (uid) {
+        firestoreSaveNotebook(uid, notebook).catch(() => {})
+      }
+      if (notebook.collabRoomId) {
+        const cleanRoom = normalizeRoomId(notebook.collabRoomId)
+        firestoreSaveSharedNotebook(cleanRoom, notebook).catch(() => {})
+      }
+    }, 800)
+  }, [uid])
+
   // Save notebook helper
   const persistNotebook = useCallback(
     async (updatedNb) => {
-      const updatedList = notebooks.map((n) => (n.id === updatedNb.id ? updatedNb : n))
-      setNotebooks(updatedList)
-      saveLocalNotebooks(updatedList)
+      setNotebooks((current) => {
+        const updatedList = current.map((n) => (n.id === updatedNb.id ? updatedNb : n))
+        saveLocalNotebooks(updatedList)
+        return updatedList
+      })
 
-      // Sync Firestore personal copy
-      if (uid) {
-        try {
-          await firestoreSaveNotebook(uid, updatedNb)
-        } catch (err) {
-          console.warn('Failed saving notebook to Firestore', err)
-        }
-      }
+      // Debounce heavy cloud storage writes so rapid keystrokes don't flood Firestore or cause OOM
+      debouncedFirestoreSave(updatedNb)
 
-      // Sync shared document & socket broadcast if collabRoomId exists
-      if (updatedNb.collabRoomId) {
-        const cleanRoom = updatedNb.collabRoomId.trim().replace(/^#+/, '').toLowerCase()
-        try {
-          await firestoreSaveSharedNotebook(cleanRoom, updatedNb)
-        } catch (err) {
-          console.warn('Failed saving shared notebook document', err)
-        }
-
-        if (socket) {
-          socket.emit('notebook-sync', {
-            roomId: cleanRoom,
-            notebook: updatedNb,
-            sender: uid,
-          })
-        }
+      // Broadcast lightweight live socket update immediately
+      if (updatedNb.collabRoomId && socket) {
+        const roomId = normalizeRoomId(updatedNb.collabRoomId)
+        socket.emit('notebook-sync', {
+          roomId,
+          notebook: updatedNb,
+          sender: uid,
+        })
       }
     },
-    [notebooks, uid, socket]
+    [uid, socket, debouncedFirestoreSave]
   )
 
   // ── Notebook Operations ──
@@ -743,66 +823,64 @@ export function useNotebooks(user) {
     if (!roomCode?.trim()) return { success: false, error: 'Please enter a valid Room Code' }
     const cleanCode = roomCode.trim().replace(/^#+/, '')
     const cleanCodeLower = cleanCode.toLowerCase()
-    const altCodeLower = cleanCodeLower.startsWith('collab-')
-      ? cleanCodeLower.replace(/^collab-/, '')
-      : `collab-${cleanCodeLower}`
     const canonicalRoomId = cleanCodeLower.startsWith('collab-') ? cleanCodeLower : `collab-${cleanCodeLower}`
 
-    // 1. Check if notebook already in local state (case-insensitive) WITH REAL CONTENT
-    const existing = notebooks.find((n) => {
-      const rId = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
-      const nId = n.id?.toLowerCase()
-      return (
-        rId === cleanCodeLower ||
-        rId === altCodeLower ||
-        nId === cleanCodeLower ||
-        nId === altCodeLower
-      )
-    })
+    // 1. Check existing state or localStorage directly
+    const currentList = getLocalNotebooks()
+    let existing =
+      notebooks.find((n) => {
+        const rId = n.collabRoomId ? normalizeRoomId(n.collabRoomId) : ''
+        return rId === canonicalRoomId || n.id === canonicalRoomId || n.id === `nb-${canonicalRoomId}`
+      }) ||
+      currentList.find((n) => {
+        const rId = n.collabRoomId ? normalizeRoomId(n.collabRoomId) : ''
+        return rId === canonicalRoomId || n.id === canonicalRoomId || n.id === `nb-${canonicalRoomId}`
+      })
+
     const hasMeaningfulContent = existing && (
       (existing.pages?.length > 1) ||
       (existing.pages?.[0]?.htmlContent && existing.pages[0].htmlContent.trim().length > 0)
-    ) && !existing.title?.startsWith('Shared Collab (Room')
+    )
 
-    if (existing && hasMeaningfulContent) {
-      setActiveNotebookId(existing.id)
-      if (existing.pages?.[0]?.id) setActivePageId(existing.pages[0].id)
-      return { success: true, notebook: existing }
+    // If existing copy is missing content or not found, eagerly fetch from cloud
+    if (!hasMeaningfulContent) {
+      try {
+        const fetched = await fetchSharedNotebook(canonicalRoomId)
+        if (fetched && (fetched.pages?.length > 0 || fetched.title)) {
+          existing = {
+            ...(existing || {}),
+            ...fetched,
+            id: existing?.id || fetched.id || `nb-${canonicalRoomId}`,
+            collabRoomId: canonicalRoomId,
+            isCollaborative: true,
+          }
+        }
+      } catch (e) {
+        console.warn('fetchSharedNotebook in joinSharedNotebook:', e)
+      }
     }
 
-    // 1b. Check local storage directly for instant resolution
-    try {
-      const localList = getLocalNotebooks()
-      const localMatch = localList.find((n) => {
-        const rId = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
-        const nId = n.id?.toLowerCase()
-        return rId === cleanCodeLower || rId === altCodeLower || nId === cleanCodeLower || nId === altCodeLower
+    if (existing) {
+      const finalNb = {
+        ...existing,
+        id: existing.id || `nb-${canonicalRoomId}`,
+        collabRoomId: canonicalRoomId,
+        isCollaborative: true,
+      }
+      setNotebooks((prev) => {
+        const updatedList = deduplicateNotebooks([finalNb, ...prev])
+        saveLocalNotebooks(updatedList)
+        return updatedList
       })
-      if (localMatch && (localMatch.pages?.length > 1 || localMatch.pages?.[0]?.htmlContent?.trim()?.length > 0)) {
-        setActiveNotebookId(localMatch.id)
-        if (localMatch.pages?.[0]?.id) setActivePageId(localMatch.pages[0].id)
-        return { success: true, notebook: localMatch }
+      setActiveNotebookId(finalNb.id)
+      if (finalNb.pages?.[0]?.id) {
+        setActivePageId(finalNb.pages[0].id)
       }
-
-      const cachedRaw = localStorage.getItem(`placify_shared_nb_${cleanCodeLower}`) || localStorage.getItem(`placify_shared_nb_${altCodeLower}`)
-      if (cachedRaw) {
-        const parsed = JSON.parse(cachedRaw)
-        if (parsed && (parsed.pages?.length > 0 || parsed.title)) {
-          const finalNb = {
-            ...parsed,
-            id: parsed.id || `nb-${canonicalRoomId}`,
-            isCollaborative: true,
-            collabRoomId: canonicalRoomId,
-          }
-          const updatedList = deduplicateNotebooks([finalNb, ...notebooks])
-          setNotebooks(updatedList)
-          saveLocalNotebooks(updatedList)
-          setActiveNotebookId(finalNb.id)
-          if (finalNb.pages?.[0]?.id) setActivePageId(finalNb.pages[0].id)
-          return { success: true, notebook: finalNb }
-        }
+      if (uid) {
+        firestoreSaveNotebook(uid, finalNb).catch(() => {})
       }
-    } catch {}
+      return { success: true, notebook: finalNb }
+    }
 
     // 2. Connect to Socket room and request active peer notebook state
     if (socket) {
@@ -852,8 +930,8 @@ export function useNotebooks(user) {
           const updatedList = deduplicateNotebooks([
             finalNb,
             ...prev.filter((n) => {
-              const r = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
-              return n.id !== finalNb.id && r !== cleanCodeLower && r !== altCodeLower
+              const r = n.collabRoomId ? normalizeRoomId(n.collabRoomId) : ''
+              return n.id !== finalNb.id && r !== canonicalRoomId
             }),
           ])
           saveLocalNotebooks(updatedList)
@@ -874,8 +952,8 @@ export function useNotebooks(user) {
 
       const handleSocketUpdate = ({ notebook: socketNb }) => {
         if (!socketNb) return
-        const sRoom = socketNb.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
-        if (sRoom === cleanCodeLower || sRoom === altCodeLower || socketNb.id === cleanCodeLower) {
+        const sRoom = socketNb.collabRoomId ? normalizeRoomId(socketNb.collabRoomId) : ''
+        if (sRoom === canonicalRoomId || socketNb.id === canonicalRoomId) {
           finalizeJoin(socketNb)
         }
       }
@@ -884,16 +962,16 @@ export function useNotebooks(user) {
         socket.on('notebook-updated', handleSocketUpdate)
       }
 
-      // Safety timeout: 4 seconds maximum to prevent any hang
+      // Safety timeout: 3.5 seconds maximum to prevent any hang
       timeoutId = setTimeout(() => {
         if (!resolved) {
           resolved = true
           cleanup()
           const currentList = getLocalNotebooks()
           const fallbackNb = currentList.find((n) => {
-            const r = n.collabRoomId?.toLowerCase()?.replace(/^#+/, '')
+            const r = n.collabRoomId ? normalizeRoomId(n.collabRoomId) : ''
             const id = n.id?.toLowerCase()
-            return r === cleanCodeLower || r === altCodeLower || id === cleanCodeLower || id === altCodeLower
+            return r === canonicalRoomId || id === canonicalRoomId
           })
           if (fallbackNb) {
             setActiveNotebookId(fallbackNb.id)
@@ -906,11 +984,11 @@ export function useNotebooks(user) {
             })
           }
         }
-      }, 4000)
+      }, 3500)
 
       // Subscribe to real-time updates from Firestore
       try {
-        unsubFirestore = subscribeSharedNotebook(cleanCodeLower, (sharedData) => {
+        unsubFirestore = subscribeSharedNotebook(canonicalRoomId, (sharedData) => {
           if (sharedData && (sharedData.pages?.length > 0 || sharedData.title)) {
             finalizeJoin(sharedData)
           }
@@ -960,20 +1038,15 @@ export function useNotebooks(user) {
         itemData: fullNotebookPayload,
       })
 
-      // 3. Deliver via /shares collection if user exists
-      if (res?.targetUser?.uid) {
-        await shareItem(uid, user?.email || '', cleanEmail, 'notebook', fullNotebookPayload).catch(() => {})
-
-        // 4. Realtime socket notification if peer is connected
-        if (socket) {
-          socket.emit('send-invite', {
-            toUid: res.targetUser.uid,
-            fromName: user?.displayName || user?.email?.split('@')[0] || 'Teammate',
-            roomId: cleanRoom,
-            type: 'notebook',
-            title: notebookTitle || currentNb?.title || 'Collaborative Notebook',
-          })
-        }
+      // 3. Realtime socket notification if peer is connected
+      if (res?.targetUser?.uid && socket) {
+        socket.emit('send-invite', {
+          toUid: res.targetUser.uid,
+          fromName: user?.displayName || user?.email?.split('@')[0] || 'Teammate',
+          roomId: cleanRoom,
+          type: 'notebook',
+          title: notebookTitle || currentNb?.title || 'Collaborative Notebook',
+        })
       }
 
       return res || { success: true }

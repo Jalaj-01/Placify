@@ -187,6 +187,12 @@ export default function Notes() {
         message: `Connecting to collaborative notebook #${clean}...`,
       })
 
+      // Clean URL query params immediately so re-renders do not loop
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('room')
+      nextParams.delete('join')
+      setSearchParams(nextParams, { replace: true })
+
       let didFinish = false
       const safetyTimer = setTimeout(() => {
         if (!didFinish) {
@@ -213,14 +219,14 @@ export default function Notes() {
           const firstPage = res.notebook.pages?.[0]
           if (firstPage?.id) {
             setActivePageId(firstPage.id)
+            if (editorRef.current) {
+              editorRef.current.innerHTML = firstPage.htmlContent || ''
+              updateStats(editorRef.current.innerText || '')
+            }
           }
           setTimeout(() => {
             setJoinFeedback((curr) => curr?.type === 'success' ? null : curr)
           }, 4500)
-          const nextParams = new URLSearchParams(searchParams)
-          nextParams.delete('room')
-          nextParams.delete('join')
-          setSearchParams(nextParams, { replace: true })
         } else {
           setJoinFeedback({
             type: 'error',
