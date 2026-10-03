@@ -1210,7 +1210,22 @@ export default function Notes() {
 
             {/* ── RICH TEXT FORMATTING TOOLBAR (Collapsible for maximum vertical writing space) ── */}
             {isToolbarOpen && !isFocusMode && (
-              <div className="px-3 py-1.5 border-b border-border-subtle bg-surface/95 flex items-center gap-1 flex-wrap shrink-0 text-text-secondary shadow-xs print:hidden animate-in fade-in transition-all">
+              <div className="px-3 py-1.5 border-b border-border-subtle bg-surface/95 flex items-center gap-1.5 flex-wrap shrink-0 text-text-secondary shadow-xs print:hidden animate-in fade-in transition-all">
+                {/* Add New Page / Chapter Option on Toolbar */}
+                {activeNotebook && (
+                  <button
+                    type="button"
+                    onClick={() => addPage(activeNotebook.id)}
+                    className="px-2.5 py-1 rounded-lg bg-accent/15 hover:bg-accent text-accent hover:text-white transition-all text-xs font-bold flex items-center gap-1.5 shadow-2xs active:scale-95 shrink-0 border border-accent/25"
+                    title="Add New Page / Chapter"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>New Page</span>
+                  </button>
+                )}
+
+                <div className="h-4 w-px bg-border-subtle mx-0.5" />
+
                 {/* Undo / Redo */}
                 <button
                   type="button"
@@ -1229,25 +1244,28 @@ export default function Notes() {
                   <Redo className="h-3.5 w-3.5" />
                 </button>
 
-                <div className="h-4 w-px bg-border-subtle mx-1" />
+                <div className="h-4 w-px bg-border-subtle mx-0.5" />
 
                 {/* Heading Selector */}
-                <select
-                  onChange={(e) => {
-                    if (e.target.value === 'p') execCmd('formatBlock', '<p>')
-                    else execCmd('formatBlock', `<${e.target.value}>`)
-                  }}
-                  className="text-xs py-0.5 px-2 bg-card border border-border-subtle rounded-lg font-bold"
-                  defaultValue="p"
-                  title="Heading Style"
-                >
-                  <option value="p">Normal Text</option>
-                  <option value="h1">Heading 1 (Title)</option>
-                  <option value="h2">Heading 2 (Section)</option>
-                  <option value="h3">Heading 3 (Subhead)</option>
-                </select>
+                <div className="relative inline-flex items-center">
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value === 'p') execCmd('formatBlock', '<p>')
+                      else execCmd('formatBlock', `<${e.target.value}>`)
+                    }}
+                    className="text-xs py-1 pl-2.5 pr-6 bg-card hover:bg-hover border border-border-subtle rounded-lg font-bold appearance-none cursor-pointer text-text-primary focus:outline-none focus:border-accent"
+                    defaultValue="p"
+                    title="Heading Style"
+                  >
+                    <option value="p">Normal Text</option>
+                    <option value="h1">Heading 1</option>
+                    <option value="h2">Heading 2</option>
+                    <option value="h3">Heading 3</option>
+                  </select>
+                  <ChevronDown className="h-3 w-3 text-text-muted absolute right-1.5 pointer-events-none" />
+                </div>
 
-                <div className="h-4 w-px bg-border-subtle mx-1" />
+                <div className="h-4 w-px bg-border-subtle mx-0.5" />
 
                 {/* Bold, Italic, Underline, Strikethrough */}
                 <button
@@ -1283,29 +1301,43 @@ export default function Notes() {
                   <Strikethrough className="h-3.5 w-3.5" />
                 </button>
 
-                <div className="h-4 w-px bg-border-subtle mx-1" />
+                <div className="h-4 w-px bg-border-subtle mx-0.5" />
 
                 {/* Font Color */}
-                <select
-                  onChange={(e) => execCmd('foreColor', e.target.value)}
-                  className="text-xs py-0.5 px-1.5 bg-card border border-border-subtle rounded-lg font-bold"
-                  title="Text Color"
-                >
-                  {TEXT_COLORS.map((c) => (
-                    <option key={c.label} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
+                <div className="relative inline-flex items-center" title="Text Color">
+                  <span className="absolute left-2 flex items-center pointer-events-none text-text-muted">
+                    <Palette className="h-3 w-3 text-accent" />
+                  </span>
+                  <select
+                    onChange={(e) => execCmd('foreColor', e.target.value)}
+                    className="text-xs py-1 pl-6 pr-6 bg-card hover:bg-hover border border-border-subtle rounded-lg font-semibold appearance-none cursor-pointer text-text-primary focus:outline-none focus:border-accent"
+                    title="Text Color"
+                    defaultValue="inherit"
+                  >
+                    {TEXT_COLORS.map((c) => (
+                      <option key={c.label} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="h-3 w-3 text-text-muted absolute right-1.5 pointer-events-none" />
+                </div>
 
                 {/* Highlighter Marker */}
-                <select
-                  onChange={(e) => execCmd('hiliteColor', e.target.value)}
-                  className="text-xs py-0.5 px-1.5 bg-card border border-border-subtle rounded-lg font-bold"
-                  title="Highlight Marker"
-                >
-                  {HIGHLIGHT_COLORS.map((c) => (
-                    <option key={c.label} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
+                <div className="relative inline-flex items-center" title="Highlight Marker">
+                  <span className="absolute left-2 flex items-center pointer-events-none text-text-muted">
+                    <Highlighter className="h-3 w-3 text-amber-500" />
+                  </span>
+                  <select
+                    onChange={(e) => execCmd('hiliteColor', e.target.value)}
+                    className="text-xs py-1 pl-6 pr-6 bg-card hover:bg-hover border border-border-subtle rounded-lg font-semibold appearance-none cursor-pointer text-text-primary focus:outline-none focus:border-accent"
+                    title="Highlight Marker"
+                    defaultValue="transparent"
+                  >
+                    {HIGHLIGHT_COLORS.map((c) => (
+                      <option key={c.label} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="h-3 w-3 text-text-muted absolute right-1.5 pointer-events-none" />
+                </div>
 
                 <div className="h-4 w-px bg-border-subtle mx-1" />
 
