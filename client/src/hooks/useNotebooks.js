@@ -1076,9 +1076,9 @@ export function useNotebooks(user) {
         isCollaborative: true,
       }
 
-      // 1. Concurrently save shared notebook to cloud storage (non-blocking)
-      const saveSharedPromise = firestoreSaveSharedNotebook(cleanRoom, fullNotebookPayload).catch((e) => {
-        console.warn('firestoreSaveSharedNotebook warning in sendPeerInvite:', e)
+      // 1. Background cloud sync of shared notebook (non-blocking)
+      firestoreSaveSharedNotebook(cleanRoom, fullNotebookPayload).catch((e) => {
+        console.warn('firestoreSaveSharedNotebook background notice:', e.message)
       })
 
       // 2. Deliver invite directly via sendUserInvite (fast resolution)
@@ -1089,9 +1089,6 @@ export function useNotebooks(user) {
         itemType: 'notebook',
         itemData: fullNotebookPayload,
       })
-
-      // Ensure shared notebook persistence finishes
-      await saveSharedPromise
 
       // 3. Realtime socket notification if peer is connected
       if (res?.targetUser?.uid && socket) {

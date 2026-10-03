@@ -286,6 +286,7 @@ export default function Notes() {
   // Invite Form
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteMsg, setInviteMsg] = useState('')
+  const [inviteMsgType, setInviteMsgType] = useState('success')
   const [isSendingInvite, setIsSendingInvite] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
   const [copiedCardId, setCopiedCardId] = useState(null)
@@ -782,6 +783,14 @@ export default function Notes() {
     const targetNb = targetCollabNb || activeNotebook
     const emailToInvite = inviteEmail.trim()
     if (!emailToInvite || !targetNb) return
+
+    // Instant validation: Host cannot invite themselves
+    if (user?.email && emailToInvite.toLowerCase() === user.email.toLowerCase().trim()) {
+      setInviteMsgType('error')
+      setInviteMsg('You cannot invite yourself (you are already the host of this notebook).')
+      return
+    }
+
     setIsSendingInvite(true)
     setInviteMsg('')
 
@@ -790,13 +799,14 @@ export default function Notes() {
         sendPeerInvite(emailToInvite, targetNb.title, targetNb.collabRoomId),
         new Promise((_, reject) =>
           setTimeout(
-            () => reject(new Error('Invite request timed out. Please check connection or share the room link.')),
-            15000
+            () => reject(new Error('Invite request timed out. Please copy and share the link directly.')),
+            12000
           )
         ),
       ])
 
       if (res?.success) {
+        setInviteMsgType('success')
         if (res.pending) {
           setInviteMsg(res.message || `Invite reserved for ${emailToInvite}!`)
         } else {
@@ -805,9 +815,11 @@ export default function Notes() {
         setInviteEmail('')
         setTimeout(() => setInviteMsg(''), 5000)
       } else {
+        setInviteMsgType('error')
         setInviteMsg(res?.error || 'Failed to send invite.')
       }
     } catch (err) {
+      setInviteMsgType('error')
       setInviteMsg(err?.message || 'Failed to send invite. Please share the direct room link.')
     } finally {
       setIsSendingInvite(false)
@@ -2476,7 +2488,14 @@ export default function Notes() {
                   <span>{isSendingInvite ? 'Sending...' : 'Invite'}</span>
                 </button>
               </div>
-              {inviteMsg && <p className="text-xs font-semibold text-semantic-green">{inviteMsg}</p>}
+              {inviteMsg && (
+                <p className={cn(
+                  'text-xs font-semibold',
+                  inviteMsgType === 'error' ? 'text-semantic-red' : 'text-semantic-green'
+                )}>
+                  {inviteMsg}
+                </p>
+              )}
             </form>
           </div>
         </div>

@@ -631,7 +631,7 @@ export async function findUserByEmail(email) {
 
   // 1. Direct doc lookup in publicUsers (ultra-fast, zero index required, ~100ms)
   try {
-    const snap = await withTimeout(getDoc(doc(db, 'publicUsers', cleanEmail)), 1200)
+    const snap = await withTimeout(getDoc(doc(db, 'publicUsers', cleanEmail)), 800)
     if (snap?.exists()) {
       const d = snap.data()
       return { uid: d.uid, email: d.email, displayName: d.displayName }
@@ -640,7 +640,7 @@ export async function findUserByEmail(email) {
     // proceed to collectionGroup fallback
   }
 
-  // 2. CollectionGroup lookup on profile
+  // 2. CollectionGroup lookup on profile (fast fallback)
   try {
     const lowerQ = query(
       collectionGroup(db, 'profile'),
@@ -657,7 +657,7 @@ export async function findUserByEmail(email) {
         if (exactQ) return await getDocs(exactQ)
         return res
       })(),
-      2000
+      1000
     )
 
     if (snap && !snap.empty) {
