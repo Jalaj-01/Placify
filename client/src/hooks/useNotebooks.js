@@ -894,17 +894,9 @@ export function useNotebooks(user) {
     const currentNb = activeNotebook || notebooks.find(n => n.collabRoomId === roomId)
     const rawRoom = (roomId || currentNb?.collabRoomId || '').trim().replace(/^#+/, '').toLowerCase()
     const cleanRoom = rawRoom.startsWith('collab-') ? rawRoom : `collab-${rawRoom}`
+    const cleanEmail = email.trim().toLowerCase()
 
     try {
-      const targetUser = await findUserByEmail(email.trim())
-      if (!targetUser || !targetUser.uid) {
-        return { success: false, error: 'User not found. Please ensure they have a Placify account.' }
-      }
-
-      if (targetUser.uid === uid) {
-        return { success: false, error: 'You cannot invite yourself.' }
-      }
-
       const fullNotebookPayload = {
         ...(currentNb || {}),
         collabRoomId: cleanRoom,
@@ -914,8 +906,8 @@ export function useNotebooks(user) {
       // 1. Ensure the full notebook is saved in universal shared cloud storage
       await firestoreSaveSharedNotebook(cleanRoom, fullNotebookPayload).catch(() => {})
 
-      // 2. Deliver invite directly to recipient's invites collection
-      await sendUserInvite(user, email.trim(), {
+      // 2. Deliver invite directly via sendUserInvite (handles both existing users and pending email reservations)
+      const res = await sendUserInvite(user, cleanEmail, {
         type: 'notebook',
         roomId: cleanRoom,
         title: notebookTitle || currentNb?.title || 'Collaborative Notebook',
@@ -923,21 +915,23 @@ export function useNotebooks(user) {
         itemData: fullNotebookPayload,
       })
 
-      // 3. Deliver via /shares collection
-      await shareItem(uid, user?.email || '', email.trim(), 'notebook', fullNotebookPayload).catch(() => {})
+      // 3. Deliver via /shares collection if user exists
+      if (res?.targetUser?.uid) {
+        await shareItem(uid, user?.email || '', cleanEmail, 'notebook', fullNotebookPayload).catch(() => {})
 
-      // 4. Realtime socket notification if peer is connected
-      if (socket) {
-        socket.emit('send-invite', {
-          toUid: targetUser.uid,
-          fromName: user?.displayName || user?.email?.split('@')[0] || 'Teammate',
-          roomId: cleanRoom,
-          type: 'notebook',
-          title: notebookTitle || currentNb?.title || 'Collaborative Notebook',
-        })
+        // 4. Realtime socket notification if peer is connected
+        if (socket) {
+          socket.emit('send-invite', {
+            toUid: res.targetUser.uid,
+            fromName: user?.displayName || user?.email?.split('@')[0] || 'Teammate',
+            roomId: cleanRoom,
+            type: 'notebook',
+            title: notebookTitle || currentNb?.title || 'Collaborative Notebook',
+          })
+        }
       }
 
-      return { success: true, targetUser }
+      return res || { success: true }
     } catch (err) {
       return { success: false, error: err.message || 'Failed to send invite' }
     }

@@ -142,6 +142,8 @@ export default function Notes() {
     shareNotebook,
   } = useNotebooks(user)
 
+  const targetCollabNb = activeNotebook || notebooks[0] || null
+
   // Dynamically compute subjects strictly from notebooks that exist
   const availableSubjects = [
     'ALL',
@@ -737,22 +739,40 @@ export default function Notes() {
 
   const handleSendInviteSubmit = async (e) => {
     e.preventDefault()
-    if (!inviteEmail.trim() || !activeNotebook) return
+    const targetNb = targetCollabNb || activeNotebook
+    const emailToInvite = inviteEmail.trim()
+    if (!emailToInvite || !targetNb) return
     setIsSendingInvite(true)
     setInviteMsg('')
 
-    const res = await sendPeerInvite(inviteEmail.trim(), activeNotebook.title, activeNotebook.collabRoomId)
-    setIsSendingInvite(false)
+    try {
+      const res = await Promise.race([
+        sendPeerInvite(emailToInvite, targetNb.title, targetNb.collabRoomId),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Invite request timed out. Please copy and share the link directly.')),
+            7000
+          )
+        ),
+      ])
 
-    if (res?.success) {
-      setInviteMsg(`Invite sent to ${res.targetUser?.displayName || inviteEmail}!`)
-      setInviteEmail('')
-      setTimeout(() => setInviteMsg(''), 3000)
-    } else {
-      setInviteMsg(res?.error || 'Failed to send invite.')
+      if (res?.success) {
+        if (res.pending) {
+          setInviteMsg(res.message || `Invite reserved for ${emailToInvite}!`)
+        } else {
+          setInviteMsg(`Invite sent to ${res.targetUser?.displayName || emailToInvite}!`)
+        }
+        setInviteEmail('')
+        setTimeout(() => setInviteMsg(''), 5000)
+      } else {
+        setInviteMsg(res?.error || 'Failed to send invite.')
+      }
+    } catch (err) {
+      setInviteMsg(err?.message || 'Failed to send invite. Please share the direct room link.')
+    } finally {
+      setIsSendingInvite(false)
     }
   }
-
 
   const handleCreateSticky = async (e) => {
     e.preventDefault()
@@ -774,7 +794,6 @@ export default function Notes() {
   }
 
   const currentTheme = PAPER_THEMES.find((t) => t.id === (activeNotebook?.paperStyle || 'ruled')) || PAPER_THEMES[0]
-  const targetCollabNb = activeNotebook || notebooks[0] || null
 
   return (
     <>
