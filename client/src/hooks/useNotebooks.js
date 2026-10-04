@@ -4,6 +4,7 @@ import {
   subscribeNotebooks,
   saveNotebook as firestoreSaveNotebook,
   deleteNotebook as firestoreDeleteNotebook,
+  batchDeleteNotebooks,
   subscribeSharedNotebook,
   fetchSharedNotebook,
   saveSharedNotebook as firestoreSaveSharedNotebook,
@@ -133,6 +134,22 @@ export const normalizeRoomId = (roomId) => {
   if (!roomId) return ''
   const clean = String(roomId).trim().replace(/^#+/, '').toLowerCase()
   return clean.startsWith('collab-') ? clean : `collab-${clean}`
+}
+
+export const getTimestampMs = (val) => {
+  if (!val) return 0
+  if (typeof val === 'number') return val
+  if (typeof val === 'string') {
+    const t = new Date(val).getTime()
+    return isNaN(t) ? 0 : t
+  }
+  if (typeof val === 'object') {
+    if (typeof val.toDate === 'function') {
+      try { return val.toDate().getTime() } catch { return 0 }
+    }
+    if (typeof val.seconds === 'number') return val.seconds * 1000
+  }
+  return 0
 }
 
 export const deduplicateNotebooks = (list) => {
@@ -282,11 +299,32 @@ export function useNotebooks(user) {
 
   const activePage = activeNotebook?.pages?.find((p) => p.id === activePageId) || activeNotebook?.pages?.[0] || null
 
-  // Subscribe to external storage changes across tabs
+  // Subscribe to external storage changes across tabs with debounce and equality check to eliminate ping-pong loops
   useEffect(() => {
+    let lastKnownRaw = null
     const handleStorageChange = (e) => {
       if (!e || e.key === LOCAL_STORAGE_KEY) {
-        setNotebooks(getLocalNotebooks())
+        const raw = e?.newValue || localStorage.getItem(LOCAL_STORAGE_KEY)
+        if (!raw || raw === lastKnownRaw) return
+        lastKnownRaw = raw
+        try {
+          const parsed = JSON.parse(raw)
+          if (!Array.isArray(parsed)) return
+          setNotebooks((current) => {
+            if (
+              current.length === parsed.length &&
+              current.every(
+                (c, i) =>
+                  c.id === parsed[i]?.id &&
+                  getTimestampMs(c.updatedAt) === getTimestampMs(parsed[i]?.updatedAt) &&
+                  (c.pages?.length || 0) === (parsed[i]?.pages?.length || 0)
+              )
+            ) {
+              return current
+            }
+            return deduplicateNotebooks(parsed)
+          })
+        } catch {}
       }
     }
     window.addEventListener('storage', handleStorageChange)
@@ -335,21 +373,15 @@ export function useNotebooks(user) {
         localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
         if (uid) localStorage.setItem(userSeededKey, 'true')
 
-        // SAFE ONE-TIME BACKGROUND CLEANUP (Eliminates OOM delete loops entirely)
+        // SAFE ONE-TIME ATOMIC CLEANUP (Single batch commit eliminates 95 delete snapshot storms)
         if (!cleanedUpDuplicatesRef.current && uid && firestoreNotebooks.length > 5) {
           cleanedUpDuplicatesRef.current = true
-          setTimeout(async () => {
-            try {
-              const dedupedList = deduplicateNotebooks(firestoreNotebooks)
-              const keptIds = new Set(dedupedList.map((n) => n.id))
-              const duplicateDocs = firestoreNotebooks.filter((fn) => !keptIds.has(fn.id))
-              for (const d of duplicateDocs) {
-                await firestoreDeleteNotebook(uid, d.id).catch(() => {})
-              }
-            } catch (err) {
-              console.warn('Silent duplicate cleanup completed', err)
-            }
-          }, 4000)
+          const dedupedList = deduplicateNotebooks(firestoreNotebooks)
+          const keptIds = new Set(dedupedList.map((n) => n.id))
+          const duplicateDocs = firestoreNotebooks.filter((fn) => !keptIds.has(fn.id))
+          if (duplicateDocs.length > 0) {
+            batchDeleteNotebooks(uid, duplicateDocs.map((d) => d.id)).catch(() => {})
+          }
         }
 
         setNotebooks((current) => {
@@ -357,8 +389,8 @@ export function useNotebooks(user) {
           const mergedFirestore = firestoreNotebooks.map((fn) => {
             const local = current.find((c) => c.id === fn.id)
             if (!local) return fn
-            const localTime = new Date(local.updatedAt || 0).getTime()
-            const firestoreTime = new Date(fn.updatedAt || 0).getTime()
+            const localTime = getTimestampMs(local.updatedAt)
+            const firestoreTime = getTimestampMs(fn.updatedAt)
             if (localTime > firestoreTime || (local.pages?.length || 0) > (fn.pages?.length || 0)) {
               return local
             }
@@ -381,7 +413,7 @@ export function useNotebooks(user) {
             current.every(
               (c, i) =>
                 c.id === merged[i]?.id &&
-                c.updatedAt === merged[i]?.updatedAt &&
+                getTimestampMs(c.updatedAt) === getTimestampMs(merged[i]?.updatedAt) &&
                 (c.pages?.length || 0) === (merged[i]?.pages?.length || 0)
             )
           ) {
@@ -449,16 +481,16 @@ export function useNotebooks(user) {
         if (existingIndex >= 0) {
           const currentNb = prev[existingIndex]
           // AVOID NO-OP RE-RENDER LOOPS
-          const currentUpdated = currentNb.updatedAt || ''
-          const remoteUpdated = remoteNb.updatedAt || ''
+          const currentUpdatedMs = getTimestampMs(currentNb.updatedAt)
+          const remoteUpdatedMs = getTimestampMs(remoteNb.updatedAt)
           const currentPagesCount = currentNb.pages?.length || 0
           const remotePagesCount = remoteNb.pages?.length || 0
           const currentFirstHtml = currentNb.pages?.[0]?.htmlContent || ''
           const remoteFirstHtml = remoteNb.pages?.[0]?.htmlContent || ''
 
           if (
-            currentUpdated && remoteUpdated &&
-            currentUpdated === remoteUpdated &&
+            currentUpdatedMs && remoteUpdatedMs &&
+            currentUpdatedMs === remoteUpdatedMs &&
             currentPagesCount === remotePagesCount &&
             currentFirstHtml === remoteFirstHtml &&
             currentNb.title === remoteNb.title
@@ -537,9 +569,9 @@ export function useNotebooks(user) {
         }
       }
 
-      const handleRequestState = () => {
+      const handleRequestState = ({ requesterId } = {}) => {
         const currentActive = activeNotebookRef.current
-        if (currentActive) {
+        if (currentActive && (!requesterId || requesterId !== socket?.id)) {
           socket.emit('notebook-sync', {
             roomId,
             notebook: currentActive,
@@ -553,7 +585,7 @@ export function useNotebooks(user) {
       }
 
       const handleNotebookUpdated = ({ notebook: remoteNb, sender }) => {
-        if (sender === uid || !remoteNb) return
+        if (!remoteNb || sender === uid || sender === socket?.id) return
         setNotebooks((prev) => {
           const currentNb = prev.find(
             (n) =>
@@ -562,6 +594,17 @@ export function useNotebooks(user) {
               n.collabRoomId?.trim().replace(/^#+/, '').toLowerCase() === roomId
           )
           if (!currentNb) return prev
+
+          const currentUpdatedMs = getTimestampMs(currentNb.updatedAt)
+          const remoteUpdatedMs = getTimestampMs(remoteNb.updatedAt)
+          if (
+            currentUpdatedMs && remoteUpdatedMs &&
+            currentUpdatedMs === remoteUpdatedMs &&
+            (currentNb.pages?.length || 0) === (remoteNb.pages?.length || 0) &&
+            currentNb.title === remoteNb.title
+          ) {
+            return prev
+          }
 
           const updatedNb = {
             ...currentNb,

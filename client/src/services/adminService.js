@@ -242,27 +242,43 @@ export async function removeAuthorizedTeacher(adminUser, teacherDocId, teacherEm
  * Real-time listener for authorized teachers
  */
 export function subscribeAuthorizedTeachers(callback) {
+  let unsubFallback = null
+  let unsubPrimary = null
   try {
     const q = query(collection(db, 'authorized_teachers'), orderBy('addedAt', 'desc'))
-    return onSnapshot(
+    unsubPrimary = onSnapshot(
       q,
       (snap) => {
         callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
       },
       (err) => {
         console.warn('subscribeAuthorizedTeachers orderBy fallback:', err)
-        // Fallback without ordering
-        return onSnapshot(collection(db, 'authorized_teachers'), (snap) => {
-          const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-          list.sort((a, b) => (b.addedAt?.seconds || 0) - (a.addedAt?.seconds || 0))
-          callback(list)
-        })
+        try {
+          unsubFallback = onSnapshot(collection(db, 'authorized_teachers'), (snap) => {
+            const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+            list.sort((a, b) => (b.addedAt?.seconds || 0) - (a.addedAt?.seconds || 0))
+            callback(list)
+          })
+        } catch (e) {
+          console.warn('subscribeAuthorizedTeachers fallback failed:', e)
+        }
       }
     )
+    return () => {
+      if (typeof unsubPrimary === 'function') unsubPrimary()
+      if (typeof unsubFallback === 'function') unsubFallback()
+    }
   } catch {
-    return onSnapshot(collection(db, 'authorized_teachers'), (snap) => {
-      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    })
+    try {
+      const unsub = onSnapshot(collection(db, 'authorized_teachers'), (snap) => {
+        callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+      })
+      return () => {
+        if (typeof unsub === 'function') unsub()
+      }
+    } catch {
+      return () => {}
+    }
   }
 }
 
@@ -618,23 +634,40 @@ export async function recordAuditLog(adminUser, action, details = {}) {
  * Subscribe to recent audit logs
  */
 export function subscribeAuditLogs(callback) {
+  let unsubFallback = null
+  let unsubPrimary = null
   try {
     const q = query(collection(db, 'audit_logs'), orderBy('timestamp', 'desc'))
-    return onSnapshot(
+    unsubPrimary = onSnapshot(
       q,
       (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
       (err) => {
         console.warn('subscribeAuditLogs fallback:', err)
-        return onSnapshot(collection(db, 'audit_logs'), (snap) => {
-          const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-          list.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
-          callback(list)
-        })
+        try {
+          unsubFallback = onSnapshot(collection(db, 'audit_logs'), (snap) => {
+            const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+            list.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
+            callback(list)
+          })
+        } catch (e) {
+          console.warn('subscribeAuditLogs fallback failed:', e)
+        }
       }
     )
+    return () => {
+      if (typeof unsubPrimary === 'function') unsubPrimary()
+      if (typeof unsubFallback === 'function') unsubFallback()
+    }
   } catch {
-    return onSnapshot(collection(db, 'audit_logs'), (snap) => {
-      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    })
+    try {
+      const unsub = onSnapshot(collection(db, 'audit_logs'), (snap) => {
+        callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+      })
+      return () => {
+        if (typeof unsub === 'function') unsub()
+      }
+    } catch {
+      return () => {}
+    }
   }
 }

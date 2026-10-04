@@ -988,6 +988,20 @@ export async function deleteNotebook(uid, notebookId) {
   await deleteDoc(doc(db, 'users', uid, 'notebooks', notebookId))
 }
 
+export async function batchDeleteNotebooks(uid, notebookIds) {
+  if (!uid || !Array.isArray(notebookIds) || notebookIds.length === 0) return
+  try {
+    const batch = writeBatch(db)
+    const slice = notebookIds.slice(0, 400)
+    for (const id of slice) {
+      batch.delete(doc(db, 'users', uid, 'notebooks', id))
+    }
+    await batch.commit()
+  } catch (err) {
+    console.warn('batchDeleteNotebooks error:', err)
+  }
+}
+
 export function sanitizePayload(data) {
   if (data === null || data === undefined) return null
   return JSON.parse(
