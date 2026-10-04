@@ -18,7 +18,7 @@ export default function GroupStudyModal({ user }) {
 }
 
 function GroupStudyModalContent({ user }) {
-  const socket = useSocket(user?.uid)
+  const socket = useSocket(user?.uid, user?.email)
   const { addNote } = useStickyNotes(user?.uid)
   
   const onClose = useAppStore(s => s.closeGroupStudy)

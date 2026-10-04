@@ -618,20 +618,23 @@ export async function deleteBookmarkDoc(uid, bookmarkId) {
 }
 
 // ─── Sharing ───────────────────────────────────────────────
-export async function findUserByEmail(email) {
-  if (!email || !email.trim()) throw new Error('Email is required')
+export async function findUserByEmail(email, throwOnNotFound = true) {
+  if (!email || !email.trim()) {
+    if (throwOnNotFound) throw new Error('Email is required')
+    return null
+  }
   const cleanEmail = email.toLowerCase().trim()
   const rawEmail = email.trim()
 
-  const withTimeout = (promise, ms = 2000) =>
+  const withTimeout = (promise, ms = 2200) =>
     Promise.race([
       promise,
       new Promise((_, reject) => setTimeout(() => reject(new Error('Lookup timeout')), ms)),
     ])
 
-  // 1. Direct doc lookup in publicUsers (ultra-fast, zero index required, ~100ms)
+  // 1. Direct doc lookup in publicUsers (fastest, zero-index required)
   try {
-    const snap = await withTimeout(getDoc(doc(db, 'publicUsers', cleanEmail)), 800)
+    const snap = await withTimeout(getDoc(doc(db, 'publicUsers', cleanEmail)), 1200)
     if (snap?.exists()) {
       const d = snap.data()
       return { uid: d.uid, email: d.email, displayName: d.displayName }
@@ -640,7 +643,7 @@ export async function findUserByEmail(email) {
     // proceed to collectionGroup fallback
   }
 
-  // 2. CollectionGroup lookup on profile (fast fallback)
+  // 2. CollectionGroup lookup on profile (fallback)
   try {
     const lowerQ = query(
       collectionGroup(db, 'profile'),
@@ -657,7 +660,7 @@ export async function findUserByEmail(email) {
         if (exactQ) return await getDocs(exactQ)
         return res
       })(),
-      1000
+      1500
     )
 
     if (snap && !snap.empty) {
@@ -673,10 +676,13 @@ export async function findUserByEmail(email) {
       return { uid, email: data.email, displayName: data.displayName }
     }
   } catch (e) {
-    console.warn('profile collectionGroup lookup fallback note:', e.message)
+    console.warn('profile collectionGroup lookup notice:', e.message)
   }
 
-  throw new Error(`User with email "${email}" not found. Please ensure they have a Placify account.`)
+  if (throwOnNotFound) {
+    throw new Error(`User with email "${email}" not found. Please ensure they have a Placify account.`)
+  }
+  return null
 }
 
 export async function shareItem(senderUid, senderEmail, receiverEmail, itemType, itemData) {
@@ -1266,7 +1272,7 @@ export async function sendUserInvite(senderUser, receiverEmail, inviteData) {
   const cleanEmail = receiverEmail.trim().toLowerCase()
   let receiver = null
   try {
-    receiver = await findUserByEmail(cleanEmail)
+    receiver = await findUserByEmail(cleanEmail, false)
   } catch (e) {
     console.warn('findUserByEmail note in sendUserInvite:', e.message)
   }
@@ -1289,57 +1295,98 @@ export async function sendUserInvite(senderUser, receiverEmail, inviteData) {
     status: 'pending',
   })
 
+  const withFastTimeout = (promise, ms = 2500) =>
+    Promise.race([
+      promise,
+      new Promise((resolve) => setTimeout(resolve, ms)),
+    ])
+
+  // Guaranteed non-blocking sync to sharedNotebooks if roomId is present (open rules, never hangs)
+  if (inviteData.roomId) {
+    const cleanRoom = String(inviteData.roomId).trim().replace(/^#+/, '').toLowerCase()
+    withFastTimeout(
+      setDoc(
+        doc(db, 'sharedNotebooks', cleanRoom),
+        {
+          invitedEmails: arrayUnion(cleanEmail),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      ).catch(() => {})
+    )
+  }
+
   if (receiver && receiver.uid) {
-    // 1. Direct delivery to recipient's invites collection with deterministic room key
-    const cleanRoomKey = inviteData.roomId ? `room_${String(inviteData.roomId).trim().replace(/^#+/, '').toLowerCase()}` : null
-    let docId = cleanRoomKey
-    if (cleanRoomKey) {
-      await setDoc(doc(db, 'users', receiver.uid, 'invites', cleanRoomKey), {
-        ...invitePayload,
-        createdAt: serverTimestamp(),
-      }, { merge: true })
-    } else {
-      const ref = collection(db, 'users', receiver.uid, 'invites')
-      const newDoc = await addDoc(ref, { ...invitePayload, createdAt: serverTimestamp() })
-      docId = newDoc.id
+    // 1. Direct delivery to recipient's invites collection using pure addDoc / setDoc fallback
+    let docId = `invite_${Date.now()}`
+    try {
+      const cleanRoomKey = inviteData.roomId
+        ? `room_${String(inviteData.roomId).trim().replace(/^#+/, '').toLowerCase()}`
+        : null
+
+      if (cleanRoomKey) {
+        await withFastTimeout(
+          setDoc(
+            doc(db, 'users', receiver.uid, 'invites', cleanRoomKey),
+            {
+              ...invitePayload,
+              createdAt: serverTimestamp(),
+            },
+            { merge: true }
+          ).catch(async () => {
+            const ref = collection(db, 'users', receiver.uid, 'invites')
+            const newDoc = await addDoc(ref, { ...invitePayload, createdAt: serverTimestamp() })
+            docId = newDoc.id
+          })
+        )
+      } else {
+        const ref = collection(db, 'users', receiver.uid, 'invites')
+        const newDoc = await withFastTimeout(addDoc(ref, { ...invitePayload, createdAt: serverTimestamp() }))
+        if (newDoc?.id) docId = newDoc.id
+      }
+    } catch (e) {
+      console.warn('Direct invite delivery note:', e)
     }
 
-    // 2. Guaranteed secondary delivery to recipient's shares collection
+    // 2. Secondary delivery to recipient's shares collection (non-blocking)
     try {
-      if (cleanRoomKey) {
-        await setDoc(doc(db, 'users', receiver.uid, 'shares', cleanRoomKey), {
+      const sharesRef = collection(db, 'users', receiver.uid, 'shares')
+      withFastTimeout(
+        addDoc(sharesRef, {
           senderEmail: senderUser?.email || '',
           senderUid: senderUser?.uid || '',
           itemType: inviteData.type === 'notebook' ? 'notebook' : (inviteData.itemType || 'share'),
           itemData: safeItemData,
           createdAt: serverTimestamp(),
-        }, { merge: true })
-      } else {
-        const sharesRef = collection(db, 'users', receiver.uid, 'shares')
-        await addDoc(sharesRef, {
-          senderEmail: senderUser?.email || '',
-          senderUid: senderUser?.uid || '',
-          itemType: inviteData.type === 'notebook' ? 'notebook' : (inviteData.itemType || 'share'),
-          itemData: safeItemData,
-          createdAt: serverTimestamp(),
-        })
-      }
+        }).catch(() => {})
+      )
     } catch (e) {
       console.warn('Secondary share delivery:', e)
     }
 
-    return { success: true, docId, targetUser: receiver }
+    return {
+      success: true,
+      docId,
+      targetUser: receiver,
+      message: `Invite sent to ${receiver.displayName || cleanEmail}!`,
+    }
   } else {
-    // Save to pendingInvites collection so when recipient signs up or visits, it's immediately claimable
+    // 3. User not registered yet: save to pendingInvites collection (bounded timeout)
     try {
       const cleanDocKey = `${cleanEmail.replace(/[^a-z0-9]/g, '_')}_${inviteData.roomId || 'room'}`
-      await setDoc(doc(db, 'pendingInvites', cleanDocKey), {
-        ...invitePayload,
-        recipientEmail: cleanEmail,
-        createdAt: serverTimestamp(),
-      }, { merge: true })
+      await withFastTimeout(
+        setDoc(
+          doc(db, 'pendingInvites', cleanDocKey),
+          {
+            ...invitePayload,
+            recipientEmail: cleanEmail,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true }
+        ).catch(() => {})
+      )
     } catch (e) {
-      console.warn('pendingInvites storage warning:', e)
+      console.warn('pendingInvites storage note:', e)
     }
 
     return {
@@ -1348,16 +1395,6 @@ export async function sendUserInvite(senderUser, receiverEmail, inviteData) {
       message: `Invite reserved for ${cleanEmail}! They can also join anytime with room code #${inviteData.roomId || ''}.`,
     }
   }
-
-  // 3. Mirror into local storage for quick access & offline support
-  try {
-    const key = `placify_invites_${receiver.uid}`
-    const existing = JSON.parse(localStorage.getItem(key) || '[]')
-    const item = { ...invitePayload, id: newDoc.id, createdAt: new Date().toISOString() }
-    localStorage.setItem(key, JSON.stringify([item, ...existing]))
-  } catch {}
-
-  return { success: true, targetUser: receiver, inviteId: newDoc.id }
 }
 
 export function subscribeInvites(uid, callback) {

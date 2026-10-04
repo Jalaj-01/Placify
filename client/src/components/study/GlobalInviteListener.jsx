@@ -6,7 +6,7 @@ import { X, UserPlus, Check, BookOpen } from 'lucide-react'
 
 export default function GlobalInviteListener() {
   const { user } = useAuth()
-  const socket = useSocket(user?.uid)
+  const socket = useSocket(user?.uid, user?.email)
   const openGroupStudy = useAppStore((s) => s.openGroupStudy)
   const openNotebooks = useAppStore((s) => s.openNotebooks)
   const { pendingInvites, addInvite, removeInvite } = useAppStore()

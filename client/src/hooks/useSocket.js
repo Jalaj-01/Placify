@@ -5,8 +5,11 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 let socketInstance = null
 
-export function useSocket(uid) {
+export function useSocket(uidOrUser, maybeEmail) {
   const socketRef = useRef(null)
+
+  const uid = typeof uidOrUser === 'object' && uidOrUser !== null ? uidOrUser.uid : uidOrUser
+  const email = typeof uidOrUser === 'object' && uidOrUser !== null ? uidOrUser.email : maybeEmail
 
   useEffect(() => {
     if (!socketInstance) {
@@ -17,14 +20,17 @@ export function useSocket(uid) {
     
     socketRef.current = socketInstance
 
-    if (uid) {
-      socketInstance.emit('register', uid)
+    if (uid || email) {
+      socketInstance.emit('register', {
+        uid: uid || null,
+        email: email ? email.trim().toLowerCase() : null,
+      })
     }
 
     return () => {
       // Don't disconnect here if we want global invites to work when they leave a component
     }
-  }, [uid])
+  }, [uid, email])
 
   return socketRef.current
 }

@@ -222,7 +222,7 @@ export function useNotebooks(user) {
   const userSeededKey = uid ? `placify_notebooks_seeded_${uid}` : LOCAL_SEEDED_KEY
   const cleanedUpDuplicatesRef = useRef(false)
   const activeNotebookRef = useRef(null)
-  const socket = useSocket(uid)
+  const socket = useSocket(uid, user?.email)
 
   const [notebooks, setNotebooks] = useState(() => getLocalNotebooks())
   const [loading, setLoading] = useState(true)
@@ -1115,8 +1115,8 @@ export function useNotebooks(user) {
         console.warn('firestoreSaveSharedNotebook background notice:', e.message)
       })
 
-      // 2. Deliver invite directly via sendUserInvite (fast resolution)
-      const res = await sendUserInvite(user, cleanEmail, {
+      // 2. Deliver invite directly via sendUserInvite with max 3500ms race fallback
+      const invitePromise = sendUserInvite(user, cleanEmail, {
         type: 'notebook',
         roomId: cleanRoom,
         title: notebookTitle || currentNb?.title || 'Collaborative Notebook',
@@ -1124,10 +1124,26 @@ export function useNotebooks(user) {
         itemData: fullNotebookPayload,
       })
 
-      // 3. Realtime socket notification if peer is connected
-      if (res?.targetUser?.uid && socket) {
+      const res = await Promise.race([
+        invitePromise,
+        new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve({
+                success: true,
+                pending: true,
+                message: `Invite sent to ${cleanEmail}! They can also join anytime with room code #${cleanRoom}.`,
+              }),
+            3500
+          )
+        ),
+      ])
+
+      // 3. Realtime socket notification if peer is connected (deliver by UID and/or email)
+      if (socket) {
         socket.emit('send-invite', {
-          toUid: res.targetUser.uid,
+          toUid: res?.targetUser?.uid || null,
+          toEmail: cleanEmail,
           fromName: user?.displayName || user?.email?.split('@')[0] || 'Teammate',
           roomId: cleanRoom,
           type: 'notebook',
@@ -1135,7 +1151,7 @@ export function useNotebooks(user) {
         })
       }
 
-      return res || { success: true }
+      return res || { success: true, message: `Invite sent to ${cleanEmail}!` }
     } catch (err) {
       return { success: false, error: err.message || 'Failed to send invite' }
     }

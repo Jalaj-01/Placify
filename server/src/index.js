@@ -69,11 +69,23 @@ io.on('connection', (socket) => {
   console.log('Client connected:', socket.id)
 
   // User Authentication / Registration for Invites
-  socket.on('register', (uid) => {
-    if (uid) {
-      userSockets.set(uid, socket.id)
-      socket.uid = uid
-      console.log(`User ${uid} registered with socket ${socket.id}`)
+  socket.on('register', (payload) => {
+    if (typeof payload === 'string' && payload) {
+      userSockets.set(payload, socket.id)
+      socket.uid = payload
+      console.log(`User ${payload} registered with socket ${socket.id}`)
+    } else if (payload && typeof payload === 'object') {
+      const { uid, email } = payload
+      if (uid) {
+        userSockets.set(uid, socket.id)
+        socket.uid = uid
+      }
+      if (email) {
+        const cleanEmail = String(email).trim().toLowerCase()
+        userSockets.set(cleanEmail, socket.id)
+        socket.email = cleanEmail
+      }
+      console.log(`User ${uid || ''} (${email || ''}) registered with socket ${socket.id}`)
     }
   })
 
@@ -123,8 +135,9 @@ io.on('connection', (socket) => {
   })
 
   // Invite System
-  socket.on('send-invite', ({ toUid, fromName, roomId, type = 'study', title = '' }) => {
-    const targetSocket = userSockets.get(toUid)
+  socket.on('send-invite', ({ toUid, toEmail, fromName, roomId, type = 'study', title = '' }) => {
+    const cleanEmail = toEmail ? String(toEmail).trim().toLowerCase() : null
+    const targetSocket = (toUid && userSockets.get(toUid)) || (cleanEmail && userSockets.get(cleanEmail))
     if (targetSocket) {
       io.to(targetSocket).emit('receive-invite', { fromName, roomId, type, title })
     }
@@ -217,6 +230,9 @@ io.on('connection', (socket) => {
     console.log('Client disconnected:', socket.id)
     if (socket.uid) {
       userSockets.delete(socket.uid)
+    }
+    if (socket.email) {
+      userSockets.delete(socket.email)
     }
   })
 })

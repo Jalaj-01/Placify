@@ -795,15 +795,7 @@ export default function Notes() {
     setInviteMsg('')
 
     try {
-      const res = await Promise.race([
-        sendPeerInvite(emailToInvite, targetNb.title, targetNb.collabRoomId),
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error('Invite request timed out. Please copy and share the link directly.')),
-            12000
-          )
-        ),
-      ])
+      const res = await sendPeerInvite(emailToInvite, targetNb.title, targetNb.collabRoomId)
 
       if (res?.success) {
         setInviteMsgType('success')
