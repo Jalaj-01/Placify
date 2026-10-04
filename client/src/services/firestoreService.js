@@ -1,7 +1,7 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
   query, orderBy, onSnapshot, serverTimestamp, Timestamp, writeBatch, where,
-  collectionGroup,
+  collectionGroup, arrayUnion,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { topicSeeds } from '@/utils/topicSeeds'
@@ -1303,17 +1303,21 @@ export async function sendUserInvite(senderUser, receiverEmail, inviteData) {
 
   // Guaranteed non-blocking sync to sharedNotebooks if roomId is present (open rules, never hangs)
   if (inviteData.roomId) {
-    const cleanRoom = String(inviteData.roomId).trim().replace(/^#+/, '').toLowerCase()
-    withFastTimeout(
-      setDoc(
-        doc(db, 'sharedNotebooks', cleanRoom),
-        {
-          invitedEmails: arrayUnion(cleanEmail),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      ).catch(() => {})
-    )
+    try {
+      const cleanRoom = String(inviteData.roomId).trim().replace(/^#+/, '').toLowerCase()
+      withFastTimeout(
+        setDoc(
+          doc(db, 'sharedNotebooks', cleanRoom),
+          {
+            invitedEmails: arrayUnion(cleanEmail),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        ).catch(() => {})
+      )
+    } catch (e) {
+      console.warn('sharedNotebooks sync note:', e)
+    }
   }
 
   if (receiver && receiver.uid) {
