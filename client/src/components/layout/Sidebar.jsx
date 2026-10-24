@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles,
-  ChevronLeft, ChevronRight, LogOut, Terminal, FolderOpen, Youtube,
+  LogOut, Terminal, FolderOpen, Youtube,
   Bookmark, Share2, Sun, Moon, Timer, StickyNote, MailOpen, School,
   Shield, Users, Bell, FileText, GraduationCap, BookOpenCheck, Eye, Boxes, Film
 } from 'lucide-react'
@@ -33,12 +33,12 @@ const allNavItems = [
   { to: '/notes', icon: BookOpen, label: 'Notes & Notebook', roles: ['admin'] },
 
   // Student-Only Tools
-  { to: '/classroom', icon: School, label: 'Classroom Vault', roles: ['student'] },
-  { to: '/problems', icon: Code2, label: 'Problem Log', roles: ['student'] },
+  { to: '/classroom', icon: School, label: 'Classroom Vault', topNav: true, roles: ['student'] },
+  { to: '/problems', icon: Code2, label: 'Problem Log', topNav: true, roles: ['student'] },
   { to: '/topics', icon: BookOpen, label: 'Topic Mastery', roles: ['student'] },
   { to: '/applications', icon: Briefcase, label: 'Applications', roles: ['student'] },
-  { to: '/timer', icon: Timer, label: 'Mock Timer', isTimer: true, roles: ['student'] },
-  { to: '/courses', icon: Youtube, label: 'Course Vault', roles: ['student'] },
+  { to: '/timer', icon: Timer, label: 'Mock Timer', isTimer: true, topNav: true, roles: ['student'] },
+  { to: '/courses', icon: Youtube, label: 'Course Vault', topNav: true, roles: ['student'] },
   { to: '/invites', icon: MailOpen, label: 'Invites', isInvites: true, roles: ['student', 'teacher', 'phd'] },
   { to: '/community', icon: Users, label: 'Community', roles: ['student', 'teacher', 'phd'] },
   { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks', roles: ['student'] },
@@ -106,6 +106,7 @@ export default function Sidebar({ user, onSignOut }) {
   const isStudent = !isTeacher && !isPhd && roleRaw !== 'admin'
 
   const navItems = allNavItems.filter((item) => {
+    if (item.topNav) return false
     // When in Admin mode, show ONLY admin items and sticky notes
     if (roleRaw === 'admin') {
       return item.roles.includes('admin')
@@ -123,14 +124,13 @@ export default function Sidebar({ user, onSignOut }) {
     return false
   })
   const {
-    sidebarCollapsed, toggleSidebar, setSidebarCollapsed,
+    setSidebarCollapsed,
     openAICoach, aiCoachOpen, openTimerSetup, assessmentTimerOpen,
     toggleStickyNotes, stickyNotesOpen, openNotebooks, openStickyNotes,
     notesDrawerTab,
     theme, toggleTheme,
     invitesDrawerOpen, toggleInvitesDrawer, pendingInvites
   } = useAppStore()
-  const [isHovered, setIsHovered] = useState(false)
   const [firestoreInvitesCount, setFirestoreInvitesCount] = useState(0)
 
   useEffect(() => {
@@ -145,75 +145,43 @@ export default function Sidebar({ user, onSignOut }) {
 
   const totalPendingInvitesCount = Math.max(pendingInvites.length, firestoreInvitesCount)
 
-  // Sidebar is visually expanded if manually uncollapsed OR hovered over
-  const isExpanded = !sidebarCollapsed || isHovered
+  // Keep the desktop navigation as a compact icon rail, like the reference.
+  const isExpanded = false
 
   const handleNavClick = (item, e) => {
     if (item.isNotebook) {
       e.preventDefault()
       openNotebooks()
-      setIsHovered(false)
     } else if (item.isStickyNotes) {
       e.preventDefault()
       openStickyNotes()
-      setIsHovered(false)
     } else if (item.isTimer) {
       e.preventDefault()
       openTimerSetup()
-      setIsHovered(false)
     } else if (item.isAICoach) {
       e.preventDefault()
       openAICoach()
-      setIsHovered(false)
       setSidebarCollapsed(true)
     } else if (item.isInvites) {
       e.preventDefault()
       toggleInvitesDrawer()
-      setIsHovered(false)
-    } else {
-      setIsHovered(false)
     }
   }
 
   return (
     <motion.aside
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      animate={{ width: isExpanded ? 240 : 64 }}
-      transition={{ duration: 0.2, ease: 'easeInOut' }}
-      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-border-subtle bg-surface/95 backdrop-blur-xl z-40 shadow-xl overflow-hidden print:hidden"
+      animate={{ width: 64 }}
+      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-slate-200/70 bg-gradient-to-b from-rose-50/80 via-white/90 to-sky-50/90 backdrop-blur-xl z-40 shadow-[4px_0_24px_rgba(31,41,55,0.04)] overflow-hidden dark:border-white/10 dark:bg-gradient-to-b dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 print:hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border-subtle shrink-0">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="h-8 w-8 rounded-xl bg-accent text-white flex items-center justify-center font-black text-xs shrink-0 shadow">
-            CG
+      <div className="flex h-[68px] items-center justify-center border-b border-border-subtle shrink-0">
+          <div className="h-9 w-9 rounded-xl bg-[#252525] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <Boxes className="h-[18px] w-[18px]" />
           </div>
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.span
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="text-card-title font-black text-text-primary whitespace-nowrap tracking-tight"
-              >
-                CampusGrid
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <button
-          onClick={toggleSidebar}
-          className="p-1.5 rounded-lg hover:bg-hover text-text-secondary shrink-0"
-          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-none">
+      <nav className="flex-1 px-2 py-3 space-y-2 overflow-y-auto scrollbar-none">
         {navItems.map((item) => {
           const { to, icon: Icon, label, isAICoach, isTimer, isStickyNotes, isNotebook, isInvites } = item
           const isActiveCoach = isAICoach && aiCoachOpen
@@ -235,12 +203,14 @@ export default function Sidebar({ user, onSignOut }) {
               className={({ isActive }) => {
                 const active = (isActive && !item.to.includes('?') && !isNotebook && !isStickyNotes) || isQueryActive || isActiveCoach || isActiveTimer || isActiveNotebook || isActiveStickyNotes || isActiveInvites
                 return cn(
-                  'flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-secondary transition-all relative group',
+                  'mx-auto flex h-9 w-9 items-center justify-center rounded-xl border border-transparent p-0 transition-all relative group',
                   active
-                    ? 'bg-accent/15 text-accent-light font-semibold border border-accent/20'
-                    : 'text-text-secondary hover:bg-hover hover:text-text-primary'
+                    ? 'bg-[#252525] text-white shadow-[0_4px_10px_rgba(0,0,0,0.18)]'
+                    : 'border-slate-200/80 bg-white text-slate-600 shadow-sm hover:border-slate-300 hover:bg-white hover:text-slate-950'
                 )
               }}
+              title={label}
+              aria-label={label}
             >
               <Icon className={cn('h-5 w-5 shrink-0 transition-colors', (isActiveCoach || isActiveTimer || isActiveNotebook || isActiveStickyNotes || isActiveInvites) && 'text-accent-light')} />
               <AnimatePresence>
@@ -269,7 +239,7 @@ export default function Sidebar({ user, onSignOut }) {
                 <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
               )}
               {isInvites && totalPendingInvitesCount > 0 && (
-                <span className="ml-auto bg-semantic-red text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">
+                <span className="absolute -right-1 -top-1 bg-semantic-red text-white text-[9px] font-black min-w-4 h-4 flex items-center justify-center rounded-full shrink-0">
                   {totalPendingInvitesCount}
                 </span>
               )}
