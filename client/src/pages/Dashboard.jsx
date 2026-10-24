@@ -123,7 +123,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-5 w-full max-w-full">
       {/* 1. Platform Announcements Banner (Broadcasted from Admin Panel) */}
-      {visibleAnnouncements.length > 0 && (
+      {effectiveRole !== 'student' && visibleAnnouncements.length > 0 && (
         <div className="space-y-2">
           {visibleAnnouncements.slice(0, 2).map((item) => {
             const isUrgent = item.priority === 'urgent'
@@ -182,7 +182,7 @@ export default function Dashboard() {
       )}
 
       {/* 3. Workspace Header Action Bar for non-admin roles */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 rounded-2xl bg-surface/60 border border-white/10 backdrop-blur-xl shadow-lg text-xs">
+      {effectiveRole !== 'student' && <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 rounded-2xl bg-surface/60 border border-white/10 backdrop-blur-xl shadow-lg text-xs">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent/15 text-accent font-bold border border-accent/20">
             <UserCheck className="h-4 w-4" />
@@ -204,7 +204,7 @@ export default function Dashboard() {
             <span>📝 Sticky Notes</span>
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Render Specific Role Dashboard */}
       {effectiveRole === 'teacher' && (

@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ToastProvider } from '@/components/ui/toast'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import AuthGuard from '@/components/auth/AuthGuard'
 import Sidebar from '@/components/layout/Sidebar'
+import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
 import TopBar from '@/components/layout/TopBar'
 import PageWrapper from '@/components/layout/PageWrapper'
@@ -15,6 +16,7 @@ import GroupStudyModal from '@/components/study/GroupStudyModal'
 import GlobalInviteListener from '@/components/study/GlobalInviteListener'
 import InvitesDrawer from '@/components/study/InvitesDrawer'
 import Dashboard from '@/pages/Dashboard'
+import DashboardShell from '@/components/dashboard/DashboardShell'
 import Problems from '@/pages/Problems'
 import Topics from '@/pages/Topics'
 import Applications from '@/pages/Applications'
@@ -38,6 +40,7 @@ import { Loader2 } from 'lucide-react'
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/useAppStore'
+import { isSuperAdmin } from '@/config/adminConfig'
 
 import { useStreak } from '@/hooks/useStreak'
 import { useApplications } from '@/hooks/useApplications'
@@ -45,11 +48,15 @@ import { requestNotificationPermission, runNotificationScheduler } from '@/utils
 
 function AppContent() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, profile, signOut, loading: authLoading } = useAuth()
   const setOffline = useAppStore((s) => s.setOffline)
   const theme = useAppStore((s) => s.theme)
   const { streakData } = useStreak(user?.uid)
   const { applications } = useApplications(user?.uid)
+  const isAdminUser = isSuperAdmin((user?.email || '').toLowerCase().trim()) || profile?.role === 'admin'
+  const activeDashboardRole = (isAdminUser ? localStorage.getItem('placify_active_role') || 'admin' : profile?.role || 'student').toLowerCase().trim()
+  const isStudentDashboard = location.pathname === '/dashboard' && (activeDashboardRole === 'student' || activeDashboardRole === 'learner')
 
   useEffect(() => {
     const saved = localStorage.getItem('placify_theme') || 'dark'
@@ -142,8 +149,11 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-base text-text-primary print:bg-white print:text-slate-900 print:min-h-0">
       <div className="print:hidden">
-        <Sidebar user={user} onSignOut={signOut} />
-        <BottomNav />
+        {!isStudentDashboard && <>
+          <Sidebar user={user} onSignOut={signOut} />
+          <TopNav user={user} />
+          <BottomNav />
+        </>}
         <AICoachDrawer />
         <StickyNotesDrawer />
         <MockTimerSetupModal />
@@ -172,10 +182,9 @@ function AppContent() {
         <Route
           path="/dashboard"
           element={
-            <PageWrapper>
-              <TopBar title="Dashboard" />
-              <Dashboard />
-            </PageWrapper>
+            isStudentDashboard
+              ? <DashboardShell user={user} profile={profile} onSignOut={signOut}><Dashboard /></DashboardShell>
+              : <PageWrapper><TopBar title="Dashboard" /><Dashboard /></PageWrapper>
           }
         />
         <Route

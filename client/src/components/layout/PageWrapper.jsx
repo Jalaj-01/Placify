@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 export default function PageWrapper({ children, fullBleed = false }) {
   const location = useLocation()
-  const { sidebarCollapsed, aiCoachOpen } = useAppStore()
+  const { aiCoachOpen } = useAppStore()
 
   const isFullBleed =
     fullBleed || location.pathname.startsWith('/notes') || location.pathname.startsWith('/notebooks')
@@ -18,7 +18,7 @@ export default function PageWrapper({ children, fullBleed = false }) {
       transition={{ duration: 0.2 }}
       className={cn(
         'transition-all duration-300 print:!min-h-0 print:!p-0 print:!m-0 print:!pl-0 print:!pr-0 print:!pb-0 print:!pt-0 print:!h-auto print:!overflow-visible',
-        sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
+        'lg:pl-16',
         aiCoachOpen && 'lg:pr-[400px]',
         isFullBleed
           ? 'h-screen min-h-screen max-h-screen overflow-hidden flex flex-col pb-0'
@@ -30,7 +30,7 @@ export default function PageWrapper({ children, fullBleed = false }) {
           'w-full print:!p-0 print:!m-0 print:!max-w-none print:!w-full',
           isFullBleed
             ? 'h-full flex-1 flex flex-col p-0 m-0 max-w-none overflow-hidden'
-            : 'mx-auto max-w-[1400px] p-3 sm:p-5 md:p-6'
+            : 'mx-auto max-w-[1400px] p-3 sm:p-5 md:p-6 lg:pt-[88px]'
         )}
       >
         {children}
