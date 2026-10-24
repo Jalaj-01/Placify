@@ -1,84 +1,99 @@
-import { Github, Twitter, Linkedin } from 'lucide-react'
+import { Github, Twitter, Linkedin, Heart } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export default function Footer() {
   const navigate = useNavigate()
 
   return (
-    <footer className="border-t border-border/40 py-16 px-6 bg-base relative z-20 text-xs text-text-muted font-sans">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
+    <footer className="border-t border-slate-200/80 py-14 px-4 sm:px-8 bg-white/70 backdrop-blur-xl relative z-20 text-xs text-slate-500 font-sans">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Column 1: Brand & Status */}
-        <div className="space-y-4 md:col-span-1">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-2xl bg-gradient-to-tr from-accent via-indigo-600 to-cyan-500 p-0.5 shadow-lg shadow-accent/20">
-              <div className="h-full w-full rounded-[14px] bg-base flex items-center justify-center">
-                <span className="font-black text-xs tracking-tighter bg-gradient-to-tr from-accent via-cyan-400 to-white bg-clip-text text-transparent">
-                  CG
-                </span>
-              </div>
+        <div className="space-y-3 md:col-span-1">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#20242b] text-white flex items-center justify-center font-black text-xs shadow-md">
+              P
             </div>
-            <span className="font-black text-lg text-text-primary uppercase tracking-tight">CampusGrid</span>
+            <span className="font-extrabold text-lg text-[#20242b] tracking-tight">Placify</span>
           </div>
 
-          <p className="text-text-secondary leading-relaxed font-medium">
-            The next-generation academic operating system for Students, Faculty, and PhD Scholars.
+          <p className="text-slate-600 leading-relaxed font-normal">
+            The modern placement preparation and academic operating system for students, faculty, and research scholars.
           </p>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-semantic-green/10 border border-semantic-green/30 text-[11px] text-semantic-green font-bold font-mono">
-            <span className="h-2 w-2 rounded-full bg-semantic-green animate-ping" />
-            <span>🟢 All Systems Operational</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-700 font-bold">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>All Systems Operational</span>
           </div>
         </div>
 
-        {/* Column 2: Candidate Tools */}
-        <div className="space-y-3">
-          <h4 className="font-black text-text-primary uppercase tracking-wider text-xs">For Candidates</h4>
-          <ul className="space-y-2 font-medium text-text-secondary">
-            <li><a href="#role-sandbox" className="hover:text-accent transition-colors">Placement Kanban Board</a></li>
-            <li><a href="#role-sandbox" className="hover:text-accent transition-colors">1v1 Peer Mock Matcher</a></li>
-            <li><a href="#features" className="hover:text-accent transition-colors">Distraction-Free Theater</a></li>
-            <li><a href="#features" className="hover:text-accent transition-colors">Wasm Code Playground</a></li>
-            <li><a href="#features" className="hover:text-accent transition-colors">Subject Competency Radar</a></li>
+        {/* Column 2: Student Placement Suite */}
+        <div className="space-y-2.5">
+          <h4 className="font-extrabold text-[#20242b] uppercase tracking-wider text-xs">For Students</h4>
+          <ul className="space-y-1.5 font-medium text-slate-600">
+            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Placement Kanban Board</a></li>
+            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Coding Problem Log</a></li>
+            <li><a href="#features" className="hover:text-indigo-600 transition-colors">Subject Competency Radar</a></li>
+            <li><a href="#features" className="hover:text-indigo-600 transition-colors">AI Placement Coach & Mock OA</a></li>
+            <li><a href="#features" className="hover:text-indigo-600 transition-colors">1v1 Peer Mock Practice</a></li>
           </ul>
         </div>
 
-        {/* Column 3: Faculty & PhD Vault */}
-        <div className="space-y-3">
-          <h4 className="font-black text-text-primary uppercase tracking-wider text-xs">Faculty & Research</h4>
-          <ul className="space-y-2 font-medium text-text-secondary">
-            <li><a href="#role-sandbox" className="hover:text-accent transition-colors">Recharts Syllabus Pace</a></li>
-            <li><a href="#role-sandbox" className="hover:text-accent transition-colors">Digital Gradebook Vault</a></li>
-            <li><a href="#role-sandbox" className="hover:text-accent transition-colors">AI Quiz & MCQ Generator</a></li>
-            <li><a href="#role-sandbox" className="hover:text-accent transition-colors">Supervisor Sync Logbook</a></li>
-            <li><a href="#role-sandbox" className="hover:text-accent transition-colors">SERB Grant Claim Tracker</a></li>
+        {/* Column 3: Faculty & Research */}
+        <div className="space-y-2.5">
+          <h4 className="font-extrabold text-[#20242b] uppercase tracking-wider text-xs">Faculty & Research</h4>
+          <ul className="space-y-1.5 font-medium text-slate-600">
+            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Course Syllabus Pace Chart</a></li>
+            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Digital Gradebook Vault</a></li>
+            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Classroom Vault & Notes</a></li>
+            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">PhD Research Roadmap</a></li>
+            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Live Sync Study Rooms</a></li>
           </ul>
         </div>
 
-        {/* Column 4: Platform & Security */}
-        <div className="space-y-3">
-          <h4 className="font-black text-text-primary uppercase tracking-wider text-xs">Platform & Security</h4>
-          <ul className="space-y-2 font-medium text-text-secondary">
-            <li><a href="#pricing" className="hover:text-accent transition-colors">Campus Enterprise License</a></li>
-            <li><span className="text-text-muted">Privacy Policy & FERPA Compliance</span></li>
-            <li><span className="text-text-muted">ISO 27001 Security Standard</span></li>
+        {/* Column 4: Platform & Community */}
+        <div className="space-y-2.5">
+          <h4 className="font-extrabold text-[#20242b] uppercase tracking-wider text-xs">Platform & Community</h4>
+          <ul className="space-y-1.5 font-medium text-slate-600">
+            <li><a href="#pricing" className="hover:text-indigo-600 transition-colors">University Campus License</a></li>
+            <li><span className="text-slate-400">FERPA & Student Privacy Compliance</span></li>
+            <li><span className="text-slate-400">Institutional SLA & Cloud Security</span></li>
           </ul>
 
-          <div className="flex items-center gap-3 pt-2 text-text-secondary">
-            <a href="https://github.com/Jalaj-01/Placify" target="_blank" rel="noreferrer" className="p-2 rounded-xl bg-hover hover:text-accent transition-colors">
+          <div className="flex items-center gap-2 pt-2 text-slate-600">
+            <a
+              href="https://github.com/Jalaj-01/Placify"
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+              title="GitHub Repository"
+            >
               <Github className="h-4 w-4" />
             </a>
-            <a href="https://twitter.com" target="_blank" rel="noreferrer" className="p-2 rounded-xl bg-hover hover:text-accent transition-colors">
+            <a
+              href="https://twitter.com"
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+              title="Twitter"
+            >
               <Twitter className="h-4 w-4" />
             </a>
-            <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="p-2 rounded-xl bg-hover hover:text-accent transition-colors">
+            <a
+              href="https://linkedin.com"
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+              title="LinkedIn"
+            >
               <Linkedin className="h-4 w-4" />
             </a>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto mt-12 pt-6 border-t border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-text-muted">
-        <p>© {new Date().getFullYear()} CampusGrid Platform • Built for Students, Faculty & Research Scholars. All rights reserved.</p>
+      <div className="max-w-7xl mx-auto mt-10 pt-5 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
+        <p>© {new Date().getFullYear()} Placify Platform • Built for Students, Faculty & Research Scholars. All rights reserved.</p>
+        <p className="flex items-center gap-1">Crafted with precision for campus success</p>
       </div>
     </footer>
   )

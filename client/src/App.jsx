@@ -3,11 +3,6 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { ToastProvider } from '@/components/ui/toast'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import AuthGuard from '@/components/auth/AuthGuard'
-import Sidebar from '@/components/layout/Sidebar'
-import TopNav from '@/components/layout/TopNav'
-import BottomNav from '@/components/layout/BottomNav'
-import TopBar from '@/components/layout/TopBar'
-import PageWrapper from '@/components/layout/PageWrapper'
 import AICoachDrawer from '@/components/ai/AICoachDrawer'
 import StickyNotesDrawer from '@/components/notes/StickyNotesDrawer'
 import TopFloatingTimerCapsule from '@/components/layout/TopFloatingTimerCapsule'
@@ -145,15 +140,10 @@ function AppContent() {
     )
   }
 
-  // Private routing for logged-in users
+  // Private routing for logged-in users: Universal DashboardShell across all routes
   return (
-    <div className="min-h-screen bg-base text-text-primary print:bg-white print:text-slate-900 print:min-h-0">
+    <DashboardShell user={user} profile={profile} onSignOut={signOut}>
       <div className="print:hidden">
-        {!isStudentDashboard && <>
-          <Sidebar user={user} onSignOut={signOut} />
-          <TopNav user={user} />
-          <BottomNav />
-        </>}
         <AICoachDrawer />
         <StickyNotesDrawer />
         <MockTimerSetupModal />
@@ -162,6 +152,7 @@ function AppContent() {
         <GlobalInviteListener />
         <InvitesDrawer />
       </div>
+
       <Routes>
         {/* Redirect root to dashboard when authenticated */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -171,169 +162,32 @@ function AppContent() {
           path="/admin"
           element={
             <AdminGuard>
-              <PageWrapper>
-                <TopBar title="Admin Command Center" />
-                <Admin />
-              </PageWrapper>
+              <Admin />
             </AdminGuard>
           }
         />
 
-        <Route
-          path="/dashboard"
-          element={
-            isStudentDashboard
-              ? <DashboardShell user={user} profile={profile} onSignOut={signOut}><Dashboard /></DashboardShell>
-              : <PageWrapper><TopBar title="Dashboard" /><Dashboard /></PageWrapper>
-          }
-        />
-        <Route
-          path="/problems"
-          element={
-            <PageWrapper>
-              <TopBar title="Problem Log" />
-              <Problems />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/topics"
-          element={
-            <PageWrapper>
-              <TopBar title="Topics" />
-              <Topics />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/applications"
-          element={
-            <PageWrapper>
-              <TopBar title="Applications" />
-              <Applications />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/ai-coach"
-          element={
-            <PageWrapper>
-              <TopBar title="AI Coach" />
-              <AICoach />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/dsa-lab"
-          element={
-            <PageWrapper>
-              <TopBar title="3D DSA Lab" />
-              <DsaLab />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/dsa-lab/:topicId"
-          element={
-            <PageWrapper>
-              <TopBar title="3D DSA Lab" />
-              <DsaLab />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/dsa-courses"
-          element={
-            <PageWrapper>
-              <TopBar title="DSA 3D Masterclass Academy" />
-              <DsaMasterclassPage />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/playground"
-          element={
-            <PageWrapper>
-              <TopBar title="Code Playground" />
-              <Playground />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/library"
-          element={
-            <PageWrapper>
-              <TopBar title="Resource Library" />
-              <Library />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/classroom"
-          element={
-            <PageWrapper>
-              <TopBar title="Classroom Vault" />
-              <ClassroomVault />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/courses"
-          element={
-            <PageWrapper>
-              <TopBar title="Course Vault" />
-              <Courses />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/bookmarks"
-          element={
-            <PageWrapper>
-              <TopBar title="QA Bookmarks" />
-              <Bookmarks />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/shares"
-          element={
-            <PageWrapper>
-              <TopBar title="Shared Inbox" />
-              <Shares />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/notes"
-          element={
-            <PageWrapper>
-              <TopBar title="Notes & Collaborative Notebook" />
-              <Notes />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/notebooks"
-          element={
-            <PageWrapper>
-              <TopBar title="Notes & Collaborative Notebook" />
-              <Notes />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/community"
-          element={
-            <PageWrapper>
-              <TopBar title="Community" />
-              <Community />
-            </PageWrapper>
-          }
-        />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/problems" element={<Problems />} />
+        <Route path="/topics" element={<Topics />} />
+        <Route path="/applications" element={<Applications />} />
+        <Route path="/ai-coach" element={<AICoach />} />
+        <Route path="/dsa-lab" element={<DsaLab />} />
+        <Route path="/dsa-lab/:topicId" element={<DsaLab />} />
+        <Route path="/dsa-courses" element={<DsaMasterclassPage />} />
+        <Route path="/playground" element={<Playground />} />
+        <Route path="/library" element={<Library />} />
+        <Route path="/classroom" element={<ClassroomVault />} />
+        <Route path="/courses" element={<Courses />} />
+        <Route path="/bookmarks" element={<Bookmarks />} />
+        <Route path="/shares" element={<Shares />} />
+        <Route path="/invites" element={<Navigate to="/shares?tab=invites" replace />} />
+        <Route path="/notes" element={<Notes />} />
+        <Route path="/notebooks" element={<Notes />} />
+        <Route path="/community" element={<Community />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </div>
+    </DashboardShell>
   )
 }
 

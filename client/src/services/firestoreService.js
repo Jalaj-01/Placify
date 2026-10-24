@@ -1415,6 +1415,8 @@ export async function sendUserInvite(senderUser, receiverEmail, inviteData) {
   }
 }
 
+export const sendInvite = sendUserInvite
+
 export function subscribeInvites(uid, callback) {
   if (!uid) return () => {}
   const q = query(collection(db, 'users', uid, 'invites'), orderBy('createdAt', 'desc'))
@@ -1451,6 +1453,98 @@ export async function deleteInviteDoc(uid, inviteId) {
     const cached = JSON.parse(localStorage.getItem(key) || '[]')
     localStorage.setItem(key, JSON.stringify(cached.filter((i) => i.id !== inviteId && i.roomId !== inviteId)))
   } catch {}
+}
+
+export function subscribeSharesAndInvites(uid, callback) {
+  if (!uid) return () => {}
+
+  let currentInvites = []
+  let currentShares = []
+
+  const emitCombined = () => {
+    const seenKeys = new Set()
+    const unifiedList = []
+
+    // 1. Process invites
+    currentInvites.forEach((inv) => {
+      const cleanRoom = inv.roomId ? String(inv.roomId).trim().replace(/^#+/, '').toLowerCase() : null
+      const key = cleanRoom ? `room-${cleanRoom}` : (inv.shareDocId ? `share-${inv.shareDocId}` : `inv-${inv.id}`)
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key)
+        unifiedList.push({
+          ...inv,
+          source: 'invites',
+          uniqueKey: key,
+          senderName: inv.senderName || (inv.senderEmail ? inv.senderEmail.split('@')[0] : 'Peer'),
+        })
+      }
+    })
+
+    // 2. Process shares
+    currentShares.forEach((share) => {
+      const shareKey = `share-${share.id}`
+      const cleanRoom = share.itemData?.collabRoomId ? String(share.itemData.collabRoomId).trim().replace(/^#+/, '').toLowerCase() : null
+      const roomKey = cleanRoom ? `room-${cleanRoom}` : null
+
+      if (!seenKeys.has(shareKey) && (!roomKey || !seenKeys.has(roomKey))) {
+        seenKeys.add(shareKey)
+        if (roomKey) seenKeys.add(roomKey)
+        unifiedList.push({
+          id: share.id,
+          shareDocId: share.id,
+          source: 'shares',
+          uniqueKey: shareKey,
+          type: share.itemType === 'notebook' ? 'notebook' : 'share',
+          itemType: share.itemType,
+          itemData: share.itemData,
+          roomId: cleanRoom,
+          title: share.itemData?.title || share.itemData?.name || `Shared ${share.itemType || 'Resource'}`,
+          senderEmail: share.senderEmail,
+          senderUid: share.senderUid,
+          senderName: share.senderEmail ? share.senderEmail.split('@')[0] : 'Peer',
+          createdAt: share.createdAt,
+        })
+      }
+    })
+
+    callback({
+      invites: currentInvites,
+      shares: currentShares,
+      combined: unifiedList,
+      totalCount: unifiedList.length,
+    })
+  }
+
+  const unsubInvites = subscribeInvites(uid, (invites) => {
+    currentInvites = invites || []
+    emitCombined()
+  })
+
+  const unsubShares = subscribeShares(uid, (shares) => {
+    currentShares = shares || []
+    emitCombined()
+  })
+
+  return () => {
+    if (typeof unsubInvites === 'function') unsubInvites()
+    if (typeof unsubShares === 'function') unsubShares()
+  }
+}
+
+export async function deleteShareOrInvite(uid, item) {
+  if (!uid || !item) return
+  if (item.shareDocId) {
+    await deleteShare(uid, item.shareDocId).catch(() => {})
+  }
+  if (item.source === 'shares' && item.id) {
+    await deleteShare(uid, item.id).catch(() => {})
+  }
+  if (item.id) {
+    await deleteInviteDoc(uid, item.id).catch(() => {})
+  }
+  if (item.roomId) {
+    await deleteInviteDoc(uid, `room_${String(item.roomId).trim().replace(/^#+/, '').toLowerCase()}`).catch(() => {})
+  }
 }
 
 // ─── Community Posts & Hub ──────────────────────────────────

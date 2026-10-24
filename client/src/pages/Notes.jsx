@@ -2867,10 +2867,10 @@ export default function Notes() {
             className={cn('pdf-page-container flex flex-col justify-between', pIdx < arr.length - 1 && 'pdf-page-break')}
           >
             <div>
-              {/* 1. New Minimal Page Header: Strictly 25-35px, ONLY CampusGrid + placify.app/notes at TOP-LEFT */}
+              {/* 1. New Minimal Page Header: Strictly 25-35px, ONLY Placify + placify.app/notes at TOP-LEFT */}
               <div className="pdf-header pb-1 mb-3 border-b border-slate-300 flex items-center justify-between">
                 <div className="flex flex-col text-left">
-                  <span className="text-[11px] font-bold text-slate-800 tracking-tight leading-tight">CampusGrid</span>
+                  <span className="text-[11px] font-bold text-slate-800 tracking-tight leading-tight">Placify</span>
                   <span className="text-[9px] text-slate-500 font-mono leading-tight">placify.app/notes</span>
                 </div>
               </div>
@@ -2887,7 +2887,7 @@ export default function Notes() {
                     {activeNotebook?.subject && (
                       <>
                         <span className="text-slate-300">•</span>
-                        <span className="text-slate-500 font-medium">CampusGrid Notes · {activeNotebook.subject}</span>
+                        <span className="text-slate-500 font-medium">Placify Notes · {activeNotebook.subject}</span>
                       </>
                     )}
                   </div>

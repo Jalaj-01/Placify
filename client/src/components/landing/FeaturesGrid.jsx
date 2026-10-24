@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion'
 import {
-  GraduationCap, School, BookOpen, Sparkles, Youtube, Terminal,
-  Timer, FolderOpen, ChevronRight, CheckCircle2, FileSpreadsheet,
-  Clock, ShieldCheck, ArrowRight, Zap, Users, Code2
+  GraduationCap, School, BookOpen, Sparkles, Terminal,
+  Timer, ChevronRight, CheckCircle2, ArrowRight, Zap,
+  Briefcase, Code2, Users, FileText, Share2
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -20,193 +20,203 @@ export default function FeaturesGrid() {
   }
 
   return (
-    <section id="features" className="py-20 px-6 max-w-7xl mx-auto relative z-20 space-y-12">
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <span className="px-4 py-1.5 rounded-full bg-accent/15 text-accent-light text-xs font-mono font-bold border border-accent/30 shadow-sm uppercase tracking-wider">
-          BENTO BOX ARCHITECTURE
+    <section id="features" className="py-16 px-4 sm:px-8 max-w-7xl mx-auto relative z-20 space-y-10">
+      {/* Section Header */}
+      <div className="text-center space-y-3 max-w-2xl mx-auto">
+        <span className="px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider">
+          Unified Core Architecture
         </span>
-        <h2 className="text-3xl sm:text-5xl font-black text-text-primary">
-          Designed for High-Velocity Academic Performance
+        <h2 className="text-3xl sm:text-5xl font-extrabold text-[#20242b] tracking-tight">
+          Designed for High-Velocity Placement Success
         </h2>
-        <p className="text-xs sm:text-base text-text-secondary max-w-xl mx-auto font-medium">
-          Integrated toolsets replacing scattered WhatsApp groups, lost PDFs, and manual Excel sheets.
+        <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
+          Say goodbye to lost PDFs, scattered WhatsApp groups, and chaotic spreadsheets. Placify brings everything under one clean roof.
         </p>
       </div>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Card 1: Student Placement Command (Span 7) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+        {/* Card 1: Placement Kanban (Span 7) */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           onClick={() => handleExplore('/applications')}
-          className="md:col-span-7 p-7 rounded-3xl bg-surface/90 border border-border-subtle hover:border-accent/50 transition-all duration-300 shadow-2xl backdrop-blur-2xl cursor-pointer group flex flex-col justify-between space-y-6"
+          className="md:col-span-7 p-6 sm:p-7 rounded-[28px] bg-white/90 border border-white/95 shadow-[0_12px_36px_rgba(31,41,55,0.06)] backdrop-blur-xl hover:shadow-[0_16px_44px_rgba(31,41,55,0.09)] transition-all duration-300 cursor-pointer group flex flex-col justify-between space-y-6"
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3.5 rounded-2xl bg-accent/15 text-accent border border-accent/30 shadow-sm">
-                <GraduationCap className="h-6 w-6" />
+              <div className="p-3 rounded-2xl bg-[#d9eff7] text-[#1e6080] border border-[#c8e5ee] shadow-sm">
+                <Briefcase className="h-6 w-6" />
               </div>
-              <span className="px-3 py-1 rounded-full bg-accent/10 text-accent-light text-xs font-mono font-bold border border-accent/20">
-                🎓 Candidate Command Hub
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                Placement Pipeline
               </span>
             </div>
 
             <div className="space-y-1.5">
-              <h3 className="text-2xl font-black text-text-primary group-hover:text-accent-light transition-colors">
-                Unified Placement Kanban & 1v1 Peer Matcher
+              <h3 className="text-2xl font-extrabold text-[#20242b] group-hover:text-indigo-600 transition-colors">
+                Visual Placement Kanban & Drive Tracker
               </h3>
-              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed font-medium">
-                Track drives from Wishlist to Offer stage with automated company prep kits, past interview handouts, and live 1v1 peer mock interview matching.
+              <p className="text-sm text-slate-600 leading-relaxed font-normal">
+                Organize all your campus recruitment applications across Wishlist, Online Assessment, Technical Interview, and Offer stages.
               </p>
             </div>
 
-            {/* Visual Mini Mockup inside Bento Box */}
-            <div className="p-4 rounded-2xl bg-base/80 border border-border-subtle space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-text-primary flex items-center gap-2">
-                  <Users className="h-4 w-4 text-accent" /> Matched Peer: Rohan Mehta (45m)
-                </span>
-                <span className="text-semantic-green font-mono font-bold text-[11px]">✓ Passed 3 Tests</span>
+            {/* Mini Kanban Preview */}
+            <div className="grid grid-cols-3 gap-2.5 pt-2">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Wishlist</span>
+                <p className="text-xs font-bold text-slate-800 m-0">Google SDE</p>
+                <span className="text-[9px] text-slate-500">₹45 LPA</span>
               </div>
-              <p className="text-text-muted text-[11px]">Course Schedule II (Graph Topological Sort) • Live JS Execution</p>
+              <div className="p-3 rounded-xl bg-[#dfe0fb]/60 border border-[#c5c8e8] space-y-1">
+                <span className="text-[10px] font-bold text-[#5547d0] uppercase">OA / Round 1</span>
+                <p className="text-xs font-bold text-slate-800 m-0">Amazon</p>
+                <span className="text-[9px] text-slate-500">Tomorrow 4 PM</span>
+              </div>
+              <div className="p-3 rounded-xl bg-[#e4f5d7]/70 border border-[#d4eac5] space-y-1">
+                <span className="text-[10px] font-bold text-[#366826] uppercase">Offer Logged</span>
+                <p className="text-xs font-bold text-slate-800 m-0">Atlassian</p>
+                <span className="text-[9px] text-emerald-700 font-bold">Confirmed 🎉</span>
+              </div>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-accent font-bold group-hover:text-accent-light">
+          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition-transform">
             <span>Explore Placement Kanban</span>
-            <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            <ChevronRight className="h-4 w-4" />
           </div>
         </motion.div>
 
-        {/* Card 2: Faculty Vault (Span 5) */}
+        {/* Card 2: Competency Radar & Problem Log (Span 5) */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.1 }}
-          onClick={() => handleExplore('/dashboard')}
-          className="md:col-span-5 p-7 rounded-3xl bg-surface/90 border border-border-subtle hover:border-purple-500/50 transition-all duration-300 shadow-2xl backdrop-blur-2xl cursor-pointer group flex flex-col justify-between space-y-6"
+          onClick={() => handleExplore('/problems')}
+          className="md:col-span-5 p-6 sm:p-7 rounded-[28px] bg-white/90 border border-white/95 shadow-[0_12px_36px_rgba(31,41,55,0.06)] backdrop-blur-xl hover:shadow-[0_16px_44px_rgba(31,41,55,0.09)] transition-all duration-300 cursor-pointer group flex flex-col justify-between space-y-6"
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3.5 rounded-2xl bg-purple-500/15 text-purple-400 border border-purple-500/30 shadow-sm">
-                <School className="h-6 w-6" />
+              <div className="p-3 rounded-2xl bg-[#dfe0fb] text-[#5547d0] border border-[#c5c8e8] shadow-sm">
+                <Code2 className="h-6 w-6" />
               </div>
-              <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-300 text-xs font-mono font-bold border border-purple-500/20">
-                👨‍🏫 Faculty Vault
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                DSA Mastery
               </span>
             </div>
 
             <div className="space-y-1.5">
-              <h3 className="text-2xl font-black text-text-primary group-hover:text-purple-300 transition-colors">
-                Automated Course Pace & Gradebook
+              <h3 className="text-2xl font-extrabold text-[#20242b] group-hover:text-indigo-600 transition-colors">
+                Radar Competency & Coding Log
               </h3>
-              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed font-medium">
-                Visual Recharts comparing planned vs actual module targets per course and section with 1-click CSV grade export.
+              <p className="text-sm text-slate-600 leading-relaxed font-normal">
+                Log problems across DSA, System Design, OS, and DBMS. Watch your 5-axis competency polygon automatically expand.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-purple-950/20 border border-purple-500/30 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-text-primary">CS301 Data Structures (Sec 3A)</span>
-                <span className="text-semantic-green font-mono font-bold">82% Pace</span>
+            <div className="p-3 rounded-2xl bg-[#dfe0fb]/40 border border-[#c5c8e8]/60 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Mastery Index</span>
+                <p className="text-lg font-black text-slate-900 m-0">88% Ready</p>
               </div>
-              <p className="text-text-muted text-[11px]">Lab Mid-Term & End-Term Grade Vault • Single Click CSV</p>
+              <span className="px-2.5 py-1 rounded-lg bg-white text-indigo-700 font-bold text-xs shadow-sm">
+                Top 5% Batch
+              </span>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-purple-400 font-bold group-hover:text-purple-300">
-            <span>Explore Faculty Console</span>
-            <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition-transform">
+            <span>View Coding Vault</span>
+            <ChevronRight className="h-4 w-4" />
           </div>
         </motion.div>
 
-        {/* Card 3: PhD Research (Span 5) */}
+        {/* Card 3: Real-time Notes & Collaboration (Span 5) */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
-          onClick={() => handleExplore('/dashboard')}
-          className="md:col-span-5 p-7 rounded-3xl bg-surface/90 border border-border-subtle hover:border-semantic-green/50 transition-all duration-300 shadow-2xl backdrop-blur-2xl cursor-pointer group flex flex-col justify-between space-y-6"
+          onClick={() => handleExplore('/notes')}
+          className="md:col-span-5 p-6 sm:p-7 rounded-[28px] bg-white/90 border border-white/95 shadow-[0_12px_36px_rgba(31,41,55,0.06)] backdrop-blur-xl hover:shadow-[0_16px_44px_rgba(31,41,55,0.09)] transition-all duration-300 cursor-pointer group flex flex-col justify-between space-y-6"
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3.5 rounded-2xl bg-semantic-green/15 text-semantic-green border border-semantic-green/30 shadow-sm">
-                <BookOpen className="h-6 w-6" />
+              <div className="p-3 rounded-2xl bg-[#fff8df] text-[#b88c00] border border-[#f0df9d] shadow-sm">
+                <FileText className="h-6 w-6" />
               </div>
-              <span className="px-3 py-1 rounded-full bg-semantic-green/10 text-semantic-green text-xs font-mono font-bold border border-semantic-green/20">
-                🔬 PhD Research
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                Shared Vault
               </span>
             </div>
 
             <div className="space-y-1.5">
-              <h3 className="text-2xl font-black text-text-primary group-hover:text-semantic-green transition-colors">
-                Supervisor Logbook & Grant Tracker
+              <h3 className="text-2xl font-extrabold text-[#20242b] group-hover:text-indigo-600 transition-colors">
+                Real-Time Collaborative Notes
               </h3>
-              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed font-medium">
-                Timestamped meeting logbooks, TA lab invigilation slots, manuscript submission pipeline, and SERB/DST grant expense claims.
+              <p className="text-sm text-slate-600 leading-relaxed font-normal">
+                Multi-cursor live synced notebooks with rich text, code execution blocks, and instant campus peer invites.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-base/80 border border-border-subtle space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-text-primary">SERB Grant Budget</span>
-                <span className="text-semantic-green font-mono font-bold">₹20.8L Remaining</span>
+            <div className="p-3 rounded-2xl bg-[#fff8df]/50 border border-[#f0df9d] flex items-center gap-3">
+              <div className="flex -space-x-2">
+                <div className="w-7 h-7 rounded-full bg-indigo-500 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">RV</div>
+                <div className="w-7 h-7 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">AG</div>
+                <div className="w-7 h-7 rounded-full bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">+3</div>
               </div>
-              <p className="text-text-muted text-[11px]">IEEE TPDS Journal (Impact Factor 4.8) • Paper Under Review</p>
+              <span className="text-xs font-bold text-slate-800">5 peers currently in study room</span>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-semantic-green font-bold">
-            <span>Explore PhD Logbook</span>
-            <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition-transform">
+            <span>Open Placify Notes</span>
+            <ChevronRight className="h-4 w-4" />
           </div>
         </motion.div>
 
-        {/* Card 4: Universal AI Coach (Span 7) */}
+        {/* Card 4: AI Coach & Timed OA Mock Room (Span 7) */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
           onClick={() => handleExplore('/ai-coach')}
-          className="md:col-span-7 p-7 rounded-3xl bg-surface/90 border border-border-subtle hover:border-amber-500/50 transition-all duration-300 shadow-2xl backdrop-blur-2xl cursor-pointer group flex flex-col justify-between space-y-6"
+          className="md:col-span-7 p-6 sm:p-7 rounded-[28px] bg-white/90 border border-white/95 shadow-[0_12px_36px_rgba(31,41,55,0.06)] backdrop-blur-xl hover:shadow-[0_16px_44px_rgba(31,41,55,0.09)] transition-all duration-300 cursor-pointer group flex flex-col justify-between space-y-6"
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3.5 rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm">
-                <Sparkles className="h-6 w-6 animate-pulse" />
+              <div className="p-3 rounded-2xl bg-[#e4f5d7] text-[#366826] border border-[#d4eac5] shadow-sm">
+                <Sparkles className="h-6 w-6" />
               </div>
-              <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 text-xs font-mono font-bold border border-amber-500/20">
-                🤖 Universal Gemini AI
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                AI Intelligence
               </span>
             </div>
 
             <div className="space-y-1.5">
-              <h3 className="text-2xl font-black text-text-primary group-hover:text-amber-300 transition-colors">
-                Role-Aware AI Drawer Assistant
+              <h3 className="text-2xl font-extrabold text-[#20242b] group-hover:text-indigo-600 transition-colors">
+                AI Placement Coach & Mock Simulator
               </h3>
-              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed font-medium">
-                Scrapes LeetCode/GFG problem URLs for students, generates MCQ quizzes for faculty, and formats LaTeX research citations for PhD scholars.
+              <p className="text-sm text-slate-600 leading-relaxed font-normal">
+                Simulate high-pressure company online assessments. Receive real-time hints, time complexity audits, and behavioral interview coaching.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-text-primary">Gemini 2.5 Flash Engine</span>
-                <span className="text-amber-400 font-mono font-bold">Active Drawer</span>
+            <div className="p-3.5 rounded-2xl bg-slate-900 text-white flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-semibold text-slate-200">AI Coach Ready for Mock Round</span>
               </div>
-              <p className="text-text-muted text-[11px]">Auto Debug Prompts • Lesson Plan Generator • Citation Formatting</p>
+              <span className="px-3 py-1 rounded-xl bg-white/10 text-white font-bold text-[10px] border border-white/20">
+                Start Mock Interview
+              </span>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-border-subtle flex items-center justify-between text-xs text-amber-400 font-bold group-hover:text-amber-300">
-            <span>Open AI Drawer Assistant</span>
-            <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition-transform">
+            <span>Launch AI Coach</span>
+            <ChevronRight className="h-4 w-4" />
           </div>
         </motion.div>
       </div>

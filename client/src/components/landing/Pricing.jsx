@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, ArrowRight, Zap, ShieldCheck, Sparkles } from 'lucide-react'
+import { Check, ArrowRight, Sparkles, Building2, User } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -20,16 +20,16 @@ export default function Pricing() {
 
   const tiers = [
     {
-      name: 'Starter Candidate',
+      name: 'Starter Student',
       badge: 'Free Forever',
       price: '$0',
-      description: 'Ideal for individual students preparing for campus placement drives and DSA rounds.',
+      description: 'Everything an individual candidate needs to prepare for campus recruitment and DSA OA rounds.',
       features: [
         'Placement Application Kanban Board',
-        '1v1 Peer Mock Interview Matcher',
-        'Distraction-Free Course Theater',
-        'WebAssembly Python & JS Code Playground',
-        'Resource Library (Offline Base64 Storage)',
+        'Coding Problem Log & Radar Competency',
+        'Masterclass DSA Lab & Step Visualizer',
+        '1v1 Peer Mock Practice & Study Rooms',
+        'Resource Library & Classroom Vault',
       ],
       cta: 'Get Started Free',
       highlighted: false,
@@ -39,29 +39,29 @@ export default function Pricing() {
       badge: 'Most Popular',
       price: billingCycle === 'individual' ? '$9' : '$49',
       period: '/ month',
-      description: 'Full superpower suite for serious job candidates, course faculty, and PhD research scholars.',
+      description: 'Advanced AI mock coaching, automated grading, and priority multi-user collaboration.',
       features: [
-        'Everything in Starter Tier',
-        'Universal Gemini 2.5 AI Coach & Drawer',
-        'Faculty Course Pace Charts & AI Quiz Generator',
+        'Everything in Starter Student',
+        'Universal Gemini AI Placement Coach',
+        'Automated Mock OA Interview Evaluations',
+        'Faculty Course Syllabus Pace Barometer',
         'Digital Gradebook Vault with 1-Click CSV Export',
-        'PhD Supervisor Logbook & Grant Expense Claims',
-        'Automated Subject Radar & Competency Index',
+        'PhD Supervisor Logbook & Milestones',
       ],
       cta: 'Launch Pro Console',
       highlighted: true,
     },
     {
       name: 'University Campus License',
-      badge: 'Enterprise',
+      badge: 'Institutional',
       price: 'Custom',
-      description: 'Complete institutional deployment for engineering colleges and university departments.',
+      description: 'End-to-end institutional deployment for placement cells, departments, and entire campuses.',
       features: [
-        'Unlimited Students, Faculty & PhD Scholars',
-        'Google Workspace & SSO Integration',
-        'Custom Faculty Verification Codes (TEACHER2026)',
-        'Institution Placement Cell Analytics Dashboard',
-        '24/7 Priority SLA & Dedicated Account Manager',
+        'Unlimited Students, Faculty & Research Scholars',
+        'University Single Sign-On (Google Workspace & SAML)',
+        'Placement Cell Central Analytics Command',
+        'Verified Faculty Code Generation & Admin Audits',
+        '24/7 Dedicated Campus Support & Custom SLA',
       ],
       cta: 'Contact Campus Desk',
       highlighted: false,
@@ -69,86 +69,90 @@ export default function Pricing() {
   ]
 
   return (
-    <section id="pricing" className="py-20 px-6 max-w-7xl mx-auto border-t border-border/40 relative z-20 space-y-12">
+    <section id="pricing" className="py-16 px-4 sm:px-8 max-w-7xl mx-auto relative z-20 space-y-10">
       {/* Section Header */}
-      <div className="text-center space-y-3">
-        <span className="px-4 py-1.5 rounded-full bg-accent/15 text-accent-light text-xs font-mono font-bold border border-accent/30 shadow-sm uppercase tracking-wider">
-          TRANSPARENT ACCESS TIERS
+      <div className="text-center space-y-3 max-w-2xl mx-auto">
+        <span className="px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider">
+          Transparent Access
         </span>
-        <h2 className="text-3xl sm:text-5xl font-black text-text-primary">
+        <h2 className="text-3xl sm:text-5xl font-extrabold text-[#20242b] tracking-tight">
           Simple Pricing for Students & Institutions
         </h2>
-        <p className="text-xs sm:text-base text-text-secondary max-w-xl mx-auto font-medium">
-          Start 100% free with Google authentication. Upgrade anytime for advanced AI workflows.
+        <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
+          Start free with Google authentication. Scale smoothly as your placement prep or campus needs grow.
         </p>
       </div>
 
-      {/* Toggle */}
-      <div className="flex justify-center gap-2 p-1.5 rounded-2xl bg-surface/80 border border-border-subtle max-w-xs mx-auto backdrop-blur-xl shadow-xl">
-        <button
-          onClick={() => setBillingCycle('individual')}
-          className={`px-5 py-2 rounded-xl text-xs font-extrabold transition-all ${
-            billingCycle === 'individual'
-              ? 'bg-accent text-white shadow-md shadow-accent/25'
-              : 'text-text-muted hover:text-text-primary'
-          }`}
-        >
-          Individual License
-        </button>
-        <button
-          onClick={() => setBillingCycle('campus')}
-          className={`px-5 py-2 rounded-xl text-xs font-extrabold transition-all ${
-            billingCycle === 'campus'
-              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/25'
-              : 'text-text-muted hover:text-text-primary'
-          }`}
-        >
-          Campus License
-        </button>
+      {/* Pill Toggle */}
+      <div className="flex justify-center">
+        <div className="inline-flex items-center gap-1 p-1 rounded-2xl bg-white/90 border border-slate-200/90 shadow-sm backdrop-blur-xl">
+          <button
+            onClick={() => setBillingCycle('individual')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              billingCycle === 'individual'
+                ? 'bg-[#20242b] text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <User className="h-3.5 w-3.5" />
+            <span>Individual Student</span>
+          </button>
+          <button
+            onClick={() => setBillingCycle('campus')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              billingCycle === 'campus'
+                ? 'bg-[#20242b] text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Building2 className="h-3.5 w-3.5" />
+            <span>University Campus</span>
+          </button>
+        </div>
       </div>
 
       {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
         {tiers.map((tier, idx) => (
           <motion.div
             key={idx}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: idx * 0.1 }}
-            className={`relative p-8 rounded-3xl bg-surface/90 border transition-all duration-300 shadow-2xl backdrop-blur-2xl flex flex-col justify-between space-y-6 ${
+            transition={{ duration: 0.4, delay: idx * 0.1 }}
+            className={`relative p-7 sm:p-8 rounded-[28px] bg-white/90 border transition-all duration-300 shadow-[0_12px_36px_rgba(31,41,55,0.06)] backdrop-blur-xl flex flex-col justify-between space-y-6 ${
               tier.highlighted
-                ? 'border-accent ring-2 ring-accent/50 shadow-accent/20 bg-gradient-to-b from-accent/10 via-surface to-surface'
-                : 'border-border-subtle hover:border-accent/40'
+                ? 'border-indigo-400 ring-2 ring-indigo-500/20 shadow-[0_16px_48px_rgba(99,102,241,0.12)]'
+                : 'border-white/95 hover:border-slate-200'
             }`}
           >
             {tier.highlighted && (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-accent to-cyan-500 text-white text-[10px] font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
-                <Sparkles className="h-3 w-3" /> Most Popular
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-[#20242b] text-white text-[10px] font-extrabold uppercase tracking-wider shadow-md flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-purple-400" /> Most Popular
               </div>
             )}
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-black text-text-primary text-xl">{tier.name}</h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-hover text-text-secondary text-[11px] font-mono font-bold border border-border-subtle">
+                <h3 className="font-extrabold text-[#20242b] text-xl m-0">{tier.name}</h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200">
                   {tier.badge}
                 </span>
               </div>
 
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-text-primary tracking-tight">{tier.price}</span>
-                {tier.period && <span className="text-text-muted text-xs font-bold">{tier.period}</span>}
+                <span className="text-4xl font-black text-[#20242b] tracking-tight">{tier.price}</span>
+                {tier.period && <span className="text-slate-500 text-xs font-bold">{tier.period}</span>}
               </div>
 
-              <p className="text-xs text-text-secondary leading-relaxed font-medium">
+              <p className="text-xs text-slate-600 leading-relaxed font-normal">
                 {tier.description}
               </p>
 
-              <div className="pt-4 border-t border-border-subtle space-y-3">
+              <div className="pt-4 border-t border-slate-100 space-y-2.5">
                 {tier.features.map((feat, fIdx) => (
-                  <div key={fIdx} className="flex items-start gap-2 text-xs font-medium text-text-primary">
-                    <Check className="h-4 w-4 text-semantic-green shrink-0 mt-0.5" />
+                  <div key={fIdx} className="flex items-start gap-2.5 text-xs text-slate-700">
+                    <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span>{feat}</span>
                   </div>
                 ))}
@@ -157,10 +161,10 @@ export default function Pricing() {
 
             <Button
               onClick={handleStart}
-              className={`w-full py-6 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${
+              className={`w-full py-5 rounded-2xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 ${
                 tier.highlighted
-                  ? 'bg-gradient-to-r from-accent via-indigo-600 to-cyan-500 hover:opacity-95 text-white shadow-xl shadow-accent/25 border border-white/20'
-                  : 'bg-hover hover:bg-surface text-text-primary border border-border-subtle'
+                  ? 'bg-[#20242b] hover:bg-black text-white shadow-md'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
               }`}
             >
               <span>{tier.cta}</span>

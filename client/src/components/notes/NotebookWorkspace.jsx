@@ -331,8 +331,7 @@ export default function NotebookWorkspace({
           {/* ── PRINT-ONLY CLEAN PLATFORM BRANDING HEADER ── */}
           <div className="hidden print:flex items-center justify-between pb-3 mb-4 border-b-2 border-slate-900/10 text-slate-800">
             <div className="flex items-center gap-2">
-              <span className="font-black text-xl tracking-tight text-slate-900 uppercase">CampusGrid Notes</span>
-              <span className="text-xs text-slate-500 font-mono">by Placify</span>
+              <span className="font-black text-xl tracking-tight text-slate-900 uppercase">Placify Notes</span>
             </div>
             <div className="text-right">
               <span className="text-xs font-bold text-indigo-600 font-mono">placify.app/notes</span>

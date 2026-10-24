@@ -1,39 +1,460 @@
-.pnew-dashboard-active,
-.pnew-dashboard-active body { overscroll-behavior: none; background: linear-gradient(110deg, #fff7f5 0%, #f8fafc 49%, #f2faff 100%); }
-.pnew-dashboard-active body { background-color: #f8fafc; }
-.pnew-dashboard-shell { position: relative; min-height: 100vh; color: #20242b; background: radial-gradient(ellipse 55% 90% at 0% 38%, rgba(255, 218, 225, .76), transparent 100%), radial-gradient(ellipse 58% 92% at 100% 32%, rgba(193, 228, 248, .82), transparent 100%), linear-gradient(110deg, #fff7f5 0%, #f8fafc 49%, #f2faff 100%); background-attachment: fixed; }
-.pnew-dashboard-rail { position: fixed; z-index: 60; inset: 12px auto 12px 20px; display: flex; width: 60px; flex-direction: column; align-items: center; pointer-events: none; }
-.pnew-dashboard-brand { position: absolute; top: 0; display: grid; width: 50px; height: 50px; place-items: center; border: 1px solid rgba(255,255,255,.95); border-radius: 17px; background: rgba(255,255,255,.96); box-shadow: 0 8px 24px rgba(31,41,55,.12); pointer-events: auto; }
-.pnew-dashboard-brand span { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 11px; background: #252525; color: #fff; font: 800 11px Manrope,sans-serif; }
-.pnew-dashboard-rail__items { display: flex; max-height: calc(100vh - 130px); flex: 0 1 auto; flex-direction: column; align-items: center; gap: 8px; overflow: auto; margin: auto 0; padding: 8px 7px; border: 1px solid rgba(255,255,255,.95); border-radius: 19px; background: rgba(255,255,255,.96); box-shadow: 0 9px 24px rgba(31,41,55,.1),0 2px 6px rgba(31,41,55,.04); scrollbar-width: none; pointer-events: auto; }
-.pnew-dashboard-rail__items::-webkit-scrollbar { display: none; }
-.pnew-dashboard-rail__button { position: relative; display: flex; width: 38px; height: 38px; flex: 0 0 38px; align-items: center; justify-content: center; border: 1px solid #e2e6e9; border-radius: 12px; background: #fff; color: #59616a; box-shadow: 0 2px 5px rgba(31,41,55,.035); transition: .18s ease; }
-.pnew-dashboard-rail__button:hover { border-color: #cbd2d8; color: #15171a; transform: translateY(-1px); }
-.pnew-dashboard-rail__button.is-active { border-color: #252525; background: #252525; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,.18); }
-.pnew-dashboard-rail__badge { position: absolute; top: -5px; right: -5px; display: flex; min-width: 16px; height: 16px; align-items: center; justify-content: center; padding: 0 4px; border-radius: 999px; background: #e25360; color: #fff; font-size: 9px; font-weight: 700; }
-.pnew-dashboard-topbar { position: absolute; z-index: 55; top: 12px; right: 22px; left: 92px; display: flex; height: 58px; align-items: center; justify-content: center; pointer-events: none; }
-.pnew-dashboard-topbar__tabs { display: flex; align-items: center; gap: 4px; padding: 6px; border: 1px solid rgba(255,255,255,.95); border-radius: 17px; background: rgba(255,255,255,.96); box-shadow: 0 9px 24px rgba(31,41,55,.10),0 2px 6px rgba(31,41,55,.04); pointer-events: auto; }
-.pnew-dashboard-topbar__tab { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; padding: 0 17px; border: 1px solid #e2e6e9; border-radius: 12px; background: #fff; color: #59616a; font-size: 13px; font-weight: 600; white-space: nowrap; transition: .18s ease; }
-.pnew-dashboard-topbar__tab:hover { border-color: #cbd2d8; color: #17191d; transform: translateY(-1px); }
-.pnew-dashboard-topbar__tab.is-active { border-color: #252525; background: #252525; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,.18); }
-.pnew-dashboard-profile-wrap { position: absolute; top: 50%; right: 0; transform: translateY(-50%); pointer-events: auto; }
-.pnew-dashboard-profile { display: grid; width: 42px; height: 42px; place-items: center; overflow: hidden; border: 1px solid rgba(255,255,255,.95); border-radius: 15px; background: rgba(255,255,255,.96); color: #59616a; box-shadow: 0 9px 24px rgba(31,41,55,.10),0 2px 6px rgba(31,41,55,.04); }
-.pnew-dashboard-profile img { width: 100%; height: 100%; object-fit: cover; }
-.pnew-dashboard-profile:hover { color: #17191d; }
-.pnew-dashboard-profile-menu { position: absolute; top: 50px; right: 0; display: grid; min-width: 210px; gap: 5px; padding: 13px; border: 1px solid #e6e9ec; border-radius: 14px; background: #fff; box-shadow: 0 14px 35px rgba(31,41,55,.16); }
-.pnew-dashboard-profile-menu strong { color: #20242b; font-size: 12px; }
-.pnew-dashboard-profile-menu > span { overflow: hidden; color: #7f8993; font-size: 11px; text-overflow: ellipsis; }
-.pnew-dashboard-profile-menu button { display: flex; align-items: center; gap: 7px; margin-top: 6px; padding: 8px; border: 0; border-radius: 9px; background: #f7f8fa; color: #4f5963; font-size: 11px; text-align: left; }
-.pnew-dashboard-profile-menu button:hover { background: #fff0f1; color: #bf3540; }
-.pnew-dashboard-main { min-height: 100vh; padding: 80px 26px 30px 90px; }
+/* Placify Universal Dashboard Design & 3D Ambient Theme */
 
+.pnew-dashboard-active,
+.pnew-dashboard-active body {
+  overscroll-behavior: none;
+  background: linear-gradient(110deg, #fff7f5 0%, #f8fafc 49%, #f2faff 100%);
+  scroll-behavior: smooth;
+}
+
+.pnew-dashboard-active body {
+  background-color: #f8fafc;
+  color: #1e242d;
+  margin: 0;
+  padding: 0;
+}
+
+.pnew-dashboard-shell {
+  position: relative;
+  min-height: 100vh;
+  color: #20242b;
+  background:
+    radial-gradient(ellipse 55% 90% at 0% 38%, rgba(255, 218, 225, 0.76), transparent 100%),
+    radial-gradient(ellipse 58% 92% at 100% 32%, rgba(193, 228, 248, 0.82), transparent 100%),
+    linear-gradient(110deg, #fff7f5 0%, #f8fafc 49%, #f2faff 100%);
+  background-attachment: fixed;
+  perspective: 1200px;
+}
+
+/* ─── Compact Mac-Style Floating Dock Sidebar Rail ──────────── */
+.pnew-dashboard-rail {
+  position: fixed;
+  z-index: 90;
+  inset: 12px auto 12px 14px;
+  display: flex;
+  width: 48px;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+/* Placify Brand Squircle */
+.pnew-dashboard-brand {
+  position: absolute;
+  top: 0;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.12), 0 2px 6px rgba(31, 41, 55, 0.04);
+  pointer-events: auto;
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.25), box-shadow 0.22s ease;
+}
+
+.pnew-dashboard-brand:hover {
+  transform: scale(1.08) translateY(-1px);
+  box-shadow: 0 10px 24px rgba(31, 41, 55, 0.16);
+}
+
+.pnew-dashboard-brand span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 9px;
+  background: #252525;
+  color: #fff;
+  font: 800 11.5px/1 Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Compact Scrollable Dock Rail Container */
+.pnew-dashboard-rail__items {
+  display: flex;
+  max-height: calc(100vh - 84px);
+  flex: 0 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin: auto 0;
+  padding: 6px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 28px rgba(31, 41, 55, 0.10), 0 2px 6px rgba(31, 41, 55, 0.04);
+  pointer-events: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pnew-dashboard-rail__items::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Dock Item Wrapper with Compact Mac Physics */
+.pnew-dock-item-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  will-change: transform;
+}
+
+.pnew-dashboard-rail__button {
+  position: relative;
+  display: flex;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e9ec;
+  border-radius: 11px;
+  background: #ffffff;
+  color: #555e69;
+  box-shadow: 0 2px 4px rgba(31, 41, 55, 0.03);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pnew-dashboard-rail__button:hover {
+  border-color: #cbd3da;
+  color: #121417;
+  box-shadow: 0 4px 10px rgba(31, 41, 55, 0.07);
+}
+
+.pnew-dashboard-rail__button.is-active {
+  border-color: #24272c;
+  background: #24272c;
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.pnew-dashboard-rail__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  min-width: 15px;
+  height: 15px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3.5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 8.5px;
+  font-weight: 800;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+  border: 1.5px solid #ffffff;
+}
+
+/* Floating Fixed macOS Dock Tooltip Pill */
+.pnew-dock-tooltip.is-floating {
+  position: fixed;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #181b20;
+  color: #ffffff;
+  padding: 5px 11px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  z-index: 1000;
+  animation: pnewDockTooltipIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pnew-dock-tooltip.is-floating::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  width: 7px;
+  height: 7px;
+  background: #181b20;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+@keyframes pnewDockTooltipIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-5px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+}
+
+/* ─── Scroll-Driven Floating Top Navbar ─────────────────────── */
+.pnew-dashboard-topbar {
+  position: fixed;
+  z-index: 80;
+  top: 14px;
+  right: 24px;
+  left: 78px;
+  display: flex;
+  height: 58px;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.32s ease;
+  will-change: transform, opacity;
+}
+
+/* Hidden state when scrolling down */
+.pnew-dashboard-topbar.is-hidden {
+  transform: translateY(-84px) scale(0.96);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pnew-dashboard-topbar__tabs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 28px rgba(31, 41, 55, 0.10), 0 2px 6px rgba(31, 41, 55, 0.04);
+  pointer-events: auto;
+}
+
+.pnew-dashboard-topbar__tab {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border: 1px solid #e4e8eb;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #555e69;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pnew-dashboard-topbar__tab:hover {
+  border-color: #cbd3da;
+  color: #17191d;
+  transform: translateY(-1px);
+}
+
+.pnew-dashboard-topbar__tab.is-active {
+  border-color: #24272c;
+  background: #24272c;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pnew-dashboard-profile-wrap {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.pnew-dashboard-profile {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #555e69;
+  box-shadow: 0 9px 24px rgba(31, 41, 55, 0.10), 0 2px 6px rgba(31, 41, 55, 0.04);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.pnew-dashboard-profile:hover {
+  color: #17191d;
+  transform: scale(1.05);
+}
+
+.pnew-dashboard-profile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pnew-dashboard-profile-menu {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  display: grid;
+  min-width: 210px;
+  gap: 5px;
+  padding: 13px;
+  border: 1px solid #e4e8eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 16px 38px rgba(31, 41, 55, 0.16);
+  animation: pnewDockTooltipIn 0.2s ease;
+}
+
+.pnew-dashboard-profile-menu strong {
+  color: #1e242d;
+  font-size: 12.5px;
+}
+
+.pnew-dashboard-profile-menu > span {
+  overflow: hidden;
+  color: #7d8892;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.pnew-dashboard-profile-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 9px;
+  background: #f6f8fa;
+  color: #4a545e;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pnew-dashboard-profile-menu button:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ─── Universal Canvas Area ─────────────────────────────────── */
+.pnew-dashboard-main {
+  min-height: 100vh;
+  padding: 84px 28px 36px 78px;
+  box-sizing: border-box;
+}
+
+.pnew-dashboard-main.is-fullbleed {
+  padding: 72px 16px 16px 78px;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.pnew-main-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ─── 3D Perspective & Elevation Utilities ──────────────────── */
+.p3d-perspective-stage {
+  transform-style: preserve-3d;
+}
+
+.p3d-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  transform-style: preserve-3d;
+  transform: translateZ(0);
+}
+
+.p3d-card:hover {
+  transform: translateY(-3px) translateZ(8px);
+  box-shadow: 0 16px 36px rgba(31, 41, 55, 0.10), 0 4px 10px rgba(31, 41, 55, 0.04);
+}
+
+/* ─── Responsive Adjustments ─────────────────────────────────── */
 @media (max-width: 900px) {
-  .pnew-dashboard-rail { inset: auto 10px 10px; display: flex; width: auto; height: 58px; flex-direction: row; justify-content: center; }
-  .pnew-dashboard-brand { display: none; }
-  .pnew-dashboard-rail__items { max-width: 100%; max-height: none; flex-direction: row; gap: 6px; margin: 0; padding: 7px 9px; }
-  .pnew-dashboard-topbar { top: 8px; right: 10px; left: 10px; height: 52px; justify-content: flex-start; padding-right: 50px; }
-  .pnew-dashboard-topbar__tabs { max-width: 100%; gap: 3px; overflow-x: auto; scrollbar-width: none; }
-  .pnew-dashboard-topbar__tabs::-webkit-scrollbar { display: none; }
-  .pnew-dashboard-topbar__tab { min-height: 36px; padding: 0 11px; font-size: 11px; }
-  .pnew-dashboard-main { padding: 72px 14px 88px; }
+  .pnew-dashboard-rail {
+    inset: auto 10px 10px;
+    display: flex;
+    width: auto;
+    height: 54px;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .pnew-dashboard-brand {
+    display: none;
+  }
+
+  .pnew-dashboard-rail__items {
+    max-width: 100%;
+    max-height: none;
+    flex-direction: row;
+    gap: 5px;
+    margin: 0;
+    padding: 6px 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .pnew-dock-tooltip.is-floating {
+    bottom: 68px;
+    top: auto !important;
+    left: 50% !important;
+    transform: translateX(-50%);
+  }
+
+  .pnew-dock-tooltip.is-floating::before {
+    bottom: -4px;
+    top: auto;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  .pnew-dashboard-topbar {
+    top: 8px;
+    right: 10px;
+    left: 10px;
+    height: 52px;
+    justify-content: flex-start;
+    padding-right: 50px;
+  }
+
+  .pnew-dashboard-topbar__tabs {
+    max-width: 100%;
+    gap: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .pnew-dashboard-topbar__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pnew-dashboard-topbar__tab {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+
+  .pnew-dashboard-main {
+    padding: 72px 14px 88px;
+  }
 }

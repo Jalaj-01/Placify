@@ -60,8 +60,26 @@ const io = new Server(httpServer, {
   },
 })
 
-// Store user socket mapping for invites
+// Store user socket mapping for invites (key -> Set of socket IDs)
 const userSockets = new Map()
+
+const addSocketMapping = (key, socketId) => {
+  if (!key) return
+  const cleanKey = String(key).trim().toLowerCase()
+  if (!userSockets.has(cleanKey)) userSockets.set(cleanKey, new Set())
+  userSockets.get(cleanKey).add(socketId)
+}
+
+const removeSocketMapping = (key, socketId) => {
+  if (!key) return
+  const cleanKey = String(key).trim().toLowerCase()
+  if (userSockets.has(cleanKey)) {
+    const set = userSockets.get(cleanKey)
+    set.delete(socketId)
+    if (set.size === 0) userSockets.delete(cleanKey)
+  }
+}
+
 // Store active collaborative notebook states in memory
 const notebookCache = new Map()
 
@@ -71,19 +89,18 @@ io.on('connection', (socket) => {
   // User Authentication / Registration for Invites
   socket.on('register', (payload) => {
     if (typeof payload === 'string' && payload) {
-      userSockets.set(payload, socket.id)
+      addSocketMapping(payload, socket.id)
       socket.uid = payload
       console.log(`User ${payload} registered with socket ${socket.id}`)
     } else if (payload && typeof payload === 'object') {
       const { uid, email } = payload
       if (uid) {
-        userSockets.set(uid, socket.id)
+        addSocketMapping(uid, socket.id)
         socket.uid = uid
       }
       if (email) {
-        const cleanEmail = String(email).trim().toLowerCase()
-        userSockets.set(cleanEmail, socket.id)
-        socket.email = cleanEmail
+        addSocketMapping(email, socket.id)
+        socket.email = email
       }
       console.log(`User ${uid || ''} (${email || ''}) registered with socket ${socket.id}`)
     }
@@ -134,14 +151,40 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('video-update', state)
   })
 
-  // Invite System
-  socket.on('send-invite', ({ toUid, toEmail, fromName, roomId, type = 'study', title = '' }) => {
+  // ─── Unified Share & Invite System ────────────────────────
+  const routeShareOrInvite = (event, payload) => {
+    const { toUid, toEmail, fromName, roomId, type = 'study', itemType = null, itemData = null, title = '' } = payload || {}
     const cleanEmail = toEmail ? String(toEmail).trim().toLowerCase() : null
-    const targetSocket = (toUid && userSockets.get(toUid)) || (cleanEmail && userSockets.get(cleanEmail))
-    if (targetSocket) {
-      io.to(targetSocket).emit('receive-invite', { fromName, roomId, type, title })
+    const cleanUid = toUid ? String(toUid).trim().toLowerCase() : null
+    const targetSocketIds = new Set()
+
+    if (cleanUid && userSockets.has(cleanUid)) {
+      userSockets.get(cleanUid).forEach((id) => targetSocketIds.add(id))
     }
-  })
+    if (cleanEmail && userSockets.has(cleanEmail)) {
+      userSockets.get(cleanEmail).forEach((id) => targetSocketIds.add(id))
+    }
+
+    console.log(`[${event}] routing to ${cleanEmail || cleanUid}: found ${targetSocketIds.size} socket(s)`)
+
+    const outboundPayload = {
+      fromName: fromName || 'Peer',
+      roomId: roomId || null,
+      type: itemType || type,
+      itemType: itemType || type,
+      itemData: itemData || null,
+      title: title || '',
+      timestamp: Date.now(),
+    }
+
+    targetSocketIds.forEach((targetSocket) => {
+      io.to(targetSocket).emit('receive-invite', outboundPayload)
+      io.to(targetSocket).emit('receive-share', outboundPayload)
+    })
+  }
+
+  socket.on('send-invite', (payload) => routeShareOrInvite('send-invite', payload))
+  socket.on('send-share', (payload) => routeShareOrInvite('send-share', payload))
 
   // ─── Collaborative Notebook Real-time Events ───────────────
   socket.on('notebook-join', ({ roomId, user }) => {
@@ -229,10 +272,10 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id)
     if (socket.uid) {
-      userSockets.delete(socket.uid)
+      removeSocketMapping(socket.uid, socket.id)
     }
     if (socket.email) {
-      userSockets.delete(socket.email)
+      removeSocketMapping(socket.email, socket.id)
     }
   })
 })

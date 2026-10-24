@@ -1,13 +1,11 @@
-import { Sun, Moon, ArrowRight } from 'lucide-react'
+import { ArrowRight, Sparkles, User, School, GraduationCap } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
-import { useAppStore } from '@/store/useAppStore'
 import { Button } from '@/components/ui/button'
 
 export default function Navbar() {
   const { user, signInWithGoogle, loginAsDemo, loading } = useAuth()
   const navigate = useNavigate()
-  const { theme, toggleTheme } = useAppStore()
 
   const handleStart = () => {
     if (user) {
@@ -25,131 +23,113 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/40 backdrop-blur-2xl bg-base/90 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+    <header className="sticky top-0 z-50 w-full px-4 sm:px-8 pt-3 pb-1 transition-all">
+      <div className="max-w-7xl mx-auto h-16 sm:h-18 rounded-2xl bg-white/85 backdrop-blur-xl border border-white/95 shadow-[0_8px_30px_rgba(31,41,55,0.06)] px-4 sm:px-6 flex items-center justify-between gap-4">
         {/* Brand Logo */}
-        <div 
-          onClick={() => navigate('/')} 
+        <div
+          onClick={() => navigate('/')}
           className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
-          <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-accent via-indigo-600 to-cyan-500 p-0.5 shadow-lg shadow-accent/25 group-hover:scale-105 transition-transform">
-            <div className="h-full w-full rounded-[14px] bg-base flex items-center justify-center">
-              <span className="font-black text-sm tracking-tighter bg-gradient-to-tr from-accent via-cyan-400 to-white bg-clip-text text-transparent">
-                CG
-              </span>
-            </div>
+          {/* Black Placify Squircle Brand Mark */}
+          <div className="w-10 h-10 rounded-2xl bg-[#20242b] text-white flex items-center justify-center font-black text-base shadow-md group-hover:scale-105 transition-transform">
+            P
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="font-black text-xl tracking-tight text-text-primary uppercase font-sans">
-                CampusGrid
+              <span className="font-extrabold text-xl tracking-tight text-[#20242b]">
+                Placify
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-accent/15 text-accent-light text-[10px] font-mono font-bold border border-accent/30 shadow-sm">
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200">
                 v2.5
               </span>
             </div>
-            <span className="text-[10px] text-text-muted font-medium tracking-wider uppercase hidden sm:inline">
-              Academic Operating System
+            <span className="text-[10px] text-slate-500 font-semibold tracking-wide hidden sm:inline">
+              Placement & Academic OS
             </span>
           </div>
         </div>
 
-        {/* Clean, Spacious Navigation Links (No comparison link) */}
-        <div className="hidden lg:flex items-center gap-8 text-xs font-bold text-text-secondary">
-          <button 
-            onClick={() => scrollToSection('features')} 
-            className="hover:text-accent transition-colors py-2"
+        {/* Center Floating Navigation Pill Links */}
+        <nav className="hidden md:flex items-center gap-1 p-1 rounded-2xl bg-slate-100/80 border border-slate-200/80 text-xs font-bold text-slate-600">
+          <button
+            onClick={() => scrollToSection('dashboard-preview')}
+            className="px-3.5 py-1.5 rounded-xl hover:text-slate-900 hover:bg-white transition-all"
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => scrollToSection('features')}
+            className="px-3.5 py-1.5 rounded-xl hover:text-slate-900 hover:bg-white transition-all"
           >
             Features
           </button>
-          <button 
-            onClick={() => scrollToSection('role-sandbox')} 
-            className="hover:text-accent transition-colors py-2"
+          <button
+            onClick={() => scrollToSection('role-sandbox')}
+            className="px-3.5 py-1.5 rounded-xl hover:text-slate-900 hover:bg-white transition-all"
           >
-            For Students
+            Roles
           </button>
-          <button 
-            onClick={() => scrollToSection('role-sandbox')} 
-            className="hover:text-accent transition-colors py-2"
+          <button
+            onClick={() => scrollToSection('metrics')}
+            className="px-3.5 py-1.5 rounded-xl hover:text-slate-900 hover:bg-white transition-all"
           >
-            For Faculty
+            Results
           </button>
-          <button 
-            onClick={() => scrollToSection('role-sandbox')} 
-            className="hover:text-accent transition-colors py-2"
-          >
-            For PhD Scholars
-          </button>
-          <button 
-            onClick={() => scrollToSection('pricing')} 
-            className="hover:text-accent transition-colors py-2"
+          <button
+            onClick={() => scrollToSection('pricing')}
+            className="px-3.5 py-1.5 rounded-xl hover:text-slate-900 hover:bg-white transition-all"
           >
             Pricing
           </button>
-        </div>
+        </nav>
 
-        {/* Action Button Group */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          {/* Light / Dark Mode Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-xl border border-border-subtle bg-surface/80 hover:bg-hover text-text-primary transition-all shadow-sm flex items-center justify-center"
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-4.5 w-4.5 text-yellow-400 fill-current" />
-            ) : (
-              <Moon className="h-4.5 w-4.5 text-accent fill-current" />
-            )}
-          </button>
-
-          {/* Quick Demo Test Buttons (Bypass Email) */}
-          <div className="flex items-center gap-1.5">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                loginAsDemo('teacher')
-                navigate('/dashboard')
-              }}
-              className="text-xs px-3 py-2 rounded-xl border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/25 font-bold transition-all flex items-center gap-1.5 shadow-sm"
-            >
-              <span>⚡ Test as Teacher</span>
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
+        {/* Right Action Button Group */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Quick Demo Test Buttons */}
+          <div className="hidden lg:flex items-center gap-1.5">
+            <button
               onClick={() => {
                 loginAsDemo('student')
                 navigate('/dashboard')
               }}
-              className="hidden sm:inline-flex text-xs px-3 py-2 rounded-xl border-accent/40 bg-accent/10 text-accent hover:bg-accent/25 font-bold transition-all shadow-sm"
+              className="text-xs px-3 py-1.5 rounded-xl bg-[#dfe0fb]/80 text-[#5046e5] hover:bg-[#dfe0fb] font-bold transition-all border border-[#c5c8e8] shadow-sm flex items-center gap-1"
             >
-              <span>⚡ Test as Student</span>
-            </Button>
+              <GraduationCap className="h-3.5 w-3.5" />
+              <span>Demo Student</span>
+            </button>
+            <button
+              onClick={() => {
+                loginAsDemo('teacher')
+                navigate('/dashboard')
+              }}
+              className="text-xs px-3 py-1.5 rounded-xl bg-[#e4f5d7]/80 text-[#3f7230] hover:bg-[#e4f5d7] font-bold transition-all border border-[#d4eac5] shadow-sm flex items-center gap-1"
+            >
+              <School className="h-3.5 w-3.5" />
+              <span>Demo Faculty</span>
+            </button>
           </div>
 
           {/* Sign In Button */}
           <button
             onClick={handleStart}
             disabled={loading}
-            className="hidden lg:inline-flex text-xs px-4 py-2.5 rounded-xl text-text-secondary hover:text-text-primary hover:bg-hover font-bold transition-all"
+            className="text-xs px-3.5 py-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-bold transition-all"
           >
             {user ? 'Console' : 'Sign In'}
           </button>
 
-          {/* Get Started Button */}
+          {/* Primary CTA Button */}
           <Button
             size="sm"
             onClick={handleStart}
             disabled={loading}
-            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-accent via-indigo-600 to-cyan-500 hover:opacity-95 text-white font-black transition-all shadow-xl shadow-accent/25 border border-white/20 flex items-center gap-2 group"
+            className="text-xs px-4 sm:px-5 py-2 rounded-xl bg-[#20242b] hover:bg-black text-white font-extrabold transition-all shadow-md flex items-center gap-1.5"
           >
-            <span>{user ? 'Enter Console' : 'Get Started'}</span>
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+            <span>{user ? 'Enter Console' : 'Get Started Free'}</span>
+            <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
-    </nav>
+    </header>
   )
 }

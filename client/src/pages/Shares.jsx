@@ -1,7 +1,18 @@
-import { useState, useEffect } from 'react'
-import { Share2, Trash2, Download, Loader2, Youtube, Bookmark, FileText, Code2, AlertCircle, Sparkles, Eye, X, Package, Send } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  Share2, Trash2, Download, Loader2, Youtube, Bookmark,
+  FileText, Code2, AlertCircle, Sparkles, Eye, X, Package,
+  Send, Users, MailOpen, BookOpen, ExternalLink, Check, Search, Plus
+} from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { subscribeShares, deleteShare, addCourseDoc, addBookmarkDoc, addLibraryDoc, addProblem, savePlaygroundFile, importEntirePreparation, shareEntirePreparation } from '@/services/firestoreService'
+import { useAppStore } from '@/store/useAppStore'
+import {
+  subscribeSharesAndInvites, deleteShareOrInvite,
+  addCourseDoc, addBookmarkDoc, addLibraryDoc, addProblem,
+  savePlaygroundFile, importEntirePreparation, shareEntirePreparation,
+  sendInvite
+} from '@/services/firestoreService'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
@@ -9,53 +20,171 @@ import { Input } from '@/components/ui/input'
 
 export default function Shares() {
   const { user } = useAuth()
-  const [shares, setShares] = useState([])
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab') || 'all'
+
+  const {
+    openGroupStudy,
+    pendingInvites: socketInvites,
+    removeInvite: removeSocketInvite,
+  } = useAppStore()
+
+  const [activeTab, setActiveTab] = useState(initialTab) // 'all' | 'invites' | 'shares'
+  const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
   const [importingId, setImportingId] = useState(null)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [viewingShare, setViewingShare] = useState(null)
+
+  // Share Prep Modal
   const [showSharePrepDialog, setShowSharePrepDialog] = useState(false)
   const [sharePrepEmail, setSharePrepEmail] = useState('')
   const [sharingPrep, setSharingPrep] = useState(false)
 
+  // Direct Invite Modal
+  const [showDirectInviteDialog, setShowDirectInviteDialog] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteType, setInviteType] = useState('study') // 'study' | 'notebook'
+  const [inviteRoomCode, setInviteRoomCode] = useState('')
+  const [sendingInvite, setSendingInvite] = useState(false)
+
+  // Sync tab with query param
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && (tab === 'all' || tab === 'invites' || tab === 'shares')) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    setSearchParams(tab === 'all' ? {} : { tab })
+  }
+
+  // 1. Unified Real-Time Subscription
   useEffect(() => {
     if (!user?.uid) return
-    const unsubscribe = subscribeShares(user.uid, (data) => {
-      setShares(data)
+    const unsubscribe = subscribeSharesAndInvites(user.uid, ({ combined }) => {
+      setItems(combined || [])
       setLoading(false)
     })
-    return unsubscribe
-  }, [user])
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe()
+    }
+  }, [user?.uid])
 
-  const handleImport = async (share) => {
-    setImportingId(share.id)
+  // 2. Consolidate Firestore items with real-time socket invites
+  const allConsolidatedItems = useMemo(() => {
+    const seen = new Set()
+    const result = []
+
+    // A. Real-time socket invites first
+    socketInvites.forEach((inv) => {
+      const cleanRoom = inv.roomId ? String(inv.roomId).trim().replace(/^#+/, '').toLowerCase() : null
+      const key = cleanRoom ? `room-${cleanRoom}` : `sock-${inv.id || Math.random()}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        result.push({
+          id: inv.id || inv.roomId,
+          uniqueKey: key,
+          source: 'socket',
+          type: inv.type || 'study',
+          roomId: cleanRoom,
+          title: inv.title || (inv.type === 'notebook' ? 'Collaborative Notebook Session' : 'Live Group Study Room'),
+          senderName: inv.fromName || 'Peer',
+          senderEmail: inv.senderEmail || '',
+          createdAt: { toDate: () => new Date() },
+        })
+      }
+    })
+
+    // B. Persistent items from Firestore
+    items.forEach((item) => {
+      const cleanRoom = item.roomId ? String(item.roomId).trim().replace(/^#+/, '').toLowerCase() : null
+      const key = cleanRoom ? `room-${cleanRoom}` : (item.uniqueKey || `item-${item.id}`)
+      if (!seen.has(key)) {
+        seen.add(key)
+        result.push(item)
+      }
+    })
+
+    return result
+  }, [items, socketInvites])
+
+  // 3. Filtered Items based on Tab & Search
+  const filteredItems = useMemo(() => {
+    return allConsolidatedItems.filter((item) => {
+      const isInvite =
+        item.type === 'study' ||
+        item.type === 'notebook' ||
+        item.itemType === 'notebook' ||
+        Boolean(item.roomId)
+
+      if (activeTab === 'invites' && !isInvite) return false
+      if (activeTab === 'shares' && isInvite) return false
+
+      if (!searchQuery.trim()) return true
+      const query = searchQuery.toLowerCase()
+      const title = (item.title || item.itemData?.name || item.itemData?.title || '').toLowerCase()
+      const sender = (item.senderEmail || item.senderName || '').toLowerCase()
+      const itemType = (item.itemType || item.type || '').toLowerCase()
+      return title.includes(query) || sender.includes(query) || itemType.includes(query)
+    })
+  }, [allConsolidatedItems, activeTab, searchQuery])
+
+  // Counts
+  const counts = useMemo(() => {
+    let invites = 0
+    let shares = 0
+    allConsolidatedItems.forEach((item) => {
+      const isInvite =
+        item.type === 'study' ||
+        item.type === 'notebook' ||
+        item.itemType === 'notebook' ||
+        Boolean(item.roomId)
+      if (isInvite) invites++
+      else shares++
+    })
+    return { all: allConsolidatedItems.length, invites, shares }
+  }, [allConsolidatedItems])
+
+  // Action: Import Shared Resource
+  const handleImport = async (item) => {
+    setImportingId(item.id)
     setError('')
     setSuccessMsg('')
     try {
-      const data = share.itemData
-      if (share.itemType === 'course') {
+      const data = item.itemData || {}
+      const itemType = item.itemType || item.type
+
+      if (itemType === 'course') {
         await addCourseDoc(user.uid, data.name, data.url, data.embedId, data.isPlaylist)
-        setSuccessMsg(`Successfully imported course "${data.name}"!`)
-      } else if (share.itemType === 'bookmark') {
+        setSuccessMsg(`Successfully imported course "${data.name}" into Course Vault!`)
+      } else if (itemType === 'bookmark') {
         await addBookmarkDoc(user.uid, data.title, data.url, data.category, data.description, data.tags)
         setSuccessMsg(`Successfully imported bookmark "${data.title}"!`)
-      } else if (share.itemType === 'library') {
+      } else if (itemType === 'library') {
         await addLibraryDoc(user.uid, data.name, data.url, data.type, data.size)
-        setSuccessMsg(`Successfully imported document "${data.name}"!`)
-      } else if (share.itemType === 'problem') {
+        setSuccessMsg(`Successfully imported document "${data.name}" into Resource Library!`)
+      } else if (itemType === 'problem') {
         await addProblem(user.uid, data)
-        setSuccessMsg(`Successfully imported problem "${data.title}"!`)
-      } else if (share.itemType === 'playground') {
+        setSuccessMsg(`Successfully imported problem "${data.title}" into Problem Log!`)
+      } else if (itemType === 'playground') {
         await savePlaygroundFile(user.uid, null, data.name, data.code)
         setSuccessMsg(`Successfully imported playground file "${data.name}"!`)
-      } else if (share.itemType === 'preparation') {
+      } else if (itemType === 'preparation') {
         await importEntirePreparation(user.uid, data)
-        setSuccessMsg(`Successfully imported entire preparation!`)
+        setSuccessMsg(`Successfully imported entire preparation package!`)
       }
 
-      // Auto delete the share document on import
-      await deleteShare(user.uid, share.id)
+      // Clean up item from both collections
+      await deleteShareOrInvite(user.uid, item)
+      if (item.source === 'socket' && item.roomId) {
+        removeSocketInvite(item.roomId)
+      }
     } catch (err) {
       setError('Failed to import: ' + err.message)
     } finally {
@@ -63,16 +192,42 @@ export default function Shares() {
     }
   }
 
-  const handleDelete = async (shareId) => {
-    setError('')
-    setSuccessMsg('')
-    try {
-      await deleteShare(user.uid, shareId)
-    } catch (err) {
-      setError('Failed to delete share: ' + err.message)
+  // Action: Join or Accept Invite
+  const handleJoinInvite = (item) => {
+    if (item.type === 'notebook' || item.itemType === 'notebook') {
+      const room = item.roomId || item.itemData?.collabRoomId
+      if (room) {
+        navigate(`/notes?room=${encodeURIComponent(room)}`)
+      } else {
+        navigate('/notes')
+      }
+    } else {
+      openGroupStudy(item.roomId)
+    }
+    // Clean up
+    deleteShareOrInvite(user.uid, item).catch(() => {})
+    if (item.source === 'socket' && item.roomId) {
+      removeSocketInvite(item.roomId)
     }
   }
 
+  // Action: Delete / Dismiss Item
+  const handleDelete = async (item) => {
+    setError('')
+    setSuccessMsg('')
+    try {
+      await deleteShareOrInvite(user.uid, item)
+      if (item.source === 'socket' && item.roomId) {
+        removeSocketInvite(item.roomId)
+      }
+      setSuccessMsg('Item dismissed.')
+      setTimeout(() => setSuccessMsg(''), 2500)
+    } catch (err) {
+      setError('Failed to dismiss: ' + err.message)
+    }
+  }
+
+  // Action: Send Preparation
   const handleSharePreparation = async (e) => {
     e.preventDefault()
     if (!sharePrepEmail.trim()) return
@@ -82,12 +237,10 @@ export default function Shares() {
 
     try {
       await shareEntirePreparation(user.uid, user.email, sharePrepEmail.trim())
-      setSuccessMsg('Successfully shared your entire preparation!')
+      setSuccessMsg(`Successfully shared your entire preparation with ${sharePrepEmail.trim()}!`)
       setSharePrepEmail('')
       setShowSharePrepDialog(false)
-      setTimeout(() => {
-        setSuccessMsg('')
-      }, 3000)
+      setTimeout(() => setSuccessMsg(''), 4000)
     } catch (err) {
       setError('Failed to share preparation: ' + err.message)
     } finally {
@@ -95,436 +248,486 @@ export default function Shares() {
     }
   }
 
-  const getShareIcon = (type) => {
-    switch (type) {
-      case 'course': return <Youtube className="h-5 w-5 text-semantic-red" />
-      case 'bookmark': return <Bookmark className="h-5 w-5 text-semantic-blue" />
-      case 'library': return <FileText className="h-5 w-5 text-accent-light" />
-      case 'problem': return <Code2 className="h-5 w-5 text-semantic-green" />
-      case 'playground': return <Code2 className="h-5 w-5 text-semantic-purple" />
-      case 'preparation': return <Package className="h-5 w-5 text-semantic-orange" />
-      default: return <Share2 className="h-5 w-5 text-text-muted" />
+  // Action: Send Direct Invite (Study Room or Notebook)
+  const handleSendInvite = async (e) => {
+    e.preventDefault()
+    if (!inviteEmail.trim()) return
+    setSendingInvite(true)
+    setError('')
+    setSuccessMsg('')
+
+    try {
+      const roomCode = inviteRoomCode.trim() || `room-${Date.now().toString(36).slice(-4)}`
+      await sendInvite(user, inviteEmail.trim(), {
+        type: inviteType,
+        roomId: roomCode,
+        title: inviteType === 'notebook' ? 'Collaborative Notebook Session' : 'Live Group Study Room',
+        itemType: inviteType,
+      })
+      setSuccessMsg(`Invitation successfully dispatched to ${inviteEmail.trim()}!`)
+      setInviteEmail('')
+      setInviteRoomCode('')
+      setShowDirectInviteDialog(false)
+      setTimeout(() => setSuccessMsg(''), 4000)
+    } catch (err) {
+      setError('Failed to send invite: ' + err.message)
+    } finally {
+      setSendingInvite(false)
     }
   }
 
-  const getShareTitle = (share) => {
-    const data = share.itemData
-    return data.name || data.title || 'Untitled Shared Item'
-  }
+  const getItemIcon = (item) => {
+    const isInvite =
+      item.type === 'study' ||
+      item.type === 'notebook' ||
+      item.itemType === 'notebook' ||
+      Boolean(item.roomId)
 
-  const getItemTypeName = (type) => {
-    switch (type) {
-      case 'course': return 'Course'
-      case 'bookmark': return 'Bookmark'
-      case 'problem': return 'Problem'
-      case 'library': return 'Resource Document'
-      case 'playground': return 'Playground File'
-      case 'preparation': return 'Preparation Package'
-      default: return 'Item'
+    if (item.type === 'notebook' || item.itemType === 'notebook') {
+      return <BookOpen className="h-5 w-5 text-indigo-500" />
+    }
+    if (isInvite) {
+      return <Users className="h-5 w-5 text-emerald-500" />
+    }
+
+    switch (item.itemType) {
+      case 'course':
+        return <Youtube className="h-5 w-5 text-red-500" />
+      case 'bookmark':
+        return <Bookmark className="h-5 w-5 text-blue-500" />
+      case 'library':
+        return <FileText className="h-5 w-5 text-indigo-500" />
+      case 'problem':
+        return <Code2 className="h-5 w-5 text-emerald-500" />
+      case 'playground':
+        return <Code2 className="h-5 w-5 text-purple-500" />
+      case 'preparation':
+        return <Package className="h-5 w-5 text-amber-500" />
+      default:
+        return <Share2 className="h-5 w-5 text-slate-500" />
     }
   }
 
-  const getShareSub = (share) => {
-    switch (share.itemType) {
-      case 'course': return share.itemData.isPlaylist ? 'Course Playlist' : 'Single Video Course'
-      case 'bookmark': return `Bookmark under "${share.itemData.category || 'General'}"`
-      case 'library': return `Resource Document (${share.itemData.type || 'unknown'})`
-      case 'problem': return `Problem Log (${share.itemData.platform || 'LeetCode'} • ${share.itemData.difficulty || 'Medium'})`
-      case 'playground': return `Playground Script (${share.itemData.name})`
-      case 'preparation': return `Complete Preparation Package (${share.itemData.topics?.length || 0} topics, ${share.itemData.courses?.length || 0} courses, ${share.itemData.problems?.length || 0} problems)`
-      default: return 'Shared Resource'
+  const getItemBadge = (item) => {
+    if (item.type === 'notebook' || item.itemType === 'notebook') {
+      return (
+        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">
+          Notebook Invite
+        </span>
+      )
     }
+    if (item.type === 'study' || (item.roomId && !item.itemType)) {
+      return (
+        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+          Study Room Invite
+        </span>
+      )
+    }
+    return (
+      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+        {item.itemType || 'Resource'}
+      </span>
+    )
   }
 
-  const renderViewContent = (share) => {
-    const data = share.itemData
-
-    switch (share.itemType) {
-
+  const renderViewContent = (item) => {
+    const data = item.itemData || {}
+    switch (item.itemType) {
       case 'library': {
         const isPdf = data.type?.includes('pdf') || data.name?.endsWith('.pdf')
-        const isImage = data.type?.startsWith('image/') ||
-          /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(data.name || '')
-
+        const isImage = data.type?.startsWith('image/') || /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(data.name || '')
         if (isPdf && data.url) {
           const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(data.url)}&embedded=true`
           return (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-text-primary truncate">{data.name}</p>
-                <a href={data.url} target="_blank" rel="noopener noreferrer"
-                  className="text-[10px] text-accent-light hover:underline shrink-0 ml-2">Open in tab ↗</a>
+                <p className="text-xs font-semibold text-slate-800 truncate">{data.name}</p>
+                <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline">Open in tab ↗</a>
               </div>
-              <iframe
-                src={googleViewerUrl}
-                title={data.name}
-                className="w-full rounded-lg border border-border-subtle bg-surface"
-                style={{ height: '60vh' }}
-              />
-              <p className="text-[10px] text-text-muted text-center">
-                If the preview is blank, <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-accent-light hover:underline">open in a new tab ↗</a>
-              </p>
+              <iframe src={googleViewerUrl} title={data.name} className="w-full rounded-xl border border-slate-200 bg-white" style={{ height: '60vh' }} />
             </div>
           )
         }
-
         if (isImage && data.url) {
           return (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-text-primary truncate">{data.name}</p>
-                <a href={data.url} target="_blank" rel="noopener noreferrer"
-                  className="text-[10px] text-accent-light hover:underline shrink-0 ml-2">Open in tab ↗</a>
-              </div>
-              <img
-                src={data.url}
-                alt={data.name}
-                className="w-full max-h-[60vh] object-contain rounded-lg border border-border-subtle bg-surface"
-              />
+              <img src={data.url} alt={data.name} className="w-full max-h-[60vh] object-contain rounded-xl border border-slate-200 bg-white" />
             </div>
           )
         }
-
-        // Generic file — show open link prominently
         return (
           <div className="flex flex-col items-center gap-4 py-8">
-            <FileText className="h-16 w-16 text-text-muted/50" />
-            <div className="text-center space-y-1">
-              <p className="text-sm font-semibold text-text-primary">{data.name}</p>
-              <p className="text-xs text-text-muted">{data.type || 'Unknown type'}</p>
-            </div>
-            <a
-              href={data.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-accent hover:bg-accent-light px-4 py-2 rounded-lg transition-colors"
-            >
+            <FileText className="h-16 w-16 text-slate-400" />
+            <p className="text-sm font-semibold text-slate-800">{data.name}</p>
+            <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-white bg-slate-900 px-4 py-2 rounded-xl">
               Open File ↗
             </a>
           </div>
         )
       }
-
       case 'course': {
         const embedUrl = data.isPlaylist
           ? `https://www.youtube.com/embed/videoseries?list=${data.embedId}`
           : `https://www.youtube.com/embed/${data.embedId}`
         return (
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-text-primary truncate">{data.name}</p>
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-accent/10 text-accent-light border border-accent/20 shrink-0 ml-2">
-                {data.isPlaylist ? 'Playlist' : 'Video'}
-              </span>
-            </div>
-            <div className="w-full aspect-video rounded-xl overflow-hidden border border-border-subtle bg-black">
-              <iframe
-                src={embedUrl}
-                title={data.name}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+            <div className="w-full aspect-video rounded-xl overflow-hidden border border-slate-200 bg-black">
+              <iframe src={embedUrl} title={data.name} className="w-full h-full" allowFullScreen />
             </div>
           </div>
         )
       }
-
       case 'bookmark': {
         return (
           <div className="space-y-3">
-            <a
-              href={data.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-start gap-3 p-4 rounded-xl border border-border-subtle bg-surface hover:border-accent/40 transition-all"
-            >
-              <img
-                src={`https://www.google.com/s2/favicons?domain=${new URL(data.url).hostname}&sz=32`}
-                alt=""
-                className="h-8 w-8 rounded shrink-0 mt-0.5"
-                onError={(e) => { e.target.style.display = 'none' }}
-              />
+            <a href={data.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:border-indigo-400 transition-all">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-text-primary group-hover:text-accent-light transition-colors truncate">{data.title}</p>
-                <p className="text-[11px] text-accent-light truncate mt-0.5">{data.url}</p>
-                {data.description && <p className="text-xs text-text-secondary mt-1 line-clamp-2">{data.description}</p>}
+                <p className="text-sm font-bold text-slate-900">{data.title}</p>
+                <p className="text-xs text-indigo-600 truncate mt-0.5">{data.url}</p>
+                {data.description && <p className="text-xs text-slate-600 mt-1 line-clamp-2">{data.description}</p>}
               </div>
-              <span className="text-accent-light shrink-0 text-lg group-hover:translate-x-0.5 transition-transform">↗</span>
             </a>
-            <div className="flex items-center gap-2 flex-wrap">
-              {data.category && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-border-subtle text-text-secondary font-medium">
-                  {data.category}
-                </span>
-              )}
-              {data.tags?.map((tag, i) => (
-                <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent-light font-medium">
-                  #{tag}
-                </span>
-              ))}
-            </div>
           </div>
         )
       }
-
       case 'problem': {
-        const diffColor = {
-          Easy: 'text-semantic-green border-semantic-green/30 bg-semantic-green/10',
-          Medium: 'text-semantic-yellow border-semantic-yellow/30 bg-semantic-yellow/10',
-          Hard: 'text-semantic-red border-semantic-red/30 bg-semantic-red/10',
-        }[data.difficulty] || 'text-text-secondary border-border-subtle bg-surface'
-
         return (
           <div className="space-y-3">
-            <a
-              href={data.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-start gap-3 p-4 rounded-xl border border-border-subtle bg-surface hover:border-accent/40 transition-all"
-            >
+            <a href={data.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:border-emerald-400 transition-all">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-text-primary group-hover:text-accent-light transition-colors">{data.title}</p>
-                <p className="text-[11px] text-accent-light truncate mt-0.5">{data.url}</p>
+                <p className="text-sm font-bold text-slate-900">{data.title}</p>
+                <p className="text-xs text-emerald-600 truncate mt-0.5">{data.url}</p>
               </div>
-              <span className="text-accent-light shrink-0 text-lg">↗</span>
             </a>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase ${diffColor}`}>
-                {data.difficulty || 'Medium'}
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-border-subtle text-text-secondary font-medium">
-                {data.platform || 'LeetCode'}
-              </span>
-              {data.tag && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent-light font-medium">
-                  {data.tag}
-                </span>
-              )}
-            </div>
             {data.notes && (
-              <div className="bg-surface rounded-lg border border-border-subtle p-3">
-                <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Notes</p>
-                <p className="text-xs text-text-primary whitespace-pre-wrap leading-relaxed">{data.notes}</p>
+              <div className="bg-white rounded-xl border border-slate-200 p-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Notes</p>
+                <p className="text-xs text-slate-800 whitespace-pre-wrap">{data.notes}</p>
               </div>
             )}
           </div>
         )
       }
-
       case 'playground': {
         return (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-text-primary">{data.name}</span>
-              {data.language && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-accent/10 text-accent-light border border-accent/20">
-                  {data.language}
-                </span>
-              )}
-            </div>
-            <div className="rounded-xl border border-border-subtle overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 bg-surface border-b border-border-subtle/60">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Source Code</span>
-              </div>
-              <pre className="text-xs text-semantic-green font-mono p-4 bg-base overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[50vh] overflow-y-auto">
-                {data.code}
-              </pre>
-            </div>
+          <div className="rounded-xl border border-slate-200 overflow-hidden">
+            <pre className="text-xs font-mono p-4 bg-slate-900 text-emerald-400 overflow-x-auto max-h-[50vh]">
+              {data.code}
+            </pre>
           </div>
         )
       }
-
       case 'preparation': {
         return (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: 'Topics', value: data.topics?.length || 0, color: 'text-accent-light' },
-                { label: 'Courses', value: data.courses?.length || 0, color: 'text-semantic-red' },
-                { label: 'Problems', value: data.problems?.length || 0, color: 'text-semantic-green' },
-                { label: 'Bookmarks', value: data.bookmarks?.length || 0, color: 'text-semantic-blue' },
-                { label: 'Library', value: data.library?.length || 0, color: 'text-accent-light' },
-                { label: 'Scripts', value: data.playground?.length || 0, color: 'text-semantic-purple' },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="bg-surface p-3 rounded-lg border border-border-subtle text-center">
-                  <p className="text-micro text-text-muted font-semibold uppercase">{label}</p>
-                  <p className={`text-xl font-bold mt-0.5 ${color}`}>{value}</p>
+                { label: 'Topics', value: data.topics?.length || 0 },
+                { label: 'Courses', value: data.courses?.length || 0 },
+                { label: 'Problems', value: data.problems?.length || 0 },
+                { label: 'Bookmarks', value: data.bookmarks?.length || 0 },
+                { label: 'Library', value: data.library?.length || 0 },
+                { label: 'Scripts', value: data.playground?.length || 0 },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">{label}</p>
+                  <p className="text-lg font-bold text-slate-800 mt-0.5">{value}</p>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-text-secondary bg-surface/50 p-3 rounded-lg border border-border-subtle/50">
-              📦 This is a complete preparation package. Importing will merge all items into your account.
-            </p>
           </div>
         )
       }
-
       default:
-        return <p className="text-sm text-text-secondary">Unknown item type</p>
+        return <p className="text-sm text-slate-600">No additional preview available.</p>
     }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between gap-3">
+    <div className="space-y-6 max-w-5xl mx-auto pb-12">
+      {/* ─── Page Header & Quick Actions ─────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15">
-            <Share2 className="h-5 w-5 text-accent-light" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <Share2 className="h-6 w-6 text-slate-800" />
           </div>
           <div>
-            <h1 className="text-page font-bold text-text-primary">Shared Inbox</h1>
-            <p className="text-secondary text-text-secondary">Review and import courses, problems, bookmarks, or docs shared with you by other users</p>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Shares & Invites</h1>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Review live study rooms, collaborative notebooks, and shared vault materials in one place
+            </p>
           </div>
         </div>
 
-        <Button
-          size="sm"
-          onClick={() => setShowSharePrepDialog(true)}
-          className="flex items-center gap-1.5 text-xs bg-elevated border border-border text-text-primary hover:bg-hover"
-          variant="outline"
-        >
-          <Send className="h-4 w-4 text-accent-light" /> Share My Preparation
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => setShowDirectInviteDialog(true)}
+            className="flex items-center gap-1.5 text-xs bg-slate-900 hover:bg-slate-800 text-white shadow-sm rounded-xl px-3.5 py-2 font-semibold"
+          >
+            <Plus className="h-4 w-4" /> Send Invite
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => setShowSharePrepDialog(true)}
+            variant="outline"
+            className="flex items-center gap-1.5 text-xs border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-xl px-3.5 py-2 font-semibold shadow-sm"
+          >
+            <Send className="h-3.5 w-3.5 text-indigo-500" /> Share Preparation
+          </Button>
+        </div>
       </div>
 
+      {/* ─── Metric Stat Cards ───────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p3d-card rounded-2xl border border-white/95 bg-white/90 p-4 shadow-[0_8px_24px_rgba(31,41,55,0.06)] backdrop-blur-md">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total In Inbox</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900">{counts.all}</span>
+            <span className="text-xs font-semibold text-slate-500">activities</span>
+          </div>
+        </div>
+
+        <div className="p3d-card rounded-2xl border border-white/95 bg-white/90 p-4 shadow-[0_8px_24px_rgba(31,41,55,0.06)] backdrop-blur-md">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Pending Invites</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-emerald-600">{counts.invites}</span>
+            <span className="text-xs font-semibold text-slate-500">rooms & notes</span>
+          </div>
+        </div>
+
+        <div className="p3d-card rounded-2xl border border-white/95 bg-white/90 p-4 shadow-[0_8px_24px_rgba(31,41,55,0.06)] backdrop-blur-md">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-600">Shared Vault Items</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-indigo-600">{counts.shares}</span>
+            <span className="text-xs font-semibold text-slate-500">ready to import</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Alerts & Status Notifications ───────────────────────── */}
       {error && (
-        <div className="flex items-center gap-1.5 p-3 rounded-xl bg-semantic-red/10 border border-semantic-red/25 text-xs text-semantic-red font-medium">
+        <div className="flex items-center gap-2 p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-semibold shadow-sm">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {successMsg && (
-        <div className="flex items-center gap-1.5 p-3 rounded-xl bg-semantic-green/10 border border-semantic-green/25 text-xs text-semantic-green font-medium">
-          <Sparkles className="h-4 w-4 shrink-0 text-semantic-green" />
+        <div className="flex items-center gap-2 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 font-semibold shadow-sm">
+          <Sparkles className="h-4 w-4 shrink-0 text-emerald-600" />
           <span>{successMsg}</span>
         </div>
       )}
 
+      {/* ─── Segmented Tabs & Search Controls ─────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 rounded-2xl border border-white/90 bg-white/80 backdrop-blur-md shadow-sm">
+        <div className="flex items-center gap-1">
+          {[
+            { id: 'all', label: 'All Items', count: counts.all },
+            { id: 'invites', label: 'Invites', count: counts.invites },
+            { id: 'shares', label: 'Shared Vault', count: counts.shares },
+          ].map(({ id, label, count }) => {
+            const isActive = activeTab === id
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => handleTabChange(id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  isActive
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                }`}
+              >
+                <span>{label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isActive ? 'bg-white/25 text-white' : 'bg-slate-200/80 text-slate-600'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search items or peers..."
+            className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400"
+          />
+        </div>
+      </div>
+
+      {/* ─── Items Grid Feed ─────────────────────────────────────── */}
       {loading ? (
         <div className="flex justify-center items-center py-20">
-          <Loader2 className="h-8 w-8 text-accent animate-spin" />
+          <Loader2 className="h-8 w-8 text-slate-600 animate-spin" />
         </div>
-      ) : shares.length === 0 ? (
-        <div className="text-center py-20 bg-card rounded-2xl border border-border-subtle max-w-xl mx-auto space-y-4 shadow-sm">
-          <Share2 className="h-16 w-16 text-text-muted/65 mx-auto stroke-[1.25]" />
-          <div className="space-y-1.5">
-            <h3 className="text-body font-bold text-text-primary">Inbox is clean</h3>
-            <p className="text-secondary text-text-secondary text-xs max-w-sm mx-auto leading-relaxed">
-              Nothing shared with you yet. Give another user your logged-in email address to receive resources.
-            </p>
+      ) : filteredItems.length === 0 ? (
+        <div className="text-center py-16 bg-white/90 rounded-2xl border border-white/95 shadow-sm max-w-lg mx-auto p-6 space-y-3">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+            <MailOpen className="h-7 w-7" />
           </div>
+          <h3 className="text-base font-bold text-slate-900">Your inbox is clear</h3>
+          <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
+            {searchQuery
+              ? 'No shares or invites match your search filter.'
+              : 'When classmates invite you to study rooms, collaborate on notebooks, or share courses and problems, they will appear right here.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {shares.map((share) => (
-            <Card key={share.id} className="border border-border-subtle bg-card hover:border-border-hover transition-all">
-              <CardContent className="p-4 flex gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface border border-border-subtle shrink-0">
-                  {getShareIcon(share)}
-                </div>
-                
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-xs font-bold text-text-primary truncate block" title={getShareTitle(share)}>
-                      {getShareTitle(share)}
-                    </span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-surface border border-border-subtle text-text-secondary shrink-0">
-                      {share.itemType}
-                    </span>
+          {filteredItems.map((item) => {
+            const isInvite =
+              item.type === 'study' ||
+              item.type === 'notebook' ||
+              item.itemType === 'notebook' ||
+              Boolean(item.roomId)
+
+            const displayTitle =
+              item.title ||
+              item.itemData?.title ||
+              item.itemData?.name ||
+              (isInvite ? 'Live Collaboration Session' : 'Shared Resource')
+
+            const senderText = item.senderEmail || item.senderName || 'Peer'
+
+            return (
+              <div
+                key={item.uniqueKey || item.id}
+                className="p3d-card flex flex-col justify-between rounded-2xl border border-white/95 bg-white/95 p-4 shadow-[0_8px_24px_rgba(31,41,55,0.06)] backdrop-blur-md"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 shrink-0">
+                    {getItemIcon(item)}
                   </div>
 
-                  <p className="text-[10px] text-text-secondary truncate">{getShareSub(share)}</p>
-                  
-                  <div className="pt-2 flex justify-between items-center">
-                    <span className="text-[10px] text-text-muted">
-                      Shared by <span className="font-semibold text-text-secondary">{share.senderEmail}</span>
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-900 truncate" title={displayTitle}>
+                        {displayTitle}
+                      </span>
+                      {getItemBadge(item)}
+                    </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-text-muted hover:text-accent-light"
-                        onClick={() => setViewingShare(share)}
-                        title="View details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                    <p className="text-[11px] text-slate-500 truncate mt-1">
+                      {isInvite ? (
+                        <>
+                          Room Code:{' '}
+                          <code className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-mono font-bold">
+                            #{item.roomId || 'live'}
+                          </code>
+                        </>
+                      ) : (
+                        item.itemData?.category || item.itemData?.platform || item.itemData?.type || 'Available to import'
+                      )}
+                    </p>
 
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      From <span className="font-semibold text-slate-700">{senderText}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card Action Controls */}
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(item)}
+                    className="h-8 px-2.5 text-xs text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Dismiss
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    {!isInvite && (
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-text-muted hover:text-semantic-red"
-                        onClick={() => handleDelete(share.id)}
-                        title="Delete share"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setViewingShare(item)}
+                        className="h-8 px-3 text-xs border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg font-semibold"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5 mr-1 text-slate-500" /> Preview
                       </Button>
-                      
+                    )}
+
+                    {isInvite ? (
                       <Button
                         size="sm"
-                        className="h-8 text-xs flex items-center gap-1 font-semibold"
-                        onClick={() => handleImport(share)}
-                        disabled={importingId === share.id}
+                        onClick={() => handleJoinInvite(item)}
+                        className="h-8 px-3.5 text-xs bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-sm"
                       >
-                        {importingId === share.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        {item.type === 'notebook' || item.itemType === 'notebook' ? (
+                          <>
+                            <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Open Notebook
+                          </>
                         ) : (
-                          <Download className="h-3.5 w-3.5" />
+                          <>
+                            <Users className="h-3.5 w-3.5 mr-1.5" /> Join Room
+                          </>
                         )}
-                        Import
                       </Button>
-                    </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => handleImport(item)}
+                        disabled={importingId === item.id}
+                        className="h-8 px-3.5 text-xs bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-sm"
+                      >
+                        {importingId === item.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        Import to Vault
+                      </Button>
+                    )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            )
+          })}
         </div>
       )}
 
-      {/* View Share Dialog */}
-      <Dialog open={!!viewingShare} onOpenChange={() => setViewingShare(null)}>
-        <DialogContent className="sm:max-w-[700px] w-[95vw] bg-card border border-border-subtle max-h-[90vh] overflow-y-auto">
+      {/* ─── Preview Modal ──────────────────────────────────────── */}
+      <Dialog open={Boolean(viewingShare)} onOpenChange={(val) => !val && setViewingShare(null)}>
+        <DialogContent className="sm:max-w-[560px] bg-white border border-slate-200 rounded-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-body font-bold text-text-primary">
-              {viewingShare ? getItemTypeName(viewingShare.itemType) : 'Item'}
+            <DialogTitle className="text-sm font-bold text-slate-900">
+              {viewingShare?.itemData?.name || viewingShare?.itemData?.title || viewingShare?.title || 'Resource Details'}
             </DialogTitle>
-            {viewingShare && (
-              <p className="text-[10px] text-text-muted">
-                Shared by <span className="font-semibold text-text-secondary">{viewingShare.senderEmail}</span>
-              </p>
-            )}
+            <DialogDescription className="text-xs text-slate-500">
+              Shared by {viewingShare?.senderEmail || 'Peer'}
+            </DialogDescription>
           </DialogHeader>
+
           {viewingShare && (
             <div className="space-y-4 pt-1">
               {renderViewContent(viewingShare)}
-              <div className="flex justify-end gap-2 pt-3 border-t border-border-subtle">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setViewingShare(null)}
-                >
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <Button variant="ghost" size="sm" onClick={() => setViewingShare(null)}>
                   Close
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => {
+                    const toImport = viewingShare
                     setViewingShare(null)
-                    handleImport(viewingShare)
+                    handleImport(toImport)
                   }}
-                  disabled={importingId === viewingShare.id}
-                  className="flex items-center gap-1.5"
+                  className="bg-slate-900 text-white hover:bg-slate-800"
                 >
-                  {importingId === viewingShare.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Download className="h-3.5 w-3.5" />
-                  )}
-                  Import
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> Import
                 </Button>
               </div>
             </div>
@@ -532,43 +735,121 @@ export default function Shares() {
         </DialogContent>
       </Dialog>
 
-      {/* Share Preparation Dialog */}
-      <Dialog open={showSharePrepDialog} onOpenChange={(val) => {
-        if (!sharingPrep) {
-          setShowSharePrepDialog(val)
-          setError('')
-        }
-      }}>
-        <DialogContent className="sm:max-w-[420px] bg-card border border-border-subtle">
+      {/* ─── Direct Invite Modal ─────────────────────────────────── */}
+      <Dialog open={showDirectInviteDialog} onOpenChange={(val) => !sendingInvite && setShowDirectInviteDialog(val)}>
+        <DialogContent className="sm:max-w-[420px] bg-white border border-slate-200 rounded-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-body font-bold text-text-primary">
-              Share Your Entire Preparation
+            <DialogTitle className="text-sm font-bold text-slate-900">
+              Invite Peer to Live Session
             </DialogTitle>
-            <DialogDescription className="text-xs text-text-secondary">
-              Share all your topics, courses, problems, bookmarks, and library documents with another user.
+            <DialogDescription className="text-xs text-slate-500">
+              Instantly route an invite to a classmate's Placify command center.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSharePreparation} className="space-y-4 pt-3">
+          <form onSubmit={handleSendInvite} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <label className="text-micro text-text-secondary font-semibold uppercase">Recipient Email</label>
+              <label className="text-[11px] text-slate-500 font-bold uppercase">Session Type</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setInviteType('study')}
+                  className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                    inviteType === 'study'
+                      ? 'border-slate-900 bg-slate-900 text-white'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Users className="h-3.5 w-3.5" /> Group Study
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInviteType('notebook')}
+                  className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                    inviteType === 'notebook'
+                      ? 'border-slate-900 bg-slate-900 text-white'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <BookOpen className="h-3.5 w-3.5" /> Notebook Collab
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] text-slate-500 font-bold uppercase">Peer's Email Address</label>
               <Input
                 type="email"
-                placeholder="user@example.com"
+                placeholder="classmate@campus.edu"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                required
+                disabled={sendingInvite}
+                className="bg-slate-50 border-slate-200 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] text-slate-500 font-bold uppercase">Custom Room Code (Optional)</label>
+              <Input
+                type="text"
+                placeholder="e.g. dsa-prep-2026"
+                value={inviteRoomCode}
+                onChange={(e) => setInviteRoomCode(e.target.value)}
+                disabled={sendingInvite}
+                className="bg-slate-50 border-slate-200 text-xs"
+              />
+            </div>
+
+            <DialogFooter className="flex justify-end gap-2 text-xs pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDirectInviteDialog(false)}
+                disabled={sendingInvite}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={sendingInvite || !inviteEmail.trim()}
+                className="bg-slate-900 text-white hover:bg-slate-800"
+              >
+                {sendingInvite ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Send className="h-3.5 w-3.5 mr-1.5" />}
+                Send Invitation
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Share Preparation Dialog ────────────────────────────── */}
+      <Dialog open={showSharePrepDialog} onOpenChange={(val) => !sharingPrep && setShowSharePrepDialog(val)}>
+        <DialogContent className="sm:max-w-[420px] bg-white border border-slate-200 rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold text-slate-900">
+              Share Your Entire Preparation
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Packages all your topics, courses, problems, bookmarks, and library documents into a single vault package for a peer.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSharePreparation} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-[11px] text-slate-500 font-bold uppercase">Recipient Email</label>
+              <Input
+                type="email"
+                placeholder="peer@campus.edu"
                 value={sharePrepEmail}
                 onChange={(e) => setSharePrepEmail(e.target.value)}
                 required
                 disabled={sharingPrep}
-                className="bg-base border border-border-subtle focus:border-accent text-xs"
+                className="bg-slate-50 border-slate-200 text-xs"
               />
             </div>
-
-            {error && (
-              <div className="flex items-center gap-1.5 text-xs text-semantic-red font-medium">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
 
             <DialogFooter className="flex justify-end gap-2 text-xs pt-2">
               <Button
@@ -584,14 +865,10 @@ export default function Shares() {
                 type="submit"
                 size="sm"
                 disabled={sharingPrep || !sharePrepEmail.trim()}
-                className="flex items-center gap-1.5"
+                className="bg-slate-900 text-white hover:bg-slate-800"
               >
-                {sharingPrep ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Send className="h-3.5 w-3.5" />
-                )}
-                {sharingPrep ? 'Sharing...' : 'Share Preparation'}
+                {sharingPrep ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Send className="h-3.5 w-3.5 mr-1.5" />}
+                Share Preparation
               </Button>
             </DialogFooter>
           </form>
