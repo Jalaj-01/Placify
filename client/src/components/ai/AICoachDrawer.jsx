@@ -23,7 +23,7 @@ export default function AICoachDrawer() {
 }
 
 function AICoachDrawerContent() {
-  const { closeAICoach } = useAppStore()
+  const { closeAICoach, aiCoachOpen } = useAppStore()
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 

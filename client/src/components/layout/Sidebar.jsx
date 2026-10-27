@@ -171,11 +171,11 @@ export default function Sidebar({ user, onSignOut }) {
   return (
     <motion.aside
       animate={{ width: 64 }}
-      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-[#30292F]/10 bg-gradient-to-b from-[#FAF5ED] via-white to-[#F7E8CF]/40 backdrop-blur-xl z-40 shadow-[4px_0_24px_rgba(48,41,47,0.06)] overflow-hidden dark:border-white/10 dark:bg-gradient-to-b dark:from-[#010101] dark:via-[#1a1619] dark:to-[#30292F] print:hidden"
+      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-[#1E1B4B]/10 bg-gradient-to-b from-[#FFFDF7] via-white to-[#EEF2FF]/40 backdrop-blur-xl z-40 shadow-[4px_0_24px_rgba(30,27,75,0.06)] overflow-hidden dark:border-white/10 dark:bg-gradient-to-b dark:from-[#0b0c16] dark:via-[#13112a] dark:to-[#1E1B4B] print:hidden"
     >
       {/* Header */}
       <div className="flex h-[68px] items-center justify-center border-b border-border-subtle shrink-0">
-          <div className="h-9 w-9 rounded-xl bg-[#30292F] dark:bg-[#F7E8CF] text-[#F7E8CF] dark:text-[#010101] flex items-center justify-center shrink-0 shadow-sm">
+          <div className="h-9 w-9 rounded-xl bg-[#1E1B4B] dark:bg-[#EEF2FF] text-[#EEF2FF] dark:text-[#1E1B4B] flex items-center justify-center shrink-0 shadow-sm">
             <Boxes className="h-[18px] w-[18px]" />
           </div>
       </div>
@@ -205,8 +205,8 @@ export default function Sidebar({ user, onSignOut }) {
                 return cn(
                   'mx-auto flex h-9 w-9 items-center justify-center rounded-xl border border-transparent p-0 transition-all relative group',
                   active
-                    ? 'bg-[#30292F] dark:bg-[#8450CB] text-white shadow-[0_4px_12px_rgba(48,41,47,0.25)]'
-                    : 'border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#251e24] text-slate-600 dark:text-[#F7E8CF] shadow-sm hover:border-[#8450CB] hover:bg-white hover:text-[#8450CB]'
+                    ? 'bg-[#1E1B4B] dark:bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(30,27,75,0.25)]'
+                    : 'border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#13112a] text-slate-600 dark:text-[#EEF2FF] shadow-sm hover:border-[#2563EB] hover:bg-white hover:text-[#2563EB]'
                 )
               }}
               title={label}

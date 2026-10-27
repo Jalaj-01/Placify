@@ -108,12 +108,12 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
       const scrollY = window.scrollY || document.documentElement.scrollTop
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          if (scrollY > 50 && scrollY > lastScrollY.current + 8) {
+          if (scrollY > 60 && scrollY > lastScrollY.current + 12) {
             // Scrolling down -> hide navbar smoothly
-            setNavHidden(true)
-          } else if (scrollY < lastScrollY.current - 8 || scrollY <= 20) {
+            setNavHidden((prev) => (prev ? prev : true))
+          } else if (scrollY < lastScrollY.current - 12 || scrollY <= 20) {
             // Scrolling up or near top -> show navbar smoothly
-            setNavHidden(false)
+            setNavHidden((prev) => (!prev ? prev : false))
           }
           lastScrollY.current = scrollY
           ticking = false

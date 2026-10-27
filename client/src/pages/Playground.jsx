@@ -37,27 +37,61 @@ export default function Playground() {
   const VERILOG_DEFAULT_FILE = 'module.v'
   const VERILOG_DEFAULT_CODE = "module test;\n    reg [3:0] a, b;\n    wire [4:0] sum;\n    \n    adder adder_inst(\n        .a(a),\n        .b(b),\n        .sum(sum)\n    );\n    \n    initial begin\n        $monitor(\"Time=%0d a=%b b=%b sum=%b\", $time, a, b, sum);\n        a = 4'b0011; b = 4'b0101;\n        #10 a = 4'b1010; b = 4'b0110;\n        #10 $finish;\n    end\nendmodule\n\nmodule adder(\n    input [3:0] a,\n    input [3:0] b,\n    output [4:0] sum\n);\n    assign sum = a + b;\nendmodule"
 
-  // Dynamically load Pyodide WebAssembly script from CDN
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js'
-    script.async = true
-    script.onload = async () => {
+  // Global cached Pyodide runner singleton to prevent duplicate downloads and tab freezing
+  const getPyodideEngine = async () => {
+    if (window.__placify_pyodide) return window.__placify_pyodide
+    if (window.__placify_pyodide_promise) return window.__placify_pyodide_promise
+
+    window.__placify_pyodide_promise = new Promise(async (resolve, reject) => {
       try {
+        if (!window.loadPyodide) {
+          const script = document.createElement('script')
+          script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js'
+          script.async = true
+          await new Promise((res, rej) => {
+            script.onload = res
+            script.onerror = () => rej(new Error('Failed to load Pyodide script'))
+            document.head.appendChild(script)
+          })
+        }
         const loaded = await window.loadPyodide({
           indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/',
         })
-        setPyodide(loaded)
-        setLoadingRunner(false)
+        window.__placify_pyodide = loaded
+        resolve(loaded)
       } catch (err) {
-        setOutput('Failed to load Python Wasm engine: ' + err.message)
+        window.__placify_pyodide_promise = null
+        reject(err)
+      }
+    })
+
+    return window.__placify_pyodide_promise
+  }
+
+  // Preload in idle time without blocking the UI thread
+  useEffect(() => {
+    let active = true
+    const timer = setTimeout(() => {
+      if (!window.__placify_pyodide && active) {
+        getPyodideEngine()
+          .then((p) => {
+            if (active) {
+              setPyodide(p)
+              setLoadingRunner(false)
+            }
+          })
+          .catch(() => {
+            if (active) setLoadingRunner(false)
+          })
+      } else if (window.__placify_pyodide && active) {
+        setPyodide(window.__placify_pyodide)
         setLoadingRunner(false)
       }
-    }
-    document.body.appendChild(script)
+    }, 800)
 
     return () => {
-      document.body.removeChild(script)
+      active = false
+      clearTimeout(timer)
     }
   }, [])
 
@@ -212,21 +246,28 @@ export default function Playground() {
     setOutput('Executing...\n')
 
     if (language === 'python') {
-      if (!pyodide) {
-        setOutput('Python WebAssembly engine is not loaded yet.')
-        setRunning(false)
-        return
+      let py = pyodide
+      if (!py) {
+        setOutput('Initializing Python WebAssembly runtime...\n')
+        try {
+          py = await getPyodideEngine()
+          setPyodide(py)
+        } catch (err) {
+          setOutput('Failed to load Python Wasm engine: ' + err.message)
+          setRunning(false)
+          return
+        }
       }
       setOutput('Executing in WebAssembly sandbox...\n')
       const outputBuffer = []
 
-      pyodide.setStdout({
+      py.setStdout({
         batched: (str) => {
           outputBuffer.push(str)
           setOutput(outputBuffer.join('\n'))
         },
       })
-      pyodide.setStderr({
+      py.setStderr({
         batched: (str) => {
           outputBuffer.push('[Error] ' + str)
           setOutput(outputBuffer.join('\n'))
@@ -234,7 +275,7 @@ export default function Playground() {
       })
 
       try {
-        await pyodide.runPythonAsync(code)
+        await py.runPythonAsync(code)
         if (outputBuffer.length === 0) {
           setOutput('Execution finished successfully (No output).')
         }

@@ -17,6 +17,16 @@ export default function MockTimerSetupModal() {
   const [customMins, setCustomMins] = useState('')
   const [isCustom, setIsCustom] = useState(false)
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!timerSetupModalOpen) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') closeTimerSetup()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [timerSetupModalOpen, closeTimerSetup])
+
   if (!timerSetupModalOpen) return null
 
   const handleStart = (e) => {
@@ -34,7 +44,12 @@ export default function MockTimerSetupModal() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div
+        onClick={(e) => {
+          if (e.target === e.currentTarget) closeTimerSetup()
+        }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}

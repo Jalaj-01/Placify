@@ -3,48 +3,46 @@
 @layer base {
   :root {
     color-scheme: light;
-    --palette-sawdust: #F7E8CF;
-    --palette-yellow: #EAB901;
-    --palette-harmony: #90A994;
-    --palette-fuchsia: #8450CB;
-    --palette-safflower: #30292F;
-    --palette-vantablack: #010101;
+    --palette-primary: #2563EB;
+    --palette-accent: #FACC15;
+    --palette-surface: #FFFDF7;
+    --palette-muted: #EEF2FF;
+    --palette-text: #1E1B4B;
 
-    --bg-base: #FAF5ED;
+    --bg-base: #FFFDF7;
     --bg-surface: #FFFFFF;
     --bg-card: #FFFFFF;
-    --bg-elevated: #F7E8CF;
-    --bg-hover: #EFE0C7;
-    --text-primary: #010101;
-    --text-secondary: #30292F;
-    --text-muted: #6B626A;
-    --border-color: rgba(48, 41, 47, 0.12);
-    --border-subtle: rgba(48, 41, 47, 0.06);
-    --accent-color: #8450CB;
-    --accent-light: #6f3cb8;
+    --bg-elevated: #EEF2FF;
+    --bg-hover: #E0E7FF;
+    --text-primary: #1E1B4B;
+    --text-secondary: #3730A3;
+    --text-muted: #6366F1;
+    --border-color: rgba(30, 27, 75, 0.10);
+    --border-subtle: rgba(30, 27, 75, 0.05);
+    --accent-color: #2563EB;
+    --accent-light: #3B82F6;
   }
 
   html.dark {
     color-scheme: dark;
-    --palette-sawdust: #F7E8CF;
-    --palette-yellow: #EAB901;
-    --palette-harmony: #90A994;
-    --palette-fuchsia: #8450CB;
-    --palette-safflower: #30292F;
-    --palette-vantablack: #010101;
+    --palette-primary: #2563EB;
+    --palette-accent: #FACC15;
+    --palette-surface: #FFFDF7;
+    --palette-muted: #EEF2FF;
+    --palette-text: #1E1B4B;
 
-    --bg-base: #010101;
-    --bg-surface: #1a1619;
-    --bg-card: #30292F;
-    --bg-elevated: #3c333b;
-    --bg-hover: #483d47;
-    --text-primary: #F7E8CF;
-    --text-secondary: rgba(247, 232, 207, 0.78);
-    --text-muted: rgba(247, 232, 207, 0.50);
-    --border-color: rgba(247, 232, 207, 0.15);
-    --border-subtle: rgba(247, 232, 207, 0.08);
-    --accent-color: #8450CB;
-    --accent-light: #9d6fe0;
+    --bg-base: #0B0C1A;
+    --bg-surface: #131428;
+    --bg-card: #1A1B35;
+    --bg-elevated: #232548;
+    --bg-hover: #2E305C;
+    --text-primary: #FFFDF7;
+    --text-secondary: #EEF2FF;
+    --text-muted: rgba(238, 242, 255, 0.60);
+    --border-color: rgba(238, 242, 255, 0.12);
+    --border-subtle: rgba(238, 242, 255, 0.06);
+    --accent-color: #2563EB;
+    --accent-light: #60A5FA;
   }
 
   * {
@@ -76,18 +74,18 @@
     outline: none;
     transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
     /* Custom chevron arrow */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238450CB' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%232563EB' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
   }
 
   select:focus {
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 2px rgba(132, 80, 203, 0.25);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
   }
 
   select:hover {
-    border-color: rgba(132, 80, 203, 0.5);
+    border-color: rgba(37, 99, 235, 0.5);
   }
 
   /* Style the dropdown options list */
@@ -116,7 +114,7 @@
 
 @layer utilities {
   .accent-glow {
-    box-shadow: 0 0 20px rgba(132, 80, 203, 0.25);
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.25);
   }
   .scrollbar-none {
     scrollbar-width: none;

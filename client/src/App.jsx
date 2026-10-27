@@ -83,6 +83,15 @@ function AppContent() {
     }
   }, [user])
 
+  const closeTimerSetup = useAppStore((s) => s.closeTimerSetup)
+  const closeAssessmentTimer = useAppStore((s) => s.closeAssessmentTimer)
+
+  // Automatically close mock timer when switching to another page
+  useEffect(() => {
+    closeTimerSetup()
+    closeAssessmentTimer()
+  }, [location.pathname, closeTimerSetup, closeAssessmentTimer])
+
   useEffect(() => {
     if (user && streakData && applications.length > 0) {
       runNotificationScheduler(streakData, applications)
