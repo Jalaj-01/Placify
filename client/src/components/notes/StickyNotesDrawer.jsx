@@ -250,7 +250,7 @@ function StickyNotesDrawerContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeStickyNotes}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[120]"
           />
 
           {/* Right Slide-Over Panel with Dynamic Expansion */}
@@ -260,7 +260,7 @@ function StickyNotesDrawerContent() {
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
             className={cn(
-              'fixed inset-y-0 right-0 border-l border-border-subtle shadow-2xl z-50 flex flex-col backdrop-blur-2xl text-text-primary transition-all duration-300',
+              'fixed inset-y-0 right-0 border-l border-border-subtle shadow-2xl z-[130] flex flex-col backdrop-blur-2xl text-text-primary transition-all duration-300',
               notesDrawerTab === 'notebooks' && notebookExpanded
                 ? 'w-full md:w-[940px] lg:w-[1080px] bg-surface'
                 : 'w-full sm:w-[500px] bg-surface/95 dark:bg-surface/95'

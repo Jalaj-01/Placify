@@ -20,8 +20,8 @@ export default function Playground() {
   const [code, setCode] = useState("print('Hello from Python Playground!')\n\n# Try writing a function:\ndef add(a, b):\n    return a + b\n\nprint('Result:', add(5, 7))")
   
   const [output, setOutput] = useState('')
-  const [pyodide, setPyodide] = useState(null)
-  const [loadingRunner, setLoadingRunner] = useState(true)
+  const [pyodide, setPyodide] = useState(window.__placify_pyodide || null)
+  const [loadingRunner, setLoadingRunner] = useState(false)
   const [running, setRunning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -68,32 +68,12 @@ export default function Playground() {
     return window.__placify_pyodide_promise
   }
 
-  // Preload in idle time without blocking the UI thread
+  // Use cached runner if previously initialized in memory without blocking UI thread
   useEffect(() => {
-    let active = true
-    const timer = setTimeout(() => {
-      if (!window.__placify_pyodide && active) {
-        getPyodideEngine()
-          .then((p) => {
-            if (active) {
-              setPyodide(p)
-              setLoadingRunner(false)
-            }
-          })
-          .catch(() => {
-            if (active) setLoadingRunner(false)
-          })
-      } else if (window.__placify_pyodide && active) {
-        setPyodide(window.__placify_pyodide)
-        setLoadingRunner(false)
-      }
-    }, 800)
-
-    return () => {
-      active = false
-      clearTimeout(timer)
+    if (window.__placify_pyodide && !pyodide) {
+      setPyodide(window.__placify_pyodide)
     }
-  }, [])
+  }, [pyodide])
 
   // Filter files by language extension
   const filteredFiles = files.filter((f) => {

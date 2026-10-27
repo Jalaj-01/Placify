@@ -1,9 +1,15 @@
 import { create } from 'zustand'
 
 const getInitialTheme = () => {
+  const version = localStorage.getItem('placify_palette_version')
+  if (version !== 'v2') {
+    localStorage.setItem('placify_palette_version', 'v2')
+    localStorage.setItem('placify_theme', 'light')
+    return 'light'
+  }
   const saved = localStorage.getItem('placify_theme')
   if (saved) return saved
-  return 'dark'
+  return 'light'
 }
 
 export const useAppStore = create((set) => ({

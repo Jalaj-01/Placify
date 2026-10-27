@@ -54,7 +54,13 @@ function AppContent() {
   const isStudentDashboard = location.pathname === '/dashboard' && (activeDashboardRole === 'student' || activeDashboardRole === 'learner')
 
   useEffect(() => {
-    const saved = localStorage.getItem('placify_theme') || 'dark'
+    const version = localStorage.getItem('placify_palette_version')
+    let saved = localStorage.getItem('placify_theme')
+    if (version !== 'v2') {
+      localStorage.setItem('placify_palette_version', 'v2')
+      localStorage.setItem('placify_theme', 'light')
+      saved = 'light'
+    }
     if (saved === 'dark') {
       document.documentElement.classList.add('dark')
       document.documentElement.classList.remove('light')

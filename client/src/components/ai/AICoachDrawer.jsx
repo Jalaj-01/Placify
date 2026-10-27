@@ -14,10 +14,24 @@ import { Button } from '@/components/ui/button'
 
 export default function AICoachDrawer() {
   const aiCoachOpen = useAppStore((s) => s.aiCoachOpen)
+  const closeAICoach = useAppStore((s) => s.closeAICoach)
 
   return (
     <AnimatePresence>
-      {aiCoachOpen && <AICoachDrawerContent key="ai-coach-drawer-content" />}
+      {aiCoachOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={closeAICoach}
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[120]"
+            aria-hidden="true"
+          />
+          <AICoachDrawerContent key="ai-coach-drawer-content" />
+        </>
+      )}
     </AnimatePresence>
   )
 }
@@ -107,19 +121,19 @@ function AICoachDrawerContent() {
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-      className="fixed right-0 top-0 h-screen w-full sm:w-[380px] lg:w-[400px] z-40 bg-surface border-l border-border-subtle shadow-2xl flex flex-col overflow-hidden transition-colors duration-300"
+      className="fixed right-0 top-0 h-screen w-full sm:w-[400px] lg:w-[440px] z-[130] bg-surface border-l border-border-subtle shadow-2xl flex flex-col overflow-hidden transition-colors duration-300"
     >
           {/* Header */}
           <div className="px-4 py-3 bg-card border-b border-border-subtle flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-white shadow">
-                <Sparkles className="h-4 w-4" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-[#2563EB] to-[#FACC15] text-[#1E1B4B] shadow border border-[#FACC15]/40">
+                <Sparkles className="h-4 w-4 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-card-title font-bold text-text-primary text-sm">AI Coach</h2>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-semantic-green-bg text-semantic-green font-semibold border border-semantic-green/20 flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-semantic-green animate-pulse" /> Active
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-semibold border border-emerald-300/40 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active
                   </span>
                 </div>
                 <p className="text-micro text-text-muted">
@@ -136,7 +150,7 @@ function AICoachDrawerContent() {
                 onClick={handleAnalyzePrepClick}
                 disabled={loading}
                 size="sm"
-                className="bg-accent hover:bg-accent/90 text-white font-semibold text-[11px] h-7 px-2.5 rounded-lg shadow flex items-center gap-1"
+                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-[11px] h-7 px-2.5 rounded-lg shadow flex items-center gap-1"
               >
                 {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Gauge className="h-3 w-3" />}
                 Analyze Prep
@@ -354,7 +368,7 @@ function AICoachDrawerContent() {
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="absolute right-2 h-7 w-7 rounded-lg bg-accent hover:bg-accent/90 text-white flex items-center justify-center disabled:opacity-40 shadow transition-all shrink-0"
+                className="absolute right-2 h-7 w-7 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center disabled:opacity-40 shadow transition-all shrink-0"
                 title="Send Message"
               >
                 <Send className="h-3.5 w-3.5" />

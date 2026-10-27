@@ -157,11 +157,13 @@ export default function Landing3DScene({ className = '' }) {
     }
     window.addEventListener('resize', handleResize)
 
-    // Animation Loop
-    let animId
+    // Animation Loop with Visibility & Intersection Optimization (Eliminates lag when scrolled)
+    let animId = null
+    let isVisible = true
     let clock = new THREE.Clock()
 
     const animate = () => {
+      if (!isVisible) return
       animId = requestAnimationFrame(animate)
 
       const elapsedTime = clock.getElapsedTime()
@@ -195,10 +197,25 @@ export default function Landing3DScene({ className = '' }) {
       renderer.render(scene, camera)
     }
 
+    const observer = new IntersectionObserver(([entry]) => {
+      const currentlyVisible = entry.isIntersecting && !document.hidden
+      if (currentlyVisible !== isVisible) {
+        isVisible = currentlyVisible
+        if (isVisible) {
+          clock.start()
+          animate()
+        } else if (animId) {
+          cancelAnimationFrame(animId)
+        }
+      }
+    }, { threshold: 0.05 })
+
+    observer.observe(container)
     animate()
 
     return () => {
-      cancelAnimationFrame(animId)
+      observer.disconnect()
+      if (animId) cancelAnimationFrame(animId)
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('resize', handleResize)
       if (container && renderer.domElement) {

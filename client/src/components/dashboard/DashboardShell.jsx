@@ -101,19 +101,26 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
     }
   }, [user?.uid])
 
-  // Scroll-driven navbar auto-hide / auto-show
+  // Scroll-driven navbar auto-hide / auto-show (Zero-lag throttled with ref guard)
+  const navHiddenRef = useRef(false)
   useEffect(() => {
     let ticking = false
     const onScroll = () => {
       const scrollY = window.scrollY || document.documentElement.scrollTop
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          if (scrollY > 60 && scrollY > lastScrollY.current + 12) {
+          if (scrollY > 80 && scrollY > lastScrollY.current + 14) {
             // Scrolling down -> hide navbar smoothly
-            setNavHidden((prev) => (prev ? prev : true))
-          } else if (scrollY < lastScrollY.current - 12 || scrollY <= 20) {
+            if (!navHiddenRef.current) {
+              navHiddenRef.current = true
+              setNavHidden(true)
+            }
+          } else if (scrollY < lastScrollY.current - 14 || scrollY <= 25) {
             // Scrolling up or near top -> show navbar smoothly
-            setNavHidden((prev) => (!prev ? prev : false))
+            if (navHiddenRef.current) {
+              navHiddenRef.current = false
+              setNavHidden(false)
+            }
           }
           lastScrollY.current = scrollY
           ticking = false

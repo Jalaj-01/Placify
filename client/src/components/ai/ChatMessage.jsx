@@ -135,11 +135,11 @@ export default function ChatMessage({ message }) {
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-md font-bold text-xs ${
           isUser
-            ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white'
-            : 'bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)] border border-cyan-300/30'
+            ? 'bg-[#2563EB] text-white'
+            : 'bg-gradient-to-tr from-[#2563EB] to-[#FACC15] text-[#1E1B4B] shadow-md border border-[#FACC15]/40'
         }`}
       >
-        {isUser ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+        {isUser ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4 text-white" />}
       </div>
 
       {/* Message Content Container */}
@@ -147,7 +147,7 @@ export default function ChatMessage({ message }) {
         <div
           className={`p-4 rounded-2xl text-xs sm:text-sm shadow-sm ${
             isUser
-              ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-tr-xs shadow-md'
+              ? 'bg-[#2563EB] text-white rounded-tr-xs shadow-md font-medium'
               : 'bg-card border border-border-subtle text-text-primary rounded-tl-xs backdrop-blur-md'
           }`}
         >
@@ -158,16 +158,16 @@ export default function ChatMessage({ message }) {
             <div className="mt-4 p-4 rounded-2xl bg-surface/80 border border-border-subtle space-y-4 text-text-primary text-xs shadow-inner">
               <div className="flex items-center justify-between gap-2 border-b border-border-subtle pb-3">
                 <div className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-accent dark:text-cyan-400 shrink-0" />
+                  <Award className="h-5 w-5 text-[#2563EB] shrink-0" />
                   <span className="font-semibold text-sm text-text-primary">Diagnostic Summary</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-lg font-bold text-accent dark:text-cyan-400">{message.data.overallReadiness}%</span>
+                  <span className="text-lg font-bold text-[#2563EB]">{message.data.overallReadiness}%</span>
                   <span className="text-text-muted text-[10px] block">Readiness</span>
                 </div>
               </div>
 
-              <Progress value={message.data.overallReadiness || 0} className="h-2 bg-base" />
+              <Progress value={message.data.overallReadiness || 0} className="h-2 bg-[#EEF2FF]" />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Weak Areas */}

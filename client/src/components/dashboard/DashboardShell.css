@@ -33,7 +33,6 @@
     radial-gradient(ellipse 50% 70% at 100% 40%, rgba(250, 204, 21, 0.08), transparent 70%),
     radial-gradient(ellipse 40% 60% at 50% 90%, rgba(99, 102, 241, 0.06), transparent 60%);
   transform: translateZ(0);
-  will-change: transform;
 }
 
 :root:not(.dark) .pnew-dashboard-shell::before {
@@ -46,7 +45,7 @@
 /* ─── Fixed Mac-Style Floating Dock Sidebar Rail (Vertically Centered) ─── */
 .pnew-dashboard-rail {
   position: fixed;
-  z-index: 90;
+  z-index: 45;
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
@@ -231,7 +230,7 @@
 /* ─── Scroll-Driven Floating Top Navbar ─────────────────────── */
 .pnew-dashboard-topbar {
   position: fixed;
-  z-index: 80;
+  z-index: 40;
   top: 14px;
   right: 24px;
   left: 78px;
@@ -242,8 +241,7 @@
   pointer-events: none;
   transform: translateY(0) scale(1);
   opacity: 1;
-  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.32s ease;
-  will-change: transform, opacity;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
 }
 
 .pnew-dashboard-topbar.is-hidden {
@@ -256,12 +254,14 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  max-width: calc(100% - 84px);
+  margin-right: 48px;
   padding: 6px;
   border: 1px solid rgba(30, 27, 75, 0.10);
   border-radius: 20px;
   background: rgba(255, 253, 247, 0.94);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 10px 28px rgba(30, 27, 75, 0.08), 0 2px 6px rgba(30, 27, 75, 0.03);
   pointer-events: auto;
 }
