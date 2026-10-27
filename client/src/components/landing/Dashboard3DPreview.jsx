@@ -188,7 +188,7 @@ export default function Dashboard3DPreview() {
                     </div>
 
                     {/* Active Job Drives */}
-                    <div className="rounded-2xl p-3.5 bg-[#FFFDF7] border border-[#FEF08A] flex flex-col justify-between flex-1">
+                    <div className="rounded-2xl p-3.5 bg-[#EDEFF4] border border-[#FEF08A] flex flex-col justify-between flex-1">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-white/70 flex items-center justify-center text-[#CA8A04]">
                           <Briefcase className="h-4 w-4" />
@@ -256,12 +256,12 @@ export default function Dashboard3DPreview() {
               {/* Sticky Notes (4 cols) */}
               <div className="sm:col-span-4 rounded-2xl p-3.5 bg-white/90 border border-slate-200/90 shadow-sm flex flex-col justify-between">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                  <div className="w-6 h-6 rounded-lg bg-[#FFFDF7] border border-[#FEF08A] flex items-center justify-center text-[#CA8A04]">
+                  <div className="w-6 h-6 rounded-lg bg-[#EDEFF4] border border-[#FEF08A] flex items-center justify-center text-[#CA8A04]">
                     <FileText className="h-3.5 w-3.5" />
                   </div>
                   <span className="text-[10px] font-black text-slate-800 uppercase tracking-wide">Sticky Notes</span>
                 </div>
-                <div className="p-2.5 my-2 rounded-xl bg-[#FFFDF7] border border-[#FEF08A] text-left">
+                <div className="p-2.5 my-2 rounded-xl bg-[#EDEFF4] border border-[#FEF08A] text-left">
                   <strong className="text-[11px] font-bold text-slate-900 block">Amazon System Design</strong>
                   <span className="text-[10px] text-slate-600 line-clamp-2">Review LRU Cache and consistent hashing before 4 PM interview.</span>
                 </div>

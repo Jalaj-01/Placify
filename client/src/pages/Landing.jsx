@@ -58,7 +58,7 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen text-[#1E1B4B] dark:text-[#EEF2FF] relative overflow-x-hidden font-sans selection:bg-[#FACC15] selection:text-[#1E1B4B] bg-[#FFFDF7] dark:bg-[#0b0c16]">
+    <div className="min-h-screen text-[#1E1B4B] dark:text-[#EEF2FF] relative overflow-x-hidden font-sans selection:bg-[#FACC15] selection:text-[#1E1B4B] bg-[#EDEFF4] dark:bg-[#0b0c16]">
       {/* GPU-composited static ambient gradient layer to eliminate repaint lag */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"
@@ -299,7 +299,7 @@ export default function Landing() {
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="p-2 rounded-xl bg-[#FFFDF7] dark:bg-[#13112a] border border-black/5 dark:border-white/5">
+              <div className="p-2 rounded-xl bg-[#EDEFF4] dark:bg-[#13112a] border border-black/5 dark:border-white/5">
                 <span className="text-[9px] text-slate-400 font-bold block uppercase">Wishlist</span>
                 <strong className="text-[#1E1B4B] dark:text-[#EEF2FF] text-[11px] block mt-0.5">Google</strong>
                 <span className="text-[9px] text-[#2563EB] font-bold">₹45 LPA</span>
@@ -414,7 +414,7 @@ export default function Landing() {
             </div>
 
             {/* Research Paper Milestone */}
-            <div className="p-2.5 rounded-xl bg-[#FFFDF7] dark:bg-[#13112a] border border-black/5 dark:border-white/5 space-y-1">
+            <div className="p-2.5 rounded-xl bg-[#EDEFF4] dark:bg-[#13112a] border border-black/5 dark:border-white/5 space-y-1">
               <strong className="text-xs font-bold text-[#1E1B4B] dark:text-[#EEF2FF] block leading-tight">
                 Scalable Distributed Graph Partitioning using Reinforcement Learning
               </strong>

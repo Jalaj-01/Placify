@@ -102,7 +102,7 @@ export default function MinimalistAmbientCanvas({ activeStep = 0 }) {
         className="absolute top-[45%] left-[8%] hidden lg:flex items-center justify-center w-14 h-9 rounded-full bg-[#FACC15] opacity-85 shadow-[0_8px_20px_rgba(250,204,21,0.25)]"
         style={{ willChange: 'transform', transform: 'translateZ(0)' }}
       >
-        <div className="w-4 h-4 rounded-full bg-[#FFFDF7] dark:bg-[#0B0C1A]" />
+        <div className="w-4 h-4 rounded-full bg-[#EDEFF4] dark:bg-[#0B0C1A]" />
       </motion.div>
 
       {/* 4-Petal Flower Symbol in Primary (#2563EB) - Bottom Left */}

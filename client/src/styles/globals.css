@@ -12,7 +12,7 @@
   --color-accent-glow: rgba(37, 99, 235, 0.20);
   --color-accent-primary: #2563EB;
   --color-accent-yellow: #FACC15;
-  --color-accent-surface: #FFFDF7;
+  --color-accent-surface: #EDEFF4;
   --color-accent-muted: #EEF2FF;
   --color-accent-text: #1E1B4B;
 
@@ -21,7 +21,7 @@
 
   --color-palette-primary: #2563EB;
   --color-palette-accent: #FACC15;
-  --color-palette-surface: #FFFDF7;
+  --color-palette-surface: #EDEFF4;
   --color-palette-muted: #EEF2FF;
   --color-palette-text: #1E1B4B;
 
@@ -46,12 +46,12 @@
     color-scheme: light;
     --palette-primary: #2563EB;
     --palette-accent: #FACC15;
-    --palette-surface: #FFFDF7;
+    --palette-surface: #EDEFF4;
     --palette-muted: #EEF2FF;
     --palette-text: #1E1B4B;
 
-    --bg-base: #FFFDF7;
-    --bg-surface: #FFFDF7;
+    --bg-base: #EDEFF4;
+    --bg-surface: #EDEFF4;
     --bg-card: #FFFFFF;
     --bg-elevated: #EEF2FF;
     --bg-hover: #E0E7FF;
@@ -70,14 +70,14 @@
     --palette-accent: #FACC15;
     --palette-surface: #1E1B4B;
     --palette-muted: #2E2A72;
-    --palette-text: #FFFDF7;
+    --palette-text: #F8FAFC;
 
     --bg-base: #12102E;
     --bg-surface: #1E1B4B;
     --bg-card: #25225E;
     --bg-elevated: #2E2A72;
     --bg-hover: #3B3691;
-    --text-primary: #FFFDF7;
+    --text-primary: #F8FAFC;
     --text-secondary: #EEF2FF;
     --text-muted: rgba(238, 242, 255, 0.70);
     --border-color: rgba(238, 242, 255, 0.14);

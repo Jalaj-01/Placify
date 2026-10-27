@@ -209,7 +209,7 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#FFFDF7] border border-[#FEF08A] space-y-2">
+              <div className="p-4 rounded-2xl bg-[#EDEFF4] border border-[#FEF08A] space-y-2">
                 <div className="flex items-center gap-2 text-[#854d0e]">
                   <Sparkles className="h-4 w-4 text-[#FACC15]" />
                   <strong className="text-xs font-bold uppercase tracking-wider">AI Coach & Mock Room</strong>
@@ -224,7 +224,7 @@ export default function Hero() {
           {/* Tab Content 2: Faculty */}
           {roleTab === 'teacher' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-300">
-              <div className="p-4 rounded-2xl bg-[#FFFDF7] border border-[#FEF08A] space-y-2">
+              <div className="p-4 rounded-2xl bg-[#EDEFF4] border border-[#FEF08A] space-y-2">
                 <div className="flex items-center gap-2 text-[#854d0e]">
                   <FileSpreadsheet className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">Digital Gradebook</strong>
@@ -269,7 +269,7 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#FFFDF7] border border-[#FEF08A] space-y-2">
+              <div className="p-4 rounded-2xl bg-[#EDEFF4] border border-[#FEF08A] space-y-2">
                 <div className="flex items-center gap-2 text-[#854d0e]">
                   <Laptop className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">Collaborative Notebooks</strong>

@@ -75,7 +75,7 @@ export default function FeaturesGrid() {
                 <p className="text-xs font-bold text-slate-800 m-0">Amazon</p>
                 <span className="text-[9px] text-slate-500">Tomorrow 4 PM</span>
               </div>
-              <div className="p-3 rounded-xl bg-[#FFFDF7] border border-[#FEF08A] space-y-1">
+              <div className="p-3 rounded-xl bg-[#EDEFF4] border border-[#FEF08A] space-y-1">
                 <span className="text-[10px] font-bold text-[#854d0e] uppercase">Offer Logged</span>
                 <p className="text-xs font-bold text-slate-800 m-0">Atlassian</p>
                 <span className="text-[9px] text-emerald-700 font-bold">Confirmed 🎉</span>
@@ -143,7 +143,7 @@ export default function FeaturesGrid() {
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-[#FFFDF7] text-[#CA8A04] border border-[#FEF08A] shadow-sm">
+              <div className="p-3 rounded-2xl bg-[#EDEFF4] text-[#CA8A04] border border-[#FEF08A] shadow-sm">
                 <FileText className="h-6 w-6" />
               </div>
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
@@ -160,7 +160,7 @@ export default function FeaturesGrid() {
               </p>
             </div>
 
-            <div className="p-3 rounded-2xl bg-[#FFFDF7] border border-[#FEF08A] flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-[#EDEFF4] border border-[#FEF08A] flex items-center gap-3">
               <div className="flex -space-x-2">
                 <div className="w-7 h-7 rounded-full bg-[#2563EB] text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">RV</div>
                 <div className="w-7 h-7 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">AG</div>
@@ -186,7 +186,7 @@ export default function FeaturesGrid() {
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-[#FFFDF7] text-[#854d0e] border border-[#FEF08A] shadow-sm">
+              <div className="p-3 rounded-2xl bg-[#EDEFF4] text-[#854d0e] border border-[#FEF08A] shadow-sm">
                 <Sparkles className="h-6 w-6 text-[#FACC15]" />
               </div>
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">

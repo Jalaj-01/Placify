@@ -15,7 +15,7 @@ export default function Metrics() {
       value: '10,000+',
       subtext: 'Timed OA problem sessions & 1v1 peer rounds',
       icon: CheckCircle2,
-      badgeColor: 'bg-[#FFFDF7] text-[#854d0e] border-[#FEF08A]',
+      badgeColor: 'bg-[#EDEFF4] text-[#854d0e] border-[#FEF08A]',
     },
     {
       label: 'Faculty Syllabus Overhead Cut',
@@ -29,7 +29,7 @@ export default function Metrics() {
       value: '4.9 / 5',
       subtext: 'Trusted by engineering students, faculty & scholars',
       icon: Star,
-      badgeColor: 'bg-[#FFFDF7] text-[#CA8A04] border-[#FEF08A]',
+      badgeColor: 'bg-[#EDEFF4] text-[#CA8A04] border-[#FEF08A]',
     },
   ]
 

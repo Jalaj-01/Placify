@@ -50,7 +50,7 @@ export default function Navbar() {
         </div>
 
         {/* Center Floating Navigation Pill Links */}
-        <nav className="hidden md:flex items-center gap-1 p-1 rounded-2xl bg-[#FFFDF7] border border-blue-100/60 text-xs font-bold text-[#1E1B4B]">
+        <nav className="hidden md:flex items-center gap-1 p-1 rounded-2xl bg-[#EDEFF4] border border-blue-100/60 text-xs font-bold text-[#1E1B4B]">
           <button
             onClick={() => scrollToSection('dashboard-preview')}
             className="px-3.5 py-1.5 rounded-xl hover:text-[#2563EB] hover:bg-white transition-all"

@@ -171,7 +171,7 @@ export default function Sidebar({ user, onSignOut }) {
   return (
     <motion.aside
       animate={{ width: 64 }}
-      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-[#1E1B4B]/10 bg-gradient-to-b from-[#FFFDF7] via-white to-[#EEF2FF]/40 backdrop-blur-xl z-40 shadow-[4px_0_24px_rgba(30,27,75,0.06)] overflow-hidden dark:border-white/10 dark:bg-gradient-to-b dark:from-[#0b0c16] dark:via-[#13112a] dark:to-[#1E1B4B] print:hidden"
+      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-[#1E1B4B]/10 bg-gradient-to-b from-[#EDEFF4] via-white to-[#EEF2FF]/40 backdrop-blur-xl z-40 shadow-[4px_0_24px_rgba(30,27,75,0.06)] overflow-hidden dark:border-white/10 dark:bg-gradient-to-b dark:from-[#0b0c16] dark:via-[#13112a] dark:to-[#1E1B4B] print:hidden"
     >
       {/* Header */}
       <div className="flex h-[68px] items-center justify-center border-b border-border-subtle shrink-0">
