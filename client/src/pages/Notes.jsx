@@ -158,6 +158,9 @@ export default function Notes() {
   const editorRef = useRef(null)
   const scrollContainerRef = useRef(null)
   const prevPageIdRef = useRef(null)
+  const editorSaveDebounceRef = useRef(null)
+  const statsDebounceRef = useRef(null)
+  const lastTypingEmitRef = useRef(0)
   const [editingTitle, setEditingTitle] = useState('')
   const [editingPageTitle, setEditingPageTitle] = useState('')
   const [stats, setStats] = useState({ words: 0, chars: 0, readingTime: '1 min' })
@@ -578,13 +581,37 @@ export default function Notes() {
     setDragOverPageIndex(null)
   }
 
-  // Handle typing inside editor
-  const handleEditorInput = () => {
+  // Handle typing inside editor (<1ms instant keystroke response)
+  const handleEditorInput = (immediate = false) => {
     if (!editorRef.current || !activeNotebook || !activePage) return
     const html = editorRef.current.innerHTML
-    updateStats(editorRef.current.innerText || '')
-    updatePageContent(activeNotebook.id, activePage.id, html)
-    emitTyping(activePage.id, true)
+
+    // 1. Instant in-memory sync (0ms) so no data is ever lost
+    activePage.htmlContent = html
+
+    // 2. Throttled socket typing emit (max once per 2s) to eliminate websocket thread flooding
+    const now = Date.now()
+    if (now - lastTypingEmitRef.current > 2000) {
+      lastTypingEmitRef.current = now
+      emitTyping(activePage.id, true)
+    }
+
+    // 3. Debounce word/character stats calculation (avoids React re-renders on every keystroke)
+    if (statsDebounceRef.current) clearTimeout(statsDebounceRef.current)
+    statsDebounceRef.current = setTimeout(() => {
+      if (editorRef.current) updateStats(editorRef.current.innerText || '')
+    }, 300)
+
+    // 4. Debounced cloud & local storage persistence
+    if (editorSaveDebounceRef.current) clearTimeout(editorSaveDebounceRef.current)
+    if (immediate) {
+      updatePageContent(activeNotebook.id, activePage.id, html)
+    } else {
+      editorSaveDebounceRef.current = setTimeout(() => {
+        editorSaveDebounceRef.current = null
+        updatePageContent(activeNotebook.id, activePage.id, html)
+      }, 350)
+    }
   }
 
   // Execute Rich Text Formatting via document.execCommand
@@ -1711,7 +1738,8 @@ export default function Notes() {
                   ref={editorRef}
                   contentEditable
                   suppressContentEditableWarning
-                  onInput={handleEditorInput}
+                  onInput={() => handleEditorInput(false)}
+                  onBlur={() => handleEditorInput(true)}
                   onKeyDown={(e) => {
                     if (e.ctrlKey || e.metaKey) {
                       const k = e.key.toLowerCase()

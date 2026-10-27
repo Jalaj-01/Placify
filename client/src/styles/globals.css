@@ -94,7 +94,14 @@
     background-color: var(--bg-base);
     color: var(--text-primary);
     min-height: 100vh;
-    transition: background-color 0.25s ease, color 0.25s ease;
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .notebook-document {
+    outline: none;
+    caret-color: #2563EB;
   }
 
   /* ── Global styled select ───────────────────────────────────────

@@ -10,6 +10,7 @@ export const getSocketInstance = () => {
     socketInstance = io(API_BASE, {
       withCredentials: true,
       autoConnect: true,
+      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,

@@ -432,10 +432,21 @@
 }
 
 .pnew-dashboard-main.is-fullbleed {
-  padding: 72px 16px 16px 82px;
+  padding: 0 0 0 74px;
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
+}
+
+.pnew-dashboard-main.is-fullbleed .pnew-main-inner {
+  max-width: none;
+  height: 100%;
+}
+
+.pnew-dashboard-topbar.is-fullbleed-topbar {
+  height: 0;
+  top: 10px;
+  pointer-events: none;
 }
 
 .pnew-main-inner {

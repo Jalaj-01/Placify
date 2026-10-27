@@ -49,8 +49,6 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
   const pendingInvites = useAppStore((state) => state.pendingInvites)
   const [profileOpen, setProfileOpen] = useState(false)
   const profileWrapRef = useRef(null)
-  const [hoveredIdx, setHoveredIdx] = useState(null)
-  const [tooltipState, setTooltipState] = useState(null)
   const [combinedSharesCount, setCombinedSharesCount] = useState(0)
 
   // Scroll-driven navbar state
@@ -207,7 +205,149 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
 
   return (
     <div className="pnew-dashboard-shell">
-      {/* ─── Compact Mac-Style Floating Dock Sidebar Rail ──────── */}
+      {/* ─── Compact Mac-Style Floating Dock Sidebar Rail (Isolated Low-Latency Component) ─── */}
+      <MacDockRail
+        totalBadgeCount={totalBadgeCount}
+        onSideItem={onSideItem}
+        pathname={location.pathname}
+      />
+
+      {/* ─── Scroll-Driven Floating Top Navbar ─────────────────── */}
+      <header
+        className={`pnew-dashboard-topbar${navHidden ? ' is-hidden' : ''}${isFullBleedPage ? ' is-fullbleed-topbar' : ''}`}
+        aria-label="Top Command Navigation"
+      >
+        {!isFullBleedPage && (
+          <nav className="pnew-dashboard-topbar__tabs" aria-label="Primary navigation">
+            {dashboardTopItems.map((item) =>
+              item.action === 'timer' ? (
+                <button
+                  key={item.to}
+                  type="button"
+                  onClick={openTimerSetup}
+                  className="pnew-dashboard-topbar__tab"
+                >
+                  {item.label}
+                </button>
+              ) : (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `pnew-dashboard-topbar__tab${isActive || location.pathname === item.to ? ' is-active' : ''}`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              )
+            )}
+          </nav>
+        )}
+
+        <div className="pnew-dashboard-profile-wrap" ref={profileWrapRef}>
+          <button
+            type="button"
+            className="pnew-dashboard-profile"
+            aria-label="Open profile menu"
+            aria-expanded={profileOpen}
+            onClick={() => setProfileOpen((value) => !value)}
+          >
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="" />
+            ) : (
+              <CircleUserRound size={20} strokeWidth={1.7} />
+            )}
+          </button>
+          {profileOpen && (
+            <div className="pnew-dashboard-profile-menu">
+              <strong>{profile?.displayName || user?.displayName || 'Your profile'}</strong>
+              <span>{user?.email}</span>
+              <button type="button" onClick={onSignOut}>
+                <LogOut size={15} /> Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ─── Universal Page Main Canvas ────────────────────────── */}
+      <main
+        className={`pnew-dashboard-main${isFullBleedPage ? ' is-fullbleed' : ''}`}
+        id="main-content"
+      >
+        <div className="pnew-main-inner p3d-perspective-stage">
+          {children}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function MacDockRail({ totalBadgeCount, onSideItem, pathname }) {
+  const [hoveredIdx, setHoveredIdx] = useState(null)
+  const [tooltipState, setTooltipState] = useState(null)
+
+  // Calculate Authentic Mac Dock Magnification & Pop Physics (Zero page latency)
+  const getDockItemStyle = (index) => {
+    if (hoveredIdx === null) {
+      return {
+        transform: 'scale(1) translateX(0px)',
+        transformOrigin: 'left center',
+        zIndex: 1,
+      }
+    }
+    const dist = Math.abs(index - hoveredIdx)
+    if (dist === 0) {
+      return {
+        transform: 'scale(1.42) translateX(12px)',
+        transformOrigin: 'left center',
+        zIndex: 40,
+      }
+    }
+    if (dist === 1) {
+      return {
+        transform: 'scale(1.22) translateX(6px)',
+        transformOrigin: 'left center',
+        zIndex: 30,
+      }
+    }
+    if (dist === 2) {
+      return {
+        transform: 'scale(1.08) translateX(2px)',
+        transformOrigin: 'left center',
+        zIndex: 20,
+      }
+    }
+    return {
+      transform: 'scale(0.96) translateX(0px)',
+      transformOrigin: 'left center',
+      zIndex: 1,
+    }
+  }
+
+  const handleItemMouseEnter = (e, index, item) => {
+    setHoveredIdx(index)
+    const rect = e.currentTarget.getBoundingClientRect()
+    setTooltipState({
+      top: rect.top + rect.height / 2,
+      left: rect.right + 20,
+      label: item.label,
+      count: item.to === '/shares' ? totalBadgeCount : 0,
+    })
+  }
+
+  const handleRailMouseLeave = () => {
+    setHoveredIdx(null)
+    setTooltipState(null)
+  }
+
+  const handleRailScroll = () => {
+    setHoveredIdx(null)
+    setTooltipState(null)
+  }
+
+  return (
+    <>
       <aside className="pnew-dashboard-rail" aria-label="Quick Dock Navigation">
         <nav
           className="pnew-dashboard-rail__items"
@@ -249,7 +389,7 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
         </nav>
       </aside>
 
-      {/* ─── Floating macOS Dock Tooltip (Fixed Coordinates) ───── */}
+      {/* Floating macOS Dock Tooltip */}
       {tooltipState && (
         <div
           className="pnew-dock-tooltip is-floating"
@@ -260,69 +400,6 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
           {tooltipState.count > 0 && ` (${tooltipState.count})`}
         </div>
       )}
-
-      {/* ─── Scroll-Driven Floating Top Navbar ─────────────────── */}
-      <header className={`pnew-dashboard-topbar${navHidden ? ' is-hidden' : ''}`} aria-label="Top Command Navigation">
-        <nav className="pnew-dashboard-topbar__tabs" aria-label="Primary navigation">
-          {dashboardTopItems.map((item) =>
-            item.action === 'timer' ? (
-              <button
-                key={item.to}
-                type="button"
-                onClick={openTimerSetup}
-                className="pnew-dashboard-topbar__tab"
-              >
-                {item.label}
-              </button>
-            ) : (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `pnew-dashboard-topbar__tab${isActive || location.pathname === item.to ? ' is-active' : ''}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            )
-          )}
-        </nav>
-
-        <div className="pnew-dashboard-profile-wrap" ref={profileWrapRef}>
-          <button
-            type="button"
-            className="pnew-dashboard-profile"
-            aria-label="Open profile menu"
-            aria-expanded={profileOpen}
-            onClick={() => setProfileOpen((value) => !value)}
-          >
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="" />
-            ) : (
-              <CircleUserRound size={20} strokeWidth={1.7} />
-            )}
-          </button>
-          {profileOpen && (
-            <div className="pnew-dashboard-profile-menu">
-              <strong>{profile?.displayName || user?.displayName || 'Your profile'}</strong>
-              <span>{user?.email}</span>
-              <button type="button" onClick={onSignOut}>
-                <LogOut size={15} /> Sign out
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* ─── Universal Page Main Canvas ────────────────────────── */}
-      <main
-        className={`pnew-dashboard-main${isFullBleedPage ? ' is-fullbleed' : ''}`}
-        id="main-content"
-      >
-        <div className="pnew-main-inner p3d-perspective-stage">
-          {children}
-        </div>
-      </main>
-    </div>
+    </>
   )
 }

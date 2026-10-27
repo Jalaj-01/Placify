@@ -224,14 +224,38 @@ const getLocalNotebooks = () => {
   return SEED_NOTEBOOKS
 }
 
-const saveLocalNotebooks = (notebooks) => {
+let localSaveTimer = null
+let pendingNotebooksToSave = null
+
+export const flushLocalNotebooks = () => {
+  if (!pendingNotebooksToSave) return
   try {
     localStorage.setItem(LOCAL_SEEDED_KEY, 'true')
-    const deduped = deduplicateNotebooks(notebooks)
+    const deduped = deduplicateNotebooks(pendingNotebooksToSave)
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(deduped))
   } catch (err) {
     console.warn('Failed saving notebooks to localStorage', err)
   }
+  pendingNotebooksToSave = null
+}
+
+const saveLocalNotebooks = (notebooks, immediate = false) => {
+  pendingNotebooksToSave = notebooks
+  if (immediate) {
+    if (localSaveTimer) clearTimeout(localSaveTimer)
+    flushLocalNotebooks()
+    return
+  }
+  if (!localSaveTimer) {
+    localSaveTimer = setTimeout(() => {
+      localSaveTimer = null
+      flushLocalNotebooks()
+    }, 400)
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', flushLocalNotebooks)
 }
 
 export function useNotebooks(user) {
