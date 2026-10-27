@@ -1,15 +1,14 @@
-/* Placify Universal Dashboard Design & 3D Ambient Theme */
+/* Placify Universal Dashboard Design - Knowly Palette & Mac Dock Experience */
 
 .pnew-dashboard-active,
 .pnew-dashboard-active body {
   overscroll-behavior: none;
-  background: linear-gradient(110deg, #fff7f5 0%, #f8fafc 49%, #f2faff 100%);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
   scroll-behavior: smooth;
 }
 
 .pnew-dashboard-active body {
-  background-color: #f8fafc;
-  color: #1e242d;
   margin: 0;
   padding: 0;
 }
@@ -17,125 +16,143 @@
 .pnew-dashboard-shell {
   position: relative;
   min-height: 100vh;
-  color: #20242b;
-  background:
-    radial-gradient(ellipse 55% 90% at 0% 38%, rgba(255, 218, 225, 0.76), transparent 100%),
-    radial-gradient(ellipse 58% 92% at 100% 32%, rgba(193, 228, 248, 0.82), transparent 100%),
-    linear-gradient(110deg, #fff7f5 0%, #f8fafc 49%, #f2faff 100%);
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse 60% 80% at 0% 20%, rgba(132, 80, 203, 0.12), transparent 70%),
+    radial-gradient(ellipse 50% 70% at 100% 40%, rgba(234, 185, 1, 0.08), transparent 70%),
+    radial-gradient(ellipse 40% 60% at 50% 90%, rgba(144, 169, 148, 0.08), transparent 60%);
   background-attachment: fixed;
-  perspective: 1200px;
+  /* Removed perspective: 1200px so position: fixed elements stay properly fixed to the viewport! */
 }
 
-/* ─── Compact Mac-Style Floating Dock Sidebar Rail ──────────── */
+/* Light mode palette background */
+:root:not(.dark) .pnew-dashboard-shell {
+  background-color: #FAF5ED;
+  background-image:
+    radial-gradient(ellipse 55% 85% at 0% 25%, rgba(247, 232, 207, 0.85), transparent 75%),
+    radial-gradient(ellipse 55% 85% at 100% 30%, rgba(144, 169, 148, 0.22), transparent 75%),
+    radial-gradient(ellipse 50% 60% at 50% 90%, rgba(234, 185, 1, 0.14), transparent 70%);
+}
+
+/* ─── Fixed Mac-Style Floating Dock Sidebar Rail (Vertically Centered) ─── */
 .pnew-dashboard-rail {
   position: fixed;
   z-index: 90;
-  inset: 12px auto 12px 14px;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
-  width: 48px;
+  width: auto;
   flex-direction: column;
   align-items: center;
   pointer-events: none;
 }
 
-/* Placify Brand Squircle */
+/* Redundant separate brand squircle hidden to match Screenshot 1 pill dock */
 .pnew-dashboard-brand {
-  position: absolute;
-  top: 0;
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.12), 0 2px 6px rgba(31, 41, 55, 0.04);
-  pointer-events: auto;
-  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.25), box-shadow 0.22s ease;
+  display: none;
 }
 
-.pnew-dashboard-brand:hover {
-  transform: scale(1.08) translateY(-1px);
-  box-shadow: 0 10px 24px rgba(31, 41, 55, 0.16);
-}
-
-.pnew-dashboard-brand span {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border-radius: 9px;
-  background: #252525;
-  color: #fff;
-  font: 800 11.5px/1 Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  letter-spacing: -0.02em;
-}
-
-/* Compact Scrollable Dock Rail Container */
+/* Compact Mac Dock Pill Container */
 .pnew-dashboard-rail__items {
   display: flex;
-  max-height: calc(100vh - 84px);
-  flex: 0 1 auto;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  margin: auto 0;
-  padding: 6px 4px;
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  border-radius: 18px;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 6px;
+  border: 1.5px solid rgba(48, 41, 47, 0.10);
+  border-radius: 28px;
   background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 10px 28px rgba(31, 41, 55, 0.10), 0 2px 6px rgba(31, 41, 55, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 16px 36px -4px rgba(48, 41, 47, 0.12),
+    0 4px 12px rgba(48, 41, 47, 0.04),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
   pointer-events: auto;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  overflow: visible; /* Prevents clipping when items scale up and translate out */
 }
 
-.pnew-dashboard-rail__items::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+.dark .pnew-dashboard-rail__items {
+  border-color: rgba(247, 232, 207, 0.15);
+  background: rgba(48, 41, 47, 0.85);
+  box-shadow:
+    0 20px 45px -6px rgba(0, 0, 0, 0.55),
+    0 4px 16px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(247, 232, 207, 0.12);
 }
 
-/* Dock Item Wrapper with Compact Mac Physics */
+/* Dock Item Wrapper with Mac Physics & "Came Out" Expansion */
 .pnew-dock-item-wrapper {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  transform-origin: left center;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
   will-change: transform;
 }
 
 .pnew-dashboard-rail__button {
   position: relative;
   display: flex;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e5e9ec;
-  border-radius: 11px;
+  border: 1px solid rgba(48, 41, 47, 0.08);
+  border-radius: 13px;
   background: #ffffff;
-  color: #555e69;
-  box-shadow: 0 2px 4px rgba(31, 41, 55, 0.03);
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  color: #30292F;
+  box-shadow: 0 2px 5px rgba(48, 41, 47, 0.04);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.pnew-dashboard-rail__button:hover {
-  border-color: #cbd3da;
-  color: #121417;
-  box-shadow: 0 4px 10px rgba(31, 41, 55, 0.07);
+.dark .pnew-dashboard-rail__button {
+  background: #251e24;
+  border-color: rgba(247, 232, 207, 0.10);
+  color: #F7E8CF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
+/* Hovered State: "Came Out" Mac Lift with Rich Drop Shadow */
+.pnew-dock-item-wrapper:hover .pnew-dashboard-rail__button {
+  border-color: #8450CB;
+  color: #8450CB;
+  box-shadow:
+    0 12px 28px -4px rgba(132, 80, 203, 0.35),
+    0 4px 12px rgba(48, 41, 47, 0.12);
+}
+
+.dark .pnew-dock-item-wrapper:hover .pnew-dashboard-rail__button {
+  border-color: #EAB901;
+  color: #EAB901;
+  box-shadow:
+    0 14px 30px -4px rgba(234, 185, 1, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* Active State (As in Screenshot 1 - Dark Squircle) */
 .pnew-dashboard-rail__button.is-active {
-  border-color: #24272c;
-  background: #24272c;
+  border-color: #30292F;
+  background: #30292F;
   color: #ffffff;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 14px rgba(48, 41, 47, 0.25);
+}
+
+.dark .pnew-dashboard-rail__button.is-active {
+  border-color: #8450CB;
+  background: #8450CB;
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(132, 80, 203, 0.45);
 }
 
 .pnew-dashboard-rail__badge {
@@ -164,19 +181,20 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #181b20;
-  color: #ffffff;
-  padding: 5px 11px;
-  border-radius: 9px;
-  font-size: 11px;
-  font-weight: 600;
+  background: #30292F;
+  color: #F7E8CF;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   line-height: 1.2;
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(247, 232, 207, 0.2);
   z-index: 1000;
-  animation: pnewDockTooltipIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: pnewDockTooltipIn 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .pnew-dock-tooltip.is-floating::before {
@@ -187,15 +205,15 @@
   transform: translateY(-50%) rotate(45deg);
   width: 7px;
   height: 7px;
-  background: #181b20;
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background: #30292F;
+  border-left: 1px solid rgba(247, 232, 207, 0.2);
+  border-bottom: 1px solid rgba(247, 232, 207, 0.2);
 }
 
 @keyframes pnewDockTooltipIn {
   from {
     opacity: 0;
-    transform: translateY(-50%) translateX(-5px) scale(0.92);
+    transform: translateY(-50%) translateX(-6px) scale(0.92);
   }
   to {
     opacity: 1;
@@ -233,12 +251,19 @@
   align-items: center;
   gap: 5px;
   padding: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 10px 28px rgba(31, 41, 55, 0.10), 0 2px 6px rgba(31, 41, 55, 0.04);
+  border: 1px solid rgba(48, 41, 47, 0.10);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 28px rgba(48, 41, 47, 0.08), 0 2px 6px rgba(48, 41, 47, 0.03);
   pointer-events: auto;
+}
+
+.dark .pnew-dashboard-topbar__tabs {
+  border-color: rgba(247, 232, 207, 0.15);
+  background: rgba(48, 41, 47, 0.88);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
 }
 
 .pnew-dashboard-topbar__tab {
@@ -247,29 +272,42 @@
   align-items: center;
   justify-content: center;
   padding: 0 18px;
-  border: 1px solid #e4e8eb;
-  border-radius: 12px;
+  border: 1px solid rgba(48, 41, 47, 0.08);
+  border-radius: 14px;
   background: #ffffff;
-  color: #555e69;
+  color: #30292F;
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
   transition: border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
+.dark .pnew-dashboard-topbar__tab {
+  background: #251e24;
+  border-color: rgba(247, 232, 207, 0.10);
+  color: #F7E8CF;
+}
+
 .pnew-dashboard-topbar__tab:hover {
-  border-color: #cbd3da;
-  color: #17191d;
+  border-color: #8450CB;
+  color: #8450CB;
+  transform: translateY(-1px);
+}
+
+.dark .pnew-dashboard-topbar__tab:hover {
+  border-color: #EAB901;
+  color: #EAB901;
   transform: translateY(-1px);
 }
 
 .pnew-dashboard-topbar__tab.is-active {
-  border-color: #24272c;
-  background: #24272c;
+  border-color: #8450CB;
+  background: #8450CB;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 14px rgba(132, 80, 203, 0.35);
 }
 
+/* ─── Profile Menu Trigger & Dropdown ────────────────────────── */
 .pnew-dashboard-profile-wrap {
   position: absolute;
   top: 50%;
@@ -284,16 +322,23 @@
   height: 42px;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(48, 41, 47, 0.10);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.96);
-  color: #555e69;
-  box-shadow: 0 9px 24px rgba(31, 41, 55, 0.10), 0 2px 6px rgba(31, 41, 55, 0.04);
-  transition: transform 0.2s ease, color 0.2s ease;
+  color: #30292F;
+  box-shadow: 0 9px 24px rgba(48, 41, 47, 0.08), 0 2px 6px rgba(48, 41, 47, 0.03);
+  transition: transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.dark .pnew-dashboard-profile {
+  border-color: rgba(247, 232, 207, 0.15);
+  background: rgba(48, 41, 47, 0.90);
+  color: #F7E8CF;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
 }
 
 .pnew-dashboard-profile:hover {
-  color: #17191d;
+  border-color: #8450CB;
   transform: scale(1.05);
 }
 
@@ -308,26 +353,42 @@
   top: 50px;
   right: 0;
   display: grid;
-  min-width: 210px;
-  gap: 5px;
-  padding: 13px;
-  border: 1px solid #e4e8eb;
-  border-radius: 14px;
+  min-width: 220px;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(48, 41, 47, 0.12);
+  border-radius: 16px;
   background: #ffffff;
-  box-shadow: 0 16px 38px rgba(31, 41, 55, 0.16);
+  box-shadow: 0 20px 45px rgba(48, 41, 47, 0.18);
   animation: pnewDockTooltipIn 0.2s ease;
+  z-index: 100;
+}
+
+.dark .pnew-dashboard-profile-menu {
+  border-color: rgba(247, 232, 207, 0.18);
+  background: #30292F;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
 }
 
 .pnew-dashboard-profile-menu strong {
-  color: #1e242d;
-  font-size: 12.5px;
+  color: #010101;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dark .pnew-dashboard-profile-menu strong {
+  color: #F7E8CF;
 }
 
 .pnew-dashboard-profile-menu > span {
   overflow: hidden;
-  color: #7d8892;
+  color: #6B626A;
   font-size: 11px;
   text-overflow: ellipsis;
+}
+
+.dark .pnew-dashboard-profile-menu > span {
+  color: rgba(247, 232, 207, 0.65);
 }
 
 .pnew-dashboard-profile-menu button {
@@ -335,16 +396,21 @@
   align-items: center;
   gap: 8px;
   margin-top: 8px;
-  padding: 8px 11px;
+  padding: 8px 12px;
   border: 0;
-  border-radius: 9px;
-  background: #f6f8fa;
-  color: #4a545e;
-  font-size: 11.5px;
+  border-radius: 10px;
+  background: #FAF5ED;
+  color: #30292F;
+  font-size: 12px;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dark .pnew-dashboard-profile-menu button {
+  background: rgba(247, 232, 207, 0.08);
+  color: #F7E8CF;
 }
 
 .pnew-dashboard-profile-menu button:hover {
@@ -355,12 +421,12 @@
 /* ─── Universal Canvas Area ─────────────────────────────────── */
 .pnew-dashboard-main {
   min-height: 100vh;
-  padding: 84px 28px 36px 78px;
+  padding: 84px 28px 36px 82px;
   box-sizing: border-box;
 }
 
 .pnew-dashboard-main.is-fullbleed {
-  padding: 72px 16px 16px 78px;
+  padding: 72px 16px 16px 82px;
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
@@ -385,22 +451,20 @@
 
 .p3d-card:hover {
   transform: translateY(-3px) translateZ(8px);
-  box-shadow: 0 16px 36px rgba(31, 41, 55, 0.10), 0 4px 10px rgba(31, 41, 55, 0.04);
+  box-shadow: 0 16px 36px rgba(48, 41, 47, 0.10), 0 4px 10px rgba(48, 41, 47, 0.04);
 }
 
 /* ─── Responsive Adjustments ─────────────────────────────────── */
 @media (max-width: 900px) {
   .pnew-dashboard-rail {
     inset: auto 10px 10px;
+    top: auto;
+    transform: none;
     display: flex;
     width: auto;
     height: 54px;
     flex-direction: row;
     justify-content: center;
-  }
-
-  .pnew-dashboard-brand {
-    display: none;
   }
 
   .pnew-dashboard-rail__items {

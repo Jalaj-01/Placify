@@ -171,11 +171,11 @@ export default function Sidebar({ user, onSignOut }) {
   return (
     <motion.aside
       animate={{ width: 64 }}
-      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-slate-200/70 bg-gradient-to-b from-rose-50/80 via-white/90 to-sky-50/90 backdrop-blur-xl z-40 shadow-[4px_0_24px_rgba(31,41,55,0.04)] overflow-hidden dark:border-white/10 dark:bg-gradient-to-b dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 print:hidden"
+      className="hidden lg:flex flex-col fixed left-0 top-0 h-screen border-r border-[#30292F]/10 bg-gradient-to-b from-[#FAF5ED] via-white to-[#F7E8CF]/40 backdrop-blur-xl z-40 shadow-[4px_0_24px_rgba(48,41,47,0.06)] overflow-hidden dark:border-white/10 dark:bg-gradient-to-b dark:from-[#010101] dark:via-[#1a1619] dark:to-[#30292F] print:hidden"
     >
       {/* Header */}
       <div className="flex h-[68px] items-center justify-center border-b border-border-subtle shrink-0">
-          <div className="h-9 w-9 rounded-xl bg-[#252525] text-white flex items-center justify-center shrink-0 shadow-sm">
+          <div className="h-9 w-9 rounded-xl bg-[#30292F] dark:bg-[#F7E8CF] text-[#F7E8CF] dark:text-[#010101] flex items-center justify-center shrink-0 shadow-sm">
             <Boxes className="h-[18px] w-[18px]" />
           </div>
       </div>
@@ -205,8 +205,8 @@ export default function Sidebar({ user, onSignOut }) {
                 return cn(
                   'mx-auto flex h-9 w-9 items-center justify-center rounded-xl border border-transparent p-0 transition-all relative group',
                   active
-                    ? 'bg-[#252525] text-white shadow-[0_4px_10px_rgba(0,0,0,0.18)]'
-                    : 'border-slate-200/80 bg-white text-slate-600 shadow-sm hover:border-slate-300 hover:bg-white hover:text-slate-950'
+                    ? 'bg-[#30292F] dark:bg-[#8450CB] text-white shadow-[0_4px_12px_rgba(48,41,47,0.25)]'
+                    : 'border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#251e24] text-slate-600 dark:text-[#F7E8CF] shadow-sm hover:border-[#8450CB] hover:bg-white hover:text-[#8450CB]'
                 )
               }}
               title={label}

@@ -48,6 +48,7 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
   const openTimerSetup = useAppStore((state) => state.openTimerSetup)
   const pendingInvites = useAppStore((state) => state.pendingInvites)
   const [profileOpen, setProfileOpen] = useState(false)
+  const profileWrapRef = useRef(null)
   const [hoveredIdx, setHoveredIdx] = useState(null)
   const [tooltipState, setTooltipState] = useState(null)
   const [combinedSharesCount, setCombinedSharesCount] = useState(0)
@@ -55,6 +56,33 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
   // Scroll-driven navbar state
   const [navHidden, setNavHidden] = useState(false)
   const lastScrollY = useRef(0)
+
+  // Click outside to close profile dropdown & Escape key support
+  useEffect(() => {
+    if (!profileOpen) return
+
+    const handleClickOutside = (event) => {
+      if (profileWrapRef.current && !profileWrapRef.current.contains(event.target)) {
+        setProfileOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setProfileOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [profileOpen])
 
   useEffect(() => {
     const root = document.documentElement
@@ -107,32 +135,42 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
     }
   }
 
-  // Calculate Mac Dock Magnification physics (compact and refined)
+  // Calculate Authentic Mac Dock Magnification & "Came Out" Pop Physics
   const getDockItemStyle = (index) => {
     if (hoveredIdx === null) {
-      return { transform: 'scale(1)', zIndex: 1 }
+      return {
+        transform: 'scale(1) translateX(0px)',
+        transformOrigin: 'left center',
+        zIndex: 1,
+      }
     }
     const dist = Math.abs(index - hoveredIdx)
     if (dist === 0) {
-      return { transform: 'scale(1.28)', zIndex: 30 }
+      return {
+        transform: 'scale(1.42) translateX(12px)',
+        transformOrigin: 'left center',
+        zIndex: 40,
+      }
     }
     if (dist === 1) {
-      return { transform: 'scale(1.12)', zIndex: 20 }
+      return {
+        transform: 'scale(1.22) translateX(6px)',
+        transformOrigin: 'left center',
+        zIndex: 30,
+      }
     }
     if (dist === 2) {
-      return { transform: 'scale(1.04)', zIndex: 10 }
+      return {
+        transform: 'scale(1.08) translateX(2px)',
+        transformOrigin: 'left center',
+        zIndex: 20,
+      }
     }
-    return { transform: 'scale(0.96)', zIndex: 1 }
-  }
-
-  const handleBrandMouseEnter = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    setTooltipState({
-      top: rect.top + rect.height / 2,
-      left: rect.right + 12,
-      label: 'Placify Home',
-      count: 0,
-    })
+    return {
+      transform: 'scale(0.96) translateX(0px)',
+      transformOrigin: 'left center',
+      zIndex: 1,
+    }
   }
 
   const handleItemMouseEnter = (e, index, item) => {
@@ -140,7 +178,7 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
     const rect = e.currentTarget.getBoundingClientRect()
     setTooltipState({
       top: rect.top + rect.height / 2,
-      left: rect.right + 12,
+      left: rect.right + 20,
       label: item.label,
       count: item.to === '/shares' ? totalBadgeCount : 0,
     })
@@ -164,16 +202,6 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
     <div className="pnew-dashboard-shell">
       {/* ─── Compact Mac-Style Floating Dock Sidebar Rail ──────── */}
       <aside className="pnew-dashboard-rail" aria-label="Quick Dock Navigation">
-        <Link
-          to="/dashboard"
-          aria-label="Placify home"
-          className="pnew-dashboard-brand"
-          onMouseEnter={handleBrandMouseEnter}
-          onMouseLeave={() => setTooltipState(null)}
-        >
-          <span>P</span>
-        </Link>
-
         <nav
           className="pnew-dashboard-rail__items"
           aria-label="Dashboard sections"
@@ -253,7 +281,7 @@ export default function DashboardShell({ children, user, profile, onSignOut }) {
           )}
         </nav>
 
-        <div className="pnew-dashboard-profile-wrap">
+        <div className="pnew-dashboard-profile-wrap" ref={profileWrapRef}>
           <button
             type="button"
             className="pnew-dashboard-profile"
