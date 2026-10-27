@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Timer, X, Play, Clock, Sparkles, AlertCircle } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'

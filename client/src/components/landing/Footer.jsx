@@ -10,10 +10,10 @@ export default function Footer() {
         {/* Column 1: Brand & Status */}
         <div className="space-y-3 md:col-span-1">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#20242b] text-white flex items-center justify-center font-black text-xs shadow-md">
+            <div className="w-8 h-8 rounded-xl bg-[#1E1B4B] text-white flex items-center justify-center font-black text-xs shadow-md">
               P
             </div>
-            <span className="font-extrabold text-lg text-[#20242b] tracking-tight">Placify</span>
+            <span className="font-extrabold text-lg text-[#1E1B4B] tracking-tight">Placify</span>
           </div>
 
           <p className="text-slate-600 leading-relaxed font-normal">
@@ -28,33 +28,33 @@ export default function Footer() {
 
         {/* Column 2: Student Placement Suite */}
         <div className="space-y-2.5">
-          <h4 className="font-extrabold text-[#20242b] uppercase tracking-wider text-xs">For Students</h4>
+          <h4 className="font-extrabold text-[#1E1B4B] uppercase tracking-wider text-xs">For Students</h4>
           <ul className="space-y-1.5 font-medium text-slate-600">
-            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Placement Kanban Board</a></li>
-            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Coding Problem Log</a></li>
-            <li><a href="#features" className="hover:text-indigo-600 transition-colors">Subject Competency Radar</a></li>
-            <li><a href="#features" className="hover:text-indigo-600 transition-colors">AI Placement Coach & Mock OA</a></li>
-            <li><a href="#features" className="hover:text-indigo-600 transition-colors">1v1 Peer Mock Practice</a></li>
+            <li><a href="#role-sandbox" className="hover:text-[#2563EB] transition-colors">Placement Kanban Board</a></li>
+            <li><a href="#role-sandbox" className="hover:text-[#2563EB] transition-colors">Coding Problem Log</a></li>
+            <li><a href="#features" className="hover:text-[#2563EB] transition-colors">Subject Competency Radar</a></li>
+            <li><a href="#features" className="hover:text-[#2563EB] transition-colors">AI Placement Coach & Mock OA</a></li>
+            <li><a href="#features" className="hover:text-[#2563EB] transition-colors">1v1 Peer Mock Practice</a></li>
           </ul>
         </div>
 
         {/* Column 3: Faculty & Research */}
         <div className="space-y-2.5">
-          <h4 className="font-extrabold text-[#20242b] uppercase tracking-wider text-xs">Faculty & Research</h4>
+          <h4 className="font-extrabold text-[#1E1B4B] uppercase tracking-wider text-xs">Faculty & Research</h4>
           <ul className="space-y-1.5 font-medium text-slate-600">
-            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Course Syllabus Pace Chart</a></li>
-            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Digital Gradebook Vault</a></li>
-            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Classroom Vault & Notes</a></li>
-            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">PhD Research Roadmap</a></li>
-            <li><a href="#role-sandbox" className="hover:text-indigo-600 transition-colors">Live Sync Study Rooms</a></li>
+            <li><a href="#role-sandbox" className="hover:text-[#2563EB] transition-colors">Course Syllabus Pace Chart</a></li>
+            <li><a href="#role-sandbox" className="hover:text-[#2563EB] transition-colors">Digital Gradebook Vault</a></li>
+            <li><a href="#role-sandbox" className="hover:text-[#2563EB] transition-colors">Classroom Vault & Notes</a></li>
+            <li><a href="#role-sandbox" className="hover:text-[#2563EB] transition-colors">PhD Research Roadmap</a></li>
+            <li><a href="#role-sandbox" className="hover:text-[#2563EB] transition-colors">Live Sync Study Rooms</a></li>
           </ul>
         </div>
 
         {/* Column 4: Platform & Community */}
         <div className="space-y-2.5">
-          <h4 className="font-extrabold text-[#20242b] uppercase tracking-wider text-xs">Platform & Community</h4>
+          <h4 className="font-extrabold text-[#1E1B4B] uppercase tracking-wider text-xs">Platform & Community</h4>
           <ul className="space-y-1.5 font-medium text-slate-600">
-            <li><a href="#pricing" className="hover:text-indigo-600 transition-colors">University Campus License</a></li>
+            <li><a href="#pricing" className="hover:text-[#2563EB] transition-colors">University Campus License</a></li>
             <li><span className="text-slate-400">FERPA & Student Privacy Compliance</span></li>
             <li><span className="text-slate-400">Institutional SLA & Cloud Security</span></li>
           </ul>

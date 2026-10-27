@@ -33,9 +33,9 @@ export default function Hero() {
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-slate-200/90 shadow-[0_4px_16px_rgba(31,41,55,0.06)] text-xs font-bold text-slate-800 backdrop-blur-xl"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-slate-200/90 shadow-[0_4px_16px_rgba(31,41,55,0.06)] text-xs font-bold text-[#1E1B4B] backdrop-blur-xl"
         >
-          <span className="flex h-2 w-2 rounded-full bg-[#8b7cf6] animate-pulse" />
+          <span className="flex h-2 w-2 rounded-full bg-[#FACC15] animate-pulse" />
           <span>✨ The Unified Placement & Academic OS for Modern Universities</span>
         </motion.div>
 
@@ -46,9 +46,9 @@ export default function Hero() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="space-y-4"
         >
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-[#20242b] leading-[1.08]">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-[#1E1B4B] leading-[1.08]">
             Your Placement Journey.{' '}
-            <span className="block mt-1 text-transparent bg-clip-text bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#0ea5e9]">
+            <span className="block mt-1 text-transparent bg-clip-text bg-gradient-to-r from-[#2563EB] via-[#FACC15] to-[#2563EB]">
               Simplified. Elevated. Mastered.
             </span>
           </h1>
@@ -70,7 +70,7 @@ export default function Hero() {
               size="lg"
               onClick={handleStart}
               disabled={loading}
-              className="w-full sm:w-auto text-sm px-8 py-6 rounded-2xl font-extrabold bg-[#20242b] hover:bg-black text-white hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_12px_28px_rgba(32,36,43,0.18)] flex items-center justify-center gap-2.5"
+              className="w-full sm:w-auto text-sm px-8 py-6 rounded-2xl font-extrabold bg-[#2563EB] hover:bg-[#1d4ed8] text-white hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_12px_28px_rgba(37,99,235,0.25)] flex items-center justify-center gap-2.5"
             >
               <span>{user ? 'Launch Placify Console' : 'Launch Placify Free'}</span>
               <ArrowRight className="h-4 w-4" />
@@ -81,9 +81,9 @@ export default function Hero() {
                 loginAsDemo('student')
                 navigate('/dashboard')
               }}
-              className="w-full sm:w-auto text-sm px-7 py-3.5 rounded-2xl font-bold bg-white/90 hover:bg-white border border-slate-200/90 text-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm flex items-center justify-center gap-2"
+              className="w-full sm:w-auto text-sm px-7 py-3.5 rounded-2xl font-bold bg-white/90 hover:bg-white border border-slate-200/90 text-[#1E1B4B] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm flex items-center justify-center gap-2"
             >
-              <GraduationCap className="h-4 w-4 text-[#8174e8]" />
+              <GraduationCap className="h-4 w-4 text-[#2563EB]" />
               <span>Instant Student Preview</span>
             </button>
           </div>
@@ -96,7 +96,7 @@ export default function Hero() {
                 loginAsDemo('student')
                 navigate('/dashboard')
               }}
-              className="px-3 py-1 rounded-xl bg-[#d9eff7]/80 hover:bg-[#d9eff7] border border-[#c8e5ee] text-[#1e6080] font-bold transition-all shadow-sm"
+              className="px-3 py-1 rounded-xl bg-[#2563EB]/10 hover:bg-[#2563EB]/20 border border-[#2563EB]/25 text-[#2563EB] font-bold transition-all shadow-sm"
             >
               🎓 Student Demo
             </button>
@@ -105,7 +105,7 @@ export default function Hero() {
                 loginAsDemo('teacher')
                 navigate('/dashboard')
               }}
-              className="px-3 py-1 rounded-xl bg-[#e4f5d7]/80 hover:bg-[#e4f5d7] border border-[#d4eac5] text-[#366826] font-bold transition-all shadow-sm"
+              className="px-3 py-1 rounded-xl bg-[#FACC15]/20 hover:bg-[#FACC15]/30 border border-[#FACC15]/35 text-[#854d0e] font-bold transition-all shadow-sm"
             >
               👨‍🏫 Faculty Demo
             </button>
@@ -114,7 +114,7 @@ export default function Hero() {
                 loginAsDemo('phd')
                 navigate('/dashboard')
               }}
-              className="px-3 py-1 rounded-xl bg-[#dfe0fb]/80 hover:bg-[#dfe0fb] border border-[#c5c8e8] text-[#5547d0] font-bold transition-all shadow-sm"
+              className="px-3 py-1 rounded-xl bg-[#EEF2FF] hover:bg-[#e0e7ff] border border-blue-200 text-[#1E1B4B] font-bold transition-all shadow-sm"
             >
               🔬 PhD Scholar Demo
             </button>
@@ -189,8 +189,8 @@ export default function Hero() {
           {/* Tab Content 1: Student */}
           {roleTab === 'student' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-300">
-              <div className="p-4 rounded-2xl bg-[#d9eff7]/50 border border-[#c8e5ee] space-y-2">
-                <div className="flex items-center gap-2 text-[#1e6080]">
+              <div className="p-4 rounded-2xl bg-[#EEF2FF] border border-[#BFDBFE] space-y-2">
+                <div className="flex items-center gap-2 text-[#2563EB]">
                   <Briefcase className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">Placement Kanban</strong>
                 </div>
@@ -199,8 +199,8 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#dfe0fb]/50 border border-[#c5c8e8] space-y-2">
-                <div className="flex items-center gap-2 text-[#5547d0]">
+              <div className="p-4 rounded-2xl bg-[#EEF2FF] border border-blue-200 space-y-2">
+                <div className="flex items-center gap-2 text-[#2563EB]">
                   <Code2 className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">DSA & Coding Vault</strong>
                 </div>
@@ -209,9 +209,9 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#e4f5d7]/50 border border-[#d4eac5] space-y-2">
-                <div className="flex items-center gap-2 text-[#366826]">
-                  <Sparkles className="h-4 w-4" />
+              <div className="p-4 rounded-2xl bg-[#FFFDF7] border border-[#FEF08A] space-y-2">
+                <div className="flex items-center gap-2 text-[#854d0e]">
+                  <Sparkles className="h-4 w-4 text-[#FACC15]" />
                   <strong className="text-xs font-bold uppercase tracking-wider">AI Coach & Mock Room</strong>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
@@ -224,8 +224,8 @@ export default function Hero() {
           {/* Tab Content 2: Faculty */}
           {roleTab === 'teacher' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-300">
-              <div className="p-4 rounded-2xl bg-[#e4f5d7]/50 border border-[#d4eac5] space-y-2">
-                <div className="flex items-center gap-2 text-[#366826]">
+              <div className="p-4 rounded-2xl bg-[#FFFDF7] border border-[#FEF08A] space-y-2">
+                <div className="flex items-center gap-2 text-[#854d0e]">
                   <FileSpreadsheet className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">Digital Gradebook</strong>
                 </div>
@@ -234,8 +234,8 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#d9eff7]/50 border border-[#c8e5ee] space-y-2">
-                <div className="flex items-center gap-2 text-[#1e6080]">
+              <div className="p-4 rounded-2xl bg-[#EEF2FF] border border-[#BFDBFE] space-y-2">
+                <div className="flex items-center gap-2 text-[#2563EB]">
                   <Clock className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">Syllabus Pace Tracker</strong>
                 </div>
@@ -244,8 +244,8 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#dfe0fb]/50 border border-[#c5c8e8] space-y-2">
-                <div className="flex items-center gap-2 text-[#5547d0]">
+              <div className="p-4 rounded-2xl bg-[#EEF2FF] border border-blue-200 space-y-2">
+                <div className="flex items-center gap-2 text-[#2563EB]">
                   <Users className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">Classroom Vault & Invites</strong>
                 </div>
@@ -259,8 +259,8 @@ export default function Hero() {
           {/* Tab Content 3: PhD Scholar */}
           {roleTab === 'phd' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-300">
-              <div className="p-4 rounded-2xl bg-[#dfe0fb]/50 border border-[#c5c8e8] space-y-2">
-                <div className="flex items-center gap-2 text-[#5547d0]">
+              <div className="p-4 rounded-2xl bg-[#EEF2FF] border border-blue-200 space-y-2">
+                <div className="flex items-center gap-2 text-[#2563EB]">
                   <Award className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">Publication Tracker</strong>
                 </div>
@@ -269,8 +269,8 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#e4f5d7]/50 border border-[#d4eac5] space-y-2">
-                <div className="flex items-center gap-2 text-[#366826]">
+              <div className="p-4 rounded-2xl bg-[#FFFDF7] border border-[#FEF08A] space-y-2">
+                <div className="flex items-center gap-2 text-[#854d0e]">
                   <Laptop className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">Collaborative Notebooks</strong>
                 </div>
@@ -279,8 +279,8 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#d9eff7]/50 border border-[#c8e5ee] space-y-2">
-                <div className="flex items-center gap-2 text-[#1e6080]">
+              <div className="p-4 rounded-2xl bg-[#EEF2FF] border border-[#BFDBFE] space-y-2">
+                <div className="flex items-center gap-2 text-[#2563EB]">
                   <ShieldCheck className="h-4 w-4" />
                   <strong className="text-xs font-bold uppercase tracking-wider">Thesis Defense Milestones</strong>
                 </div>

@@ -169,7 +169,7 @@ function StickyNotesDrawerContent() {
       } else {
         const safeUrl = url.replace(/"/g, '&quot;')
         const safeText = displayText.replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        const linkHtml = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="color: #6366f1; text-decoration: underline; font-weight: 500;">${safeText}</a>`
+        const linkHtml = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563EB; text-decoration: underline; font-weight: 500;">${safeText}</a>`
         document.execCommand('insertHTML', false, linkHtml)
       }
 

@@ -72,10 +72,10 @@ export default function Pricing() {
     <section id="pricing" className="py-16 px-4 sm:px-8 max-w-7xl mx-auto relative z-20 space-y-10">
       {/* Section Header */}
       <div className="text-center space-y-3 max-w-2xl mx-auto">
-        <span className="px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider">
+        <span className="px-3.5 py-1.5 rounded-full bg-[#EEF2FF] border border-blue-200 text-[#2563EB] text-xs font-bold uppercase tracking-wider">
           Transparent Access
         </span>
-        <h2 className="text-3xl sm:text-5xl font-extrabold text-[#20242b] tracking-tight">
+        <h2 className="text-3xl sm:text-5xl font-extrabold text-[#1E1B4B] tracking-tight">
           Simple Pricing for Students & Institutions
         </h2>
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
@@ -90,8 +90,8 @@ export default function Pricing() {
             onClick={() => setBillingCycle('individual')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
               billingCycle === 'individual'
-                ? 'bg-[#20242b] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#2563EB] text-white shadow-sm'
+                : 'text-slate-600 hover:text-[#1E1B4B]'
             }`}
           >
             <User className="h-3.5 w-3.5" />
@@ -101,8 +101,8 @@ export default function Pricing() {
             onClick={() => setBillingCycle('campus')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
               billingCycle === 'campus'
-                ? 'bg-[#20242b] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#2563EB] text-white shadow-sm'
+                : 'text-slate-600 hover:text-[#1E1B4B]'
             }`}
           >
             <Building2 className="h-3.5 w-3.5" />
@@ -122,26 +122,26 @@ export default function Pricing() {
             transition={{ duration: 0.4, delay: idx * 0.1 }}
             className={`relative p-7 sm:p-8 rounded-[28px] bg-white/90 border transition-all duration-300 shadow-[0_12px_36px_rgba(31,41,55,0.06)] backdrop-blur-xl flex flex-col justify-between space-y-6 ${
               tier.highlighted
-                ? 'border-indigo-400 ring-2 ring-indigo-500/20 shadow-[0_16px_48px_rgba(99,102,241,0.12)]'
+                ? 'border-[#2563EB] ring-2 ring-[#2563EB]/20 shadow-[0_16px_48px_rgba(37,99,235,0.15)]'
                 : 'border-white/95 hover:border-slate-200'
             }`}
           >
             {tier.highlighted && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-[#20242b] text-white text-[10px] font-extrabold uppercase tracking-wider shadow-md flex items-center gap-1">
-                <Sparkles className="h-3 w-3 text-purple-400" /> Most Popular
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-[#1E1B4B] text-white text-[10px] font-extrabold uppercase tracking-wider shadow-md flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-[#FACC15]" /> Most Popular
               </div>
             )}
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-extrabold text-[#20242b] text-xl m-0">{tier.name}</h3>
+                <h3 className="font-extrabold text-[#1E1B4B] text-xl m-0">{tier.name}</h3>
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200">
                   {tier.badge}
                 </span>
               </div>
 
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-[#20242b] tracking-tight">{tier.price}</span>
+                <span className="text-4xl font-black text-[#1E1B4B] tracking-tight">{tier.price}</span>
                 {tier.period && <span className="text-slate-500 text-xs font-bold">{tier.period}</span>}
               </div>
 
@@ -163,7 +163,7 @@ export default function Pricing() {
               onClick={handleStart}
               className={`w-full py-5 rounded-2xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 ${
                 tier.highlighted
-                  ? 'bg-[#20242b] hover:bg-black text-white shadow-md'
+                  ? 'bg-[#2563EB] hover:bg-[#1d4ed8] text-white shadow-md'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
               }`}
             >

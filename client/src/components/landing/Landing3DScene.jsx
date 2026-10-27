@@ -69,7 +69,7 @@ export default function Landing3DScene({ className = '' }) {
     // 1b. Inner glowing wireframe for high-tech holographic depth
     const wireGeo = new THREE.IcosahedronGeometry(1.62, 0)
     const wireMat = new THREE.MeshBasicMaterial({
-      color: 0x818cf8,
+      color: 0x2563eb,
       wireframe: true,
       transparent: true,
       opacity: 0.35,
@@ -79,7 +79,7 @@ export default function Landing3DScene({ className = '' }) {
 
     // 2. Orbiting Torus Rings
     const ringMat1 = new THREE.MeshStandardMaterial({
-      color: 0x6366f1,
+      color: 0x2563eb,
       roughness: 0.3,
       metalness: 0.8,
     })
@@ -90,7 +90,7 @@ export default function Landing3DScene({ className = '' }) {
     mainGroup.add(ring1)
 
     const ringMat2 = new THREE.MeshStandardMaterial({
-      color: 0x38bdf8,
+      color: 0xfacc15,
       roughness: 0.25,
       metalness: 0.75,
     })
@@ -103,7 +103,7 @@ export default function Landing3DScene({ className = '' }) {
     // 3. Floating satellite spheres
     const satellites = []
     const satCount = 7
-    const satColors = [0x8b5cf6, 0x06b6d4, 0x10b981, 0xf59e0b, 0xec4899, 0x6366f1, 0x14b8a6]
+    const satColors = [0x2563eb, 0xfacc15, 0x3b82f6, 0xca8a04, 0x1d4ed8, 0x60a5fa, 0xfde047]
     for (let i = 0; i < satCount; i++) {
       const satGeo = new THREE.SphereGeometry(0.12 + Math.random() * 0.08, 24, 24)
       const satMat = new THREE.MeshStandardMaterial({

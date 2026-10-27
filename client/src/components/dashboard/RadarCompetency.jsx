@@ -46,9 +46,9 @@ export default function RadarCompetency({ topics = [] }) {
               <Radar
                 name="Completion"
                 dataKey="value"
-                stroke="#6366f1"
-                fill="#6366f1"
-                fillOpacity={0.2}
+                stroke="#2563EB"
+                fill="#2563EB"
+                fillOpacity={0.25}
               />
             </RadarChart>
           </ResponsiveContainer>

@@ -1,5 +1,46 @@
 @import "tailwindcss";
 
+@theme {
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-card: var(--bg-card);
+  --color-elevated: var(--bg-elevated);
+  --color-hover: var(--bg-hover);
+
+  --color-accent: var(--accent-color);
+  --color-accent-light: var(--accent-light);
+  --color-accent-glow: rgba(37, 99, 235, 0.20);
+  --color-accent-primary: #2563EB;
+  --color-accent-yellow: #FACC15;
+  --color-accent-surface: #FFFDF7;
+  --color-accent-muted: #EEF2FF;
+  --color-accent-text: #1E1B4B;
+
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+
+  --color-palette-primary: #2563EB;
+  --color-palette-accent: #FACC15;
+  --color-palette-surface: #FFFDF7;
+  --color-palette-muted: #EEF2FF;
+  --color-palette-text: #1E1B4B;
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-border: var(--border-color);
+  --color-border-color: var(--border-color);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-hover: rgba(37, 99, 235, 0.35);
+
+  --color-semantic-red: #ef4444;
+  --color-semantic-yellow: #FACC15;
+  --color-semantic-green: #10B981;
+  --color-semantic-blue: #2563EB;
+  --color-semantic-purple: #4F46E5;
+}
+
 @layer base {
   :root {
     color-scheme: light;

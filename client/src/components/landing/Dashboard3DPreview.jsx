@@ -46,9 +46,9 @@ export default function Dashboard3DPreview() {
       <motion.div
         animate={{ y: [6, -5, 6], rotate: [1, -1, 1] }}
         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-        className="hidden md:flex absolute -bottom-5 -right-6 z-30 items-center gap-2 px-3.5 py-2 rounded-2xl bg-[#20242b] text-white shadow-[0_16px_36px_rgba(0,0,0,0.2)] backdrop-blur-xl text-xs font-bold"
+        className="hidden md:flex absolute -bottom-5 -right-6 z-30 items-center gap-2 px-3.5 py-2 rounded-2xl bg-[#1E1B4B] text-[#FFFDF7] shadow-[0_16px_36px_rgba(30,27,75,0.2)] backdrop-blur-xl text-xs font-bold"
       >
-        <Sparkles className="h-4 w-4 text-purple-400" />
+        <Sparkles className="h-4 w-4 text-[#FACC15]" />
         <span>AI Placement Coach Ready ✨</span>
       </motion.div>
 
@@ -76,7 +76,7 @@ export default function Dashboard3DPreview() {
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-200/70 px-2">
           {/* Brand mark & title */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#20242b] text-white flex items-center justify-center font-black text-xs shadow-md">
+            <div className="w-8 h-8 rounded-xl bg-[#1E1B4B] text-[#EEF2FF] flex items-center justify-center font-black text-xs shadow-md">
               P
             </div>
             <div>
@@ -159,10 +159,10 @@ export default function Dashboard3DPreview() {
                       <h4 className="text-sm font-black text-slate-800 m-0">Problems Logged</h4>
                     </div>
 
-                    <div className="relative my-3 h-28 rounded-xl bg-[#dfe0fb] flex items-center justify-center overflow-hidden">
-                      <div className="w-24 h-24 rounded-full border-4 border-[#c5c8e8] border-t-[#8b7cf6] flex flex-col items-center justify-center">
+                    <div className="relative my-3 h-28 rounded-xl bg-[#EEF2FF] flex items-center justify-center overflow-hidden">
+                      <div className="w-24 h-24 rounded-full border-4 border-[#C7D2FE] border-t-[#2563EB] flex flex-col items-center justify-center">
                         <span className="text-[10px] text-slate-500 font-medium">Logged</span>
-                        <strong className="text-2xl font-black text-slate-900 leading-none">24</strong>
+                        <strong className="text-2xl font-black text-[#1E1B4B] leading-none">24</strong>
                         <span className="text-[9px] text-slate-500">Problems</span>
                       </div>
                     </div>
@@ -170,10 +170,10 @@ export default function Dashboard3DPreview() {
 
                   {/* 2 Pastel Metric Tiles (5 cols) */}
                   <div className="sm:col-span-5 flex flex-col gap-3">
-                    {/* Topics Mastered (Soft Sky Blue) */}
-                    <div className="rounded-2xl p-3.5 bg-[#d9eff7] border border-[#c8e5ee] flex flex-col justify-between flex-1">
+                    {/* Topics Mastered */}
+                    <div className="rounded-2xl p-3.5 bg-[#EEF2FF] border border-[#BFDBFE] flex flex-col justify-between flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-white/70 flex items-center justify-center text-[#8174e8]">
+                        <div className="w-7 h-7 rounded-lg bg-white/70 flex items-center justify-center text-[#2563EB]">
                           <Code2 className="h-4 w-4" />
                         </div>
                         <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wide">
@@ -187,10 +187,10 @@ export default function Dashboard3DPreview() {
                       </div>
                     </div>
 
-                    {/* Active Job Drives (Soft Mint Green) */}
-                    <div className="rounded-2xl p-3.5 bg-[#e4f5d7] border border-[#d4eac5] flex flex-col justify-between flex-1">
+                    {/* Active Job Drives */}
+                    <div className="rounded-2xl p-3.5 bg-[#FFFDF7] border border-[#FEF08A] flex flex-col justify-between flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-white/70 flex items-center justify-center text-[#5a8c4b]">
+                        <div className="w-7 h-7 rounded-lg bg-white/70 flex items-center justify-center text-[#CA8A04]">
                           <Briefcase className="h-4 w-4" />
                         </div>
                         <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wide">
@@ -256,12 +256,12 @@ export default function Dashboard3DPreview() {
               {/* Sticky Notes (4 cols) */}
               <div className="sm:col-span-4 rounded-2xl p-3.5 bg-white/90 border border-slate-200/90 shadow-sm flex flex-col justify-between">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                  <div className="w-6 h-6 rounded-lg bg-[#fff8df] border border-[#f0df9d] flex items-center justify-center text-[#c79d09]">
+                  <div className="w-6 h-6 rounded-lg bg-[#FFFDF7] border border-[#FEF08A] flex items-center justify-center text-[#CA8A04]">
                     <FileText className="h-3.5 w-3.5" />
                   </div>
                   <span className="text-[10px] font-black text-slate-800 uppercase tracking-wide">Sticky Notes</span>
                 </div>
-                <div className="p-2.5 my-2 rounded-xl bg-[#fff8df] border border-[#f0df9d] text-left">
+                <div className="p-2.5 my-2 rounded-xl bg-[#FFFDF7] border border-[#FEF08A] text-left">
                   <strong className="text-[11px] font-bold text-slate-900 block">Amazon System Design</strong>
                   <span className="text-[10px] text-slate-600 line-clamp-2">Review LRU Cache and consistent hashing before 4 PM interview.</span>
                 </div>
@@ -272,10 +272,10 @@ export default function Dashboard3DPreview() {
               <div className="sm:col-span-8 rounded-2xl p-3.5 bg-white/90 border border-slate-200/90 shadow-sm flex flex-col justify-between">
                 <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <span className="text-[#8174e8] font-black">🎖️</span>
+                    <span className="text-[#2563EB] font-black">🎖️</span>
                     <h4 className="text-xs font-black text-slate-800 m-0">Competency Map</h4>
                   </div>
-                  <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-full">
                     88% Placement Ready
                   </span>
                 </div>
@@ -286,7 +286,7 @@ export default function Dashboard3DPreview() {
                     <polygon points="150,15 220,40 195,100 105,100 80,40" fill="none" stroke="#e2e8f0" strokeWidth="1" />
                     <polygon points="150,35 195,50 180,85 120,85 105,50" fill="none" stroke="#e2e8f0" strokeWidth="1" />
                     {/* Filled Radar Area */}
-                    <polygon points="150,22 210,44 190,92 110,88 88,48" fill="#8b7cf6" fillOpacity="0.22" stroke="#8174e8" strokeWidth="2" />
+                    <polygon points="150,22 210,44 190,92 110,88 88,48" fill="#2563EB" fillOpacity="0.22" stroke="#2563EB" strokeWidth="2" />
                     {/* Axis Labels */}
                     <text x="150" y="8" textAnchor="middle" fill="#64748b" fontSize="9" fontWeight="bold">DSA</text>
                     <text x="230" y="42" textAnchor="start" fill="#64748b" fontSize="9" fontWeight="bold">OS</text>

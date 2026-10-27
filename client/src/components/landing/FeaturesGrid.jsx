@@ -23,10 +23,10 @@ export default function FeaturesGrid() {
     <section id="features" className="py-16 px-4 sm:px-8 max-w-7xl mx-auto relative z-20 space-y-10">
       {/* Section Header */}
       <div className="text-center space-y-3 max-w-2xl mx-auto">
-        <span className="px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider">
+        <span className="px-3.5 py-1.5 rounded-full bg-[#EEF2FF] border border-blue-200 text-[#2563EB] text-xs font-bold uppercase tracking-wider">
           Unified Core Architecture
         </span>
-        <h2 className="text-3xl sm:text-5xl font-extrabold text-[#20242b] tracking-tight">
+        <h2 className="text-3xl sm:text-5xl font-extrabold text-[#1E1B4B] tracking-tight">
           Designed for High-Velocity Placement Success
         </h2>
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
@@ -46,7 +46,7 @@ export default function FeaturesGrid() {
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-[#d9eff7] text-[#1e6080] border border-[#c8e5ee] shadow-sm">
+              <div className="p-3 rounded-2xl bg-[#EEF2FF] text-[#2563EB] border border-[#BFDBFE] shadow-sm">
                 <Briefcase className="h-6 w-6" />
               </div>
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
@@ -55,7 +55,7 @@ export default function FeaturesGrid() {
             </div>
 
             <div className="space-y-1.5">
-              <h3 className="text-2xl font-extrabold text-[#20242b] group-hover:text-indigo-600 transition-colors">
+              <h3 className="text-2xl font-extrabold text-[#1E1B4B] group-hover:text-[#2563EB] transition-colors">
                 Visual Placement Kanban & Drive Tracker
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed font-normal">
@@ -70,20 +70,20 @@ export default function FeaturesGrid() {
                 <p className="text-xs font-bold text-slate-800 m-0">Google SDE</p>
                 <span className="text-[9px] text-slate-500">₹45 LPA</span>
               </div>
-              <div className="p-3 rounded-xl bg-[#dfe0fb]/60 border border-[#c5c8e8] space-y-1">
-                <span className="text-[10px] font-bold text-[#5547d0] uppercase">OA / Round 1</span>
+              <div className="p-3 rounded-xl bg-[#EEF2FF] border border-blue-200 space-y-1">
+                <span className="text-[10px] font-bold text-[#2563EB] uppercase">OA / Round 1</span>
                 <p className="text-xs font-bold text-slate-800 m-0">Amazon</p>
                 <span className="text-[9px] text-slate-500">Tomorrow 4 PM</span>
               </div>
-              <div className="p-3 rounded-xl bg-[#e4f5d7]/70 border border-[#d4eac5] space-y-1">
-                <span className="text-[10px] font-bold text-[#366826] uppercase">Offer Logged</span>
+              <div className="p-3 rounded-xl bg-[#FFFDF7] border border-[#FEF08A] space-y-1">
+                <span className="text-[10px] font-bold text-[#854d0e] uppercase">Offer Logged</span>
                 <p className="text-xs font-bold text-slate-800 m-0">Atlassian</p>
                 <span className="text-[9px] text-emerald-700 font-bold">Confirmed 🎉</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition-transform">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#2563EB] group-hover:translate-x-1 transition-transform">
             <span>Explore Placement Kanban</span>
             <ChevronRight className="h-4 w-4" />
           </div>
@@ -99,7 +99,7 @@ export default function FeaturesGrid() {
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-[#dfe0fb] text-[#5547d0] border border-[#c5c8e8] shadow-sm">
+              <div className="p-3 rounded-2xl bg-[#EEF2FF] text-[#2563EB] border border-blue-200 shadow-sm">
                 <Code2 className="h-6 w-6" />
               </div>
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
@@ -108,7 +108,7 @@ export default function FeaturesGrid() {
             </div>
 
             <div className="space-y-1.5">
-              <h3 className="text-2xl font-extrabold text-[#20242b] group-hover:text-indigo-600 transition-colors">
+              <h3 className="text-2xl font-extrabold text-[#1E1B4B] group-hover:text-[#2563EB] transition-colors">
                 Radar Competency & Coding Log
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed font-normal">
@@ -116,18 +116,18 @@ export default function FeaturesGrid() {
               </p>
             </div>
 
-            <div className="p-3 rounded-2xl bg-[#dfe0fb]/40 border border-[#c5c8e8]/60 flex items-center justify-between">
+            <div className="p-3 rounded-2xl bg-[#EEF2FF] border border-[#BFDBFE] flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold text-slate-500 uppercase">Mastery Index</span>
                 <p className="text-lg font-black text-slate-900 m-0">88% Ready</p>
               </div>
-              <span className="px-2.5 py-1 rounded-lg bg-white text-indigo-700 font-bold text-xs shadow-sm">
+              <span className="px-2.5 py-1 rounded-lg bg-white text-[#2563EB] font-bold text-xs shadow-sm">
                 Top 5% Batch
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition-transform">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#2563EB] group-hover:translate-x-1 transition-transform">
             <span>View Coding Vault</span>
             <ChevronRight className="h-4 w-4" />
           </div>
@@ -143,7 +143,7 @@ export default function FeaturesGrid() {
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-[#fff8df] text-[#b88c00] border border-[#f0df9d] shadow-sm">
+              <div className="p-3 rounded-2xl bg-[#FFFDF7] text-[#CA8A04] border border-[#FEF08A] shadow-sm">
                 <FileText className="h-6 w-6" />
               </div>
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
@@ -152,7 +152,7 @@ export default function FeaturesGrid() {
             </div>
 
             <div className="space-y-1.5">
-              <h3 className="text-2xl font-extrabold text-[#20242b] group-hover:text-indigo-600 transition-colors">
+              <h3 className="text-2xl font-extrabold text-[#1E1B4B] group-hover:text-[#2563EB] transition-colors">
                 Real-Time Collaborative Notes
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed font-normal">
@@ -160,17 +160,17 @@ export default function FeaturesGrid() {
               </p>
             </div>
 
-            <div className="p-3 rounded-2xl bg-[#fff8df]/50 border border-[#f0df9d] flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-[#FFFDF7] border border-[#FEF08A] flex items-center gap-3">
               <div className="flex -space-x-2">
-                <div className="w-7 h-7 rounded-full bg-indigo-500 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">RV</div>
+                <div className="w-7 h-7 rounded-full bg-[#2563EB] text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">RV</div>
                 <div className="w-7 h-7 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">AG</div>
-                <div className="w-7 h-7 rounded-full bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white">+3</div>
+                <div className="w-7 h-7 rounded-full bg-[#FACC15] text-[#1E1B4B] font-bold text-[10px] flex items-center justify-center border-2 border-white">+3</div>
               </div>
               <span className="text-xs font-bold text-slate-800">5 peers currently in study room</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition-transform">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#2563EB] group-hover:translate-x-1 transition-transform">
             <span>Open Placify Notes</span>
             <ChevronRight className="h-4 w-4" />
           </div>
@@ -186,8 +186,8 @@ export default function FeaturesGrid() {
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="p-3 rounded-2xl bg-[#e4f5d7] text-[#366826] border border-[#d4eac5] shadow-sm">
-                <Sparkles className="h-6 w-6" />
+              <div className="p-3 rounded-2xl bg-[#FFFDF7] text-[#854d0e] border border-[#FEF08A] shadow-sm">
+                <Sparkles className="h-6 w-6 text-[#FACC15]" />
               </div>
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
                 AI Intelligence
@@ -195,7 +195,7 @@ export default function FeaturesGrid() {
             </div>
 
             <div className="space-y-1.5">
-              <h3 className="text-2xl font-extrabold text-[#20242b] group-hover:text-indigo-600 transition-colors">
+              <h3 className="text-2xl font-extrabold text-[#1E1B4B] group-hover:text-[#2563EB] transition-colors">
                 AI Placement Coach & Mock Simulator
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed font-normal">
@@ -203,7 +203,7 @@ export default function FeaturesGrid() {
               </p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-900 text-white flex items-center justify-between text-xs">
+            <div className="p-3.5 rounded-2xl bg-[#1E1B4B] text-white flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="font-semibold text-slate-200">AI Coach Ready for Mock Round</span>
@@ -214,7 +214,7 @@ export default function FeaturesGrid() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition-transform">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#2563EB] group-hover:translate-x-1 transition-transform">
             <span>Launch AI Coach</span>
             <ChevronRight className="h-4 w-4" />
           </div>

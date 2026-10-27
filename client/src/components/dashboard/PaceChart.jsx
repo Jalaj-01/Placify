@@ -20,7 +20,7 @@ export default function PaceChart({ courses = [] }) {
           <h3 className="font-bold text-text-primary text-sm">Syllabus Progress Visualization (Planned vs Actual)</h3>
           <p className="text-xs text-text-muted">Recharts module breakdown comparison across term calendar.</p>
         </div>
-        <span className="px-2.5 py-0.5 rounded-full bg-semantic-purple/15 text-semantic-purple text-[10px] font-bold border border-semantic-purple/30">
+        <span className="px-2.5 py-0.5 rounded-full bg-[#2563EB]/15 text-[#2563EB] text-[10px] font-bold border border-[#2563EB]/30">
           Recharts Analytics
         </span>
       </div>
@@ -33,16 +33,16 @@ export default function PaceChart({ courses = [] }) {
             <YAxis stroke="#8b8b9e" fontSize={10} unit="%" domain={[0, 100]} />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#0c0d14',
+                backgroundColor: '#1E1B4B',
                 borderColor: 'rgba(255,255,255,0.15)',
                 borderRadius: '12px',
                 fontSize: '12px',
-                color: '#fff'
+                color: '#FFFDF7'
               }}
             />
             <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-            <Bar dataKey="plannedPct" name="Planned Target %" fill="#a855f7" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="actualPct" name="Actual Completed %" fill="#6366f1" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="plannedPct" name="Planned Target %" fill="#FACC15" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="actualPct" name="Actual Completed %" fill="#2563EB" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

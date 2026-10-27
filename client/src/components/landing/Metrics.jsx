@@ -8,28 +8,28 @@ export default function Metrics() {
       value: '98.4%',
       subtext: 'Automated Kanban tracking vs manual spreadsheets',
       icon: TrendingUp,
-      badgeColor: 'bg-[#dfe0fb] text-[#5547d0] border-[#c5c8e8]',
+      badgeColor: 'bg-[#EEF2FF] text-[#2563EB] border-blue-200',
     },
     {
       label: 'Mock Interviews Simulated',
       value: '10,000+',
       subtext: 'Timed OA problem sessions & 1v1 peer rounds',
       icon: CheckCircle2,
-      badgeColor: 'bg-[#e4f5d7] text-[#366826] border-[#d4eac5]',
+      badgeColor: 'bg-[#FFFDF7] text-[#854d0e] border-[#FEF08A]',
     },
     {
       label: 'Faculty Syllabus Overhead Cut',
       value: '50%',
       subtext: 'Automated course pacing & 1-click gradebook CSV',
       icon: Zap,
-      badgeColor: 'bg-[#d9eff7] text-[#1e6080] border-[#c8e5ee]',
+      badgeColor: 'bg-[#EEF2FF] text-[#2563EB] border-[#BFDBFE]',
     },
     {
       label: 'Campus Satisfaction Rating',
       value: '4.9 / 5',
       subtext: 'Trusted by engineering students, faculty & scholars',
       icon: Star,
-      badgeColor: 'bg-[#fff8df] text-[#b88c00] border-[#f0df9d]',
+      badgeColor: 'bg-[#FFFDF7] text-[#CA8A04] border-[#FEF08A]',
     },
   ]
 
@@ -57,7 +57,7 @@ export default function Metrics() {
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-3xl sm:text-4xl font-extrabold text-[#20242b] tracking-tight">
+                <h3 className="text-3xl sm:text-4xl font-extrabold text-[#1E1B4B] tracking-tight">
                   {item.value}
                 </h3>
                 <h4 className="text-xs font-bold text-slate-800 leading-tight">
